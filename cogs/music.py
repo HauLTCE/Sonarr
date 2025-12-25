@@ -6,6 +6,8 @@ import json
 import os
 import random
 import logging
+import tempfile
+import shutil
 from utils.ytdl import YTDLSource
 from utils.checks import is_music_channel
 from utils.music_queue import LazyMusicQueue
@@ -69,7 +71,29 @@ class Music(commands.Cog):
             await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=self.current_track[0]))
         else:
             await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="for !help"))
-
+    def _save_playlists_atomic(self):
+        """Save playlists with atomic writes to prevent corruption."""
+        import tempfile
+        try:
+            # Write to temp file first
+            temp_fd, temp_path = tempfile.mkstemp(suffix='.json', dir='.')
+            with open(temp_fd, 'w') as f:
+                json.dump(self.saved_playlists, f, indent=2)
+            
+            # Atomic rename (replaces old file)
+            import shutil
+            shutil.move(temp_path, PLAYLIST_FILE)
+            logger.debug(f"[Music] Playlists saved atomically")
+            return True
+        except Exception as e:
+            logger.error(f"[Music] Failed to save playlists: {e}")
+            try:
+                import os
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+            except:
+                pass
+            return False
     async def start_playing_async(self, ctx):
         if not ctx.voice_client or not ctx.voice_client.is_connected():
             return
@@ -437,9 +461,12 @@ class Music(commands.Cog):
             for item in self.music_queue.items
         ]
         self.saved_playlists[name] = serialized_queue
-        with open(PLAYLIST_FILE, "w") as f:
-            json.dump(self.saved_playlists, f, indent=2)
-        await ctx.send(f"💾 Playlist **{name}** saved ({len(serialized_queue)} songs).")
+        
+        # Use atomic write to prevent corruption
+        if self._save_playlists_atomic():
+            await ctx.send(f"💾 Playlist **{name}** saved ({len(serialized_queue)} songs).")
+        else:
+            await ctx.send(f"❌ Failed to save playlist **{name}**.")
 
     @commands.command()
     @is_music_channel()
