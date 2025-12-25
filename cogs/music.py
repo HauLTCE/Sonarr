@@ -231,22 +231,32 @@ class Music(commands.Cog):
                 if isinstance(info, list):
                     MAX_PLAYLIST_ADD = 100
                     count = 0
+                    first_title = None
                     for entry in info[:MAX_PLAYLIST_ADD]:
                         if not entry or not entry.get('url'):
                             continue
                         # Tier 2: Add via lazy queue (no metadata loading yet)
-                        self.music_queue.add(entry.get('title', 'Unknown'), entry.get('url'))
+                        title = entry.get('title', 'Unknown')
+                        if first_title is None:
+                            first_title = title
+                        self.music_queue.add(title, entry.get('url'))
                         count += 1
 
                     truncated = len(info) > MAX_PLAYLIST_ADD
 
                     if ctx.voice_client.is_playing():
-                        msg = f'✅ Added playlist/search results to queue ({count} tracks)'
+                        msg = f'✅ Added **{first_title}**'
+                        if count > 1:
+                            msg += f' + {count - 1} more'
+                        msg += f' to queue ({count} tracks)'
                         if truncated:
                             msg += " (truncated to 100 tracks)"
                         await ctx.send(msg)
                     else:
-                        msg = f'✅ Added playlist/search results to queue ({count} tracks). Starting playback...'
+                        msg = f'✅ Added **{first_title}**'
+                        if count > 1:
+                            msg += f' + {count - 1} more'
+                        msg += f' to queue ({count} tracks). Starting playback...'
                         if truncated:
                             msg += " (truncated to 100 tracks)"
                         await ctx.send(msg)
