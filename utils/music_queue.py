@@ -66,6 +66,11 @@ class LazyMusicQueue:
         for title, url in items:
             self.add(title, url)
     
+    def clear(self):
+        """Clear all items from queue."""
+        self.items.clear()
+        logger.debug(f"[LazyQueue] Queue cleared")
+    
     def __len__(self):
         return len(self.items)
     

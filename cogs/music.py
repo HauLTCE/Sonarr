@@ -70,6 +70,8 @@ class Music(commands.Cog):
             url = item[1] if isinstance(item, tuple) else item.url
         elif len(self.music_queue) > 0:
             item = self.music_queue.pop(0)
+            if item is None:
+                return
             title = item.title if hasattr(item, 'title') else item[0]
             url = item.url if hasattr(item, 'url') else item[1]
             self.current_track = (title, url)
@@ -114,15 +116,26 @@ class Music(commands.Cog):
             title, url = self.current_track
             should_announce = False
         elif len(self.music_queue) > 0:
-            title, url = self.music_queue.pop(0)
+            item = self.music_queue.pop(0)
+            if item is None:
+                await self.process_next_song(ctx)
+                return
+            title = item.title if hasattr(item, 'title') else item[0]
+            url = item.url if hasattr(item, 'url') else item[1]
             self.current_track = (title, url)
             
             self.history.insert(0, self.current_track)
             if len(self.history) > 20: self.history.pop()
         else:
             if self.loop_mode == 'playlist' and self.loop_playlist_backup:
-                self.music_queue = list(self.loop_playlist_backup)
-                title, url = self.music_queue.pop(0)
+                # Reinitialize queue with backup items
+                self.music_queue = LazyMusicQueue()
+                for title, url in self.loop_playlist_backup:
+                    self.music_queue.add(title, url)
+                
+                item = self.music_queue.pop(0)
+                title = item.title
+                url = item.url
                 self.current_track = (title, url)
                 self.history.insert(0, self.current_track)
                 if len(self.history) > 20: self.history.pop()
@@ -408,10 +421,15 @@ class Music(commands.Cog):
         if not self.music_queue:
             await ctx.send("❌ Queue is empty, nothing to save.")
             return
-        self.saved_playlists[name] = self.music_queue
+        # Serialize LazyQueueItems to tuples for JSON compatibility
+        serialized_queue = [
+            (item.title, item.url) if hasattr(item, 'title') else item
+            for item in self.music_queue.items
+        ]
+        self.saved_playlists[name] = serialized_queue
         with open(PLAYLIST_FILE, "w") as f:
-            json.dump(self.saved_playlists, f)
-        await ctx.send(f"💾 Playlist **{name}** saved ({len(self.music_queue)} songs).")
+            json.dump(self.saved_playlists, f, indent=2)
+        await ctx.send(f"💾 Playlist **{name}** saved ({len(serialized_queue)} songs).")
 
     @commands.command()
     @is_music_channel()
