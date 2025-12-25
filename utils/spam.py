@@ -16,6 +16,14 @@ PER_COMMAND_THRESHOLD = 5  # Max uses of same command in 5 minutes
 PER_COMMAND_TIME_WINDOW = 300  # 5 minutes
 PER_COMMAND_COOLDOWN = 600  # 10 minutes timeout
 
+# Commands exempt from per-command spam detection (music, utility, etc.)
+SPAM_EXEMPT_COMMANDS = {
+    'play', 'queue', 'skip', 'stop', 'pause', 'resume', 'join', 'leave', 'disconnect',
+    'nowplaying', 'now_playing', 'loop', 'shuffle', 'clear', 'remove',
+    'playlist_save', 'playlist_load', 'playlist_list',
+    'ping', 'echo', 'remind', 'status', 'help'
+}
+
 def check_spam(user_id, chain_count=1):
     """Check if user is spamming. Returns (is_spamming, remaining_cooldown)."""
     current_time = time.time()
@@ -48,6 +56,10 @@ def check_spam(user_id, chain_count=1):
 
 def check_command_type_spam(user_id, command_name):
     """Check if user is spamming a specific command type. Returns (is_spamming, remaining_cooldown)."""
+    # Skip spam check for exempt commands
+    if command_name in SPAM_EXEMPT_COMMANDS:
+        return False, 0
+    
     current_time = time.time()
     user_key = f"{user_id}"
     command_key = f"{user_id}:{command_name}"
