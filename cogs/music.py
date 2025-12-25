@@ -49,8 +49,18 @@ class Music(commands.Cog):
         self.volume = 0.5
         
         if os.path.exists(PLAYLIST_FILE):
-            with open(PLAYLIST_FILE, "r") as f:
-                self.saved_playlists = json.load(f)
+            try:
+                with open(PLAYLIST_FILE, "r") as f:
+                    self.saved_playlists = json.load(f)
+            except (json.JSONDecodeError, IOError) as e:
+                logger.warning(f"Failed to load playlists.json: {e}. Initializing empty playlists.")
+                self.saved_playlists = {}
+                # Reset the file
+                try:
+                    with open(PLAYLIST_FILE, "w") as f:
+                        json.dump({}, f)
+                except Exception as reset_error:
+                    logger.error(f"Failed to reset playlists.json: {reset_error}")
         else:
             self.saved_playlists = {}
 
