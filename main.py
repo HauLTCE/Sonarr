@@ -11,7 +11,7 @@ from utils.help import PrettyHelp
 from utils.checks import WrongChannelError
 from utils.logger import setup_logging
 from utils.config import load_config
-from utils.spam import check_spam
+from utils.spam import check_spam, check_command_type_spam
 from utils.command_history import log_command, update_command_status
 
 load_dotenv()
@@ -65,6 +65,19 @@ async def before_perm_cleanup():
 
 @bot.before_invoke
 async def _log_command(ctx):
+    # Check for command-type spam (same command used too many times)
+    if ctx.command:
+        is_spamming, remaining = check_command_type_spam(ctx.author.id, ctx.command.name)
+        if is_spamming:
+            remaining_mins = int(remaining // 60)
+            remaining_secs = int(remaining % 60)
+            await ctx.send(
+                f"⏸️ {ctx.author.mention}, you're using **!{ctx.command.name}** too much! "
+                f"Timeout: **{remaining_mins}m {remaining_secs}s**",
+                delete_after=10
+            )
+            raise commands.CheckFailure(f"User in timeout for command: {ctx.command.name}")
+    
     # Tier 1 Optimization: Parallelize independent operations
     async def log_and_track():
         try:
