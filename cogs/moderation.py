@@ -1,0 +1,98 @@
+import discord
+from discord.ext import commands
+from datetime import timedelta
+from utils.internal_commands import InternalCommandResult, InternalCommandExecutor
+import logging
+
+logger = logging.getLogger("bot")
+
+class Moderation(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    # ===== INTERNAL COMMAND METHODS =====
+    
+    async def internal_mute(self, member, duration_minutes=5, reason=""):
+        """Internal: Mute a member silently"""
+        try:
+            duration = timedelta(minutes=duration_minutes)
+            await member.timeout(duration, reason=reason or "Automatic mute by bot")
+            InternalCommandExecutor.log_action("Mute", f"{member.display_name} muted for {duration_minutes}m. Reason: {reason}")
+            return InternalCommandResult(True, f"Muted {member.display_name}")
+        except Exception as e:
+            return InternalCommandResult(False, str(e))
+    
+    async def internal_unmute(self, member, reason=""):
+        """Internal: Unmute a member silently"""
+        try:
+            await member.timeout(None, reason=reason or "Automatic unmute by bot")
+            InternalCommandExecutor.log_action("Unmute", f"{member.display_name} unmuted. Reason: {reason}")
+            return InternalCommandResult(True, f"Unmuted {member.display_name}")
+        except Exception as e:
+            return InternalCommandResult(False, str(e))
+
+    # ===== END INTERNAL COMMANDS =====
+
+    @commands.command()
+    @commands.has_permissions(manage_messages=True)
+    async def purge(self, ctx, amount: int):
+        """Deletes the last X messages. Usage: !purge 20"""
+        await ctx.channel.purge(limit=amount + 1)
+        msg = await ctx.send(f"🧹 Deleted **{amount}** messages.", delete_after=3)
+
+    @commands.command()
+    @commands.has_permissions(kick_members=True)
+    async def kick(self, ctx, member: discord.Member, *, reason="No reason provided"):
+        """Kicks a member from the server."""
+        if member.top_role >= ctx.author.top_role:
+            await ctx.send("❌ You cannot kick someone with a higher or equal role.")
+            return
+        
+        await member.kick(reason=reason)
+        await ctx.send(f"👢 **{member}** has been kicked. Reason: {reason}")
+
+    @commands.command()
+    @commands.has_permissions(ban_members=True)
+    async def ban(self, ctx, member: discord.Member, *, reason="No reason provided"):
+        """Bans a member from the server."""
+        if member.top_role >= ctx.author.top_role:
+            await ctx.send("❌ You cannot ban someone with a higher or equal role.")
+            return
+
+        await member.ban(reason=reason)
+        await ctx.send(f"🔨 **{member}** has been banned. Reason: {reason}")
+
+    @commands.command()
+    @commands.has_permissions(manage_roles=True)
+    async def mute(self, ctx, member: discord.Member):
+        """Times out a member for 5 minutes (Mute)."""
+        from datetime import timedelta
+        duration = timedelta(minutes=5)
+        await member.timeout(duration, reason="Muted by command")
+        await ctx.send(f"😶 **{member}** has been muted for 5 minutes.")
+
+    @commands.command()
+    @commands.has_permissions(manage_roles=True)
+    async def unmute(self, ctx, member: discord.Member):
+        """Removes timeout."""
+        await member.timeout(None)
+        await ctx.send(f"🗣️ **{member}** has been unmuted.")
+
+    @commands.command()
+    async def userinfo(self, ctx, member: discord.Member = None):
+        """Displays info about a user."""
+        member = member or ctx.author
+        
+        embed = discord.Embed(title=f"User Info: {member}", color=member.color)
+        embed.set_thumbnail(url=member.display_avatar.url)
+        embed.add_field(name="ID", value=member.id, inline=True)
+        embed.add_field(name="Created Account", value=member.created_at.strftime("%Y-%m-%d"), inline=True)
+        embed.add_field(name="Joined Server", value=member.joined_at.strftime("%Y-%m-%d"), inline=True)
+        
+        roles = [role.mention for role in member.roles if role.name != "@everyone"]
+        embed.add_field(name=f"Roles ({len(roles)})", value=" ".join(roles) if roles else "None", inline=False)
+        
+        await ctx.send(embed=embed)
+
+async def setup(bot):
+    await bot.add_cog(Moderation(bot))
