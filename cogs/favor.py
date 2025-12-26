@@ -299,7 +299,7 @@ class Favor(commands.Cog):
             message_type = "greeting"
         
         # Get premade response from cold tier only (no affection system)
-        response, _ = get_response(affection=0, ai_grade="F", message_type=message_type)
+        response, _ = get_response(affection_score=0, ai_grade="F", message_type=message_type)
         
         logger.debug(f"[Favor] Type: {message_type}, Response: {response}")
         
