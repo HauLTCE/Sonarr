@@ -1,0 +1,20 @@
+{
+  "lucky_charm": {
+    "name": "Lucky Charm",
+    "description": "Luck buff: +20% work earnings and daily bonus for 60 minutes.",
+    "price": 250,
+    "type": "consumable",
+    "buff_id": "luck_boost",
+    "buff_value": 0.2,
+    "buff_duration_minutes": 60
+  },
+  "smoke_bomb": {
+    "name": "Smoke Bomb",
+    "description": "Reduces rob risk on your next robbery (higher success, lower fine).",
+    "price": 400,
+    "type": "consumable",
+    "buff_id": "rob_safety",
+    "buff_value": 0.15,
+    "buff_duration_minutes": 30
+  }
+}
