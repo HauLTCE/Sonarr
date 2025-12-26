@@ -139,16 +139,39 @@ class Favor(commands.Cog):
         
         # Determine message type from content
         content_lower = message.content.lower()
-        question_words = ["what", "why", "how", "where", "when", "who", "which", "can you", "could you", "would you", "should you", "is it", "are you", "do you"]
-        compliment_words = ["good", "great", "love", "like", "awesome", "cool", "nice", "respect", "appreciate", "best", "amazing", "smart", "clever", "brilliant"]
-        request_words = ["help", "please", "can", "could", "would", "give", "do", "make", "show", "tell", "explain"]
         
-        if any(word in content_lower for word in question_words):
+        # Check for specific message types with priority order
+        goodbye_words = ["bye", "goodbye", "see you", "later", "gotta go", "leaving", "gtg", "cya", "farewell"]
+        thanks_words = ["thank", "thanks", "thx", "appreciate", "grateful", "ty"]
+        apology_words = ["sorry", "apologize", "my bad", "my fault", "forgive", "apologies"]
+        question_words = ["what", "why", "how", "where", "when", "who", "which", "can you", "could you", "would you", "should you", "is it", "are you", "do you"]
+        compliment_words = ["good", "great", "love", "like", "awesome", "cool", "nice", "respect", "best", "amazing", "smart", "clever", "brilliant", "wonderful", "fantastic", "excellent"]
+        request_words = ["help", "please", "can", "could", "would", "give", "do", "make", "show", "tell", "explain", "need"]
+        insult_words = ["stupid", "dumb", "idiot", "bad", "terrible", "worst", "hate", "suck", "trash", "useless", "worthless"]
+        joke_words = ["haha", "lol", "lmao", "joke", "funny", "hilarious", "comedy"]
+        confusion_indicators = ["??" in content_lower, "huh" in content_lower, "what the" in content_lower, "confused" in content_lower]
+        
+        # Priority detection (more specific first)
+        if any(word in content_lower for word in goodbye_words):
+            message_type = "goodbye"
+        elif any(word in content_lower for word in thanks_words):
+            message_type = "thanks"
+        elif any(word in content_lower for word in apology_words):
+            message_type = "apology"
+        elif any(word in content_lower for word in insult_words):
+            message_type = "insult"
+        elif any(word in content_lower for word in joke_words) or ("😂" in message.content or "🤣" in message.content):
+            message_type = "joke"
+        elif any(word in content_lower for word in question_words):
             message_type = "question"
         elif any(word in content_lower for word in compliment_words):
             message_type = "compliment"
         elif any(word in content_lower for word in request_words):
             message_type = "request"
+        elif any(confusion_indicators):
+            message_type = "confusion"
+        elif len(content_lower.split()) <= 3 and not any(word in content_lower for word in ["hi", "hey", "hello"]):
+            message_type = "random"
         else:
             message_type = "greeting"
         
