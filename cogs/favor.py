@@ -270,9 +270,10 @@ class Favor(commands.Cog):
         # Detect message type with better logic
         message_type = "statement"  # Default
         
-        # Greetings - must be short and contain greeting words
-        greeting_words = ["hi", "hey", "hello", "sup", "yo", "greetings", "heya"]
-        if any(content_clean.startswith(word) for word in greeting_words) and len(content_for_analysis.split()) <= 3:
+        # Greetings - short messages with greeting variations
+        greeting_variations = ["hi", "hey", "hello", "sup", "yo", "greetings", "heya", "hai", "hii", "hiii", "haii", "haiii", "hallo", "howdy", "hiya"]
+        if (any(greeting in content_for_analysis for greeting in greeting_variations) and len(content_for_analysis.split()) <= 3):
+            message_type = "greeting"
             message_type = "greeting"
         
         # Goodbyes
