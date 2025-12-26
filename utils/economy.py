@@ -32,13 +32,25 @@ class EconomyManager:
     def check_account(self, user_id):
         """Ensure a user account exists (SQLite handles this automatically)."""
         uid = str(user_id)
-        data = self.db.get_user_economy(uid)
-        if data["wallet"] == 0 and data["bank"] == 0:
-            self.db.set_user_economy(uid, 0, 0, {}, None)
+        if not self.db.user_economy_exists(uid):
+            self.db.set_user_economy(uid, 0, 0, {}, None, 0)
 
     def force_save(self):
         """No-op for SQLite (data is persisted immediately)."""
         logger.debug("[EconomyManager] Force save (no-op for SQLite)")
+
+    def set_daily_status(self, user_id, last_daily, daily_streak):
+        """Update daily tracking fields without changing balances."""
+        uid = str(user_id)
+        data = self.db.get_user_economy(uid)
+        self.db.set_user_economy(
+            uid,
+            data["wallet"],
+            data["bank"],
+            data.get("donations", {}),
+            last_daily,
+            daily_streak
+        )
 
     def get_donations(self, bot_id):
         """Get donations dictionary for a user."""
@@ -55,7 +67,14 @@ class EconomyManager:
         donations = bot_data.get("donations", {})
         donations[uid] = donations.get(uid, 0) + amount
         
-        self.db.set_user_economy(bot_uid, bot_data["wallet"], bot_data["bank"], donations, bot_data["last_daily"])
+        self.db.set_user_economy(
+            bot_uid,
+            bot_data["wallet"],
+            bot_data["bank"],
+            donations,
+            bot_data["last_daily"],
+            bot_data.get("daily_streak", 0)
+        )
         
         # Log to affection sources so it counts toward affection
         try:
@@ -80,7 +99,14 @@ class EconomyManager:
         donations = bot_data.get("donations", {})
         donations[uid] = donations.get(uid, 0) // 2
         
-        self.db.set_user_economy(bot_uid, bot_data["wallet"], bot_data["bank"], donations, bot_data["last_daily"])
+        self.db.set_user_economy(
+            bot_uid,
+            bot_data["wallet"],
+            bot_data["bank"],
+            donations,
+            bot_data["last_daily"],
+            bot_data.get("daily_streak", 0)
+        )
         
         try:
             from utils.affection_cache import affection_cache
