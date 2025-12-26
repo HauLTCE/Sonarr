@@ -55,7 +55,11 @@ class YTDLSource(discord.PCMVolumeTransformer):
         loop = loop or asyncio.get_event_loop()
         
         try:
-            data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=False))
+            # Add 30-second timeout to prevent hanging on network issues
+            data = await asyncio.wait_for(
+                loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=False)),
+                timeout=30.0
+            )
 
             if isinstance(data, dict) and 'entries' in data and isinstance(data['entries'], list):
                 entries = []
@@ -77,6 +81,9 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
             raise RuntimeError("No usable metadata found")
 
+        except asyncio.TimeoutError:
+            logger.error(f"Metadata fetch timeout (30s) for: {url}")
+            raise RuntimeError(f"YouTube metadata fetch timed out. Please try again.")
         except Exception as e:
             logger.debug(f"Metadata fetch failed: {e}")
             raise e
@@ -99,7 +106,11 @@ class YTDLSource(discord.PCMVolumeTransformer):
         loop = loop or asyncio.get_event_loop()
         search_query = f"ytsearch{limit}:{query}"
         try:
-            data = await loop.run_in_executor(None, lambda: ytdl.extract_info(search_query, download=False))
+            # Add 30-second timeout to prevent hanging on network issues
+            data = await asyncio.wait_for(
+                loop.run_in_executor(None, lambda: ytdl.extract_info(search_query, download=False)),
+                timeout=30.0
+            )
             entries = data.get('entries', []) if isinstance(data, dict) else []
             results = []
             for entry in entries:
@@ -110,6 +121,9 @@ class YTDLSource(discord.PCMVolumeTransformer):
             # Cache the search results
             youtube_search_cache.set(cache_key, results)
             return results
+        except asyncio.TimeoutError:
+            logger.error(f"YouTube search timeout (30s) for: {query}")
+            raise RuntimeError(f"YouTube search timed out. Please try again.")
         except Exception as e:
             logger.debug(f"Search failed: {e}")
             raise e
