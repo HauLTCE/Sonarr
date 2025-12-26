@@ -63,10 +63,10 @@ async def before_perm_cleanup():
 
 @bot.before_invoke
 async def _log_command(ctx):
-    # Check for sleep mode (Favor cog)
-    favor_cog = bot.get_cog("Favor")
-    if favor_cog:
-        allowed = await favor_cog.maybe_block_command(ctx)
+    # Check for sleep mode (BotPersonality cog)
+    bot_personality_cog = bot.get_cog("BotPersonality")
+    if bot_personality_cog:
+        allowed = await bot_personality_cog.maybe_block_command(ctx)
         if not allowed:
             raise commands.CheckFailure("Bot is in sleep mode")
     
@@ -92,19 +92,19 @@ async def _log_command(ctx):
         except Exception as e:
             logger.debug(f"Error in command logging: {e}")
     
-    async def check_favor():
+    async def check_personality():
         try:
-            favor_cog = bot.get_cog("Favor")
-            if favor_cog:
-                should_proceed = await favor_cog.maybe_block_command(ctx)
+            bot_personality_cog = bot.get_cog("BotPersonality")
+            if bot_personality_cog:
+                should_proceed = await bot_personality_cog.maybe_block_command(ctx)
                 if not should_proceed:
-                    raise commands.CheckFailure("Blocked by favor system")
-                await favor_cog.send_personality_response(ctx)
+                    raise commands.CheckFailure("Blocked by bot personality system")
+                await bot_personality_cog.send_personality_response(ctx)
         except Exception as e:
-            logger.debug(f"Error in favor system: {e}")
+            logger.debug(f"Error in bot personality system: {e}")
     
-    # Execute logging and favor check in parallel (independent operations)
-    await asyncio.gather(log_and_track(), check_favor(), return_exceptions=True)
+    # Execute logging and personality check in parallel (independent operations)
+    await asyncio.gather(log_and_track(), check_personality(), return_exceptions=True)
 
 @bot.event
 async def on_command_error(ctx, error):
