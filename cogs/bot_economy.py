@@ -51,7 +51,7 @@ class BotEconomy(commands.Cog):
             self.economy_manager.update_balance(bot_id, -income, "wallet")
             self.economy_manager.update_balance(bot_id, income, "bank")
             
-            logger.info(f"🤖 Bot daily task executed: +${income} (deposited to bank)")
+            logger.info(f"Bot daily task executed: +${income} (deposited to bank)")
         except Exception as e:
             logger.error(f"Error in bot daily task: {e}")
 
@@ -70,7 +70,7 @@ class BotEconomy(commands.Cog):
             self.economy_manager.update_balance(bot_id, -income, "wallet")
             self.economy_manager.update_balance(bot_id, income, "bank")
             
-            logger.info(f"🤖 Bot work task executed: +${income} (deposited to bank)")
+            logger.info(f"Bot work task executed: +${income} (deposited to bank)")
         except Exception as e:
             logger.error(f"Error in bot work task: {e}")
 

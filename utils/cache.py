@@ -45,7 +45,5 @@ class TTLCache:
             del self.cache[k]
 
 # Global caches with optimized TTLs for Tier 1 optimization
-gemini_response_cache = TTLCache(ttl_seconds=3600)      # 1 hour (with fuzzy dedup)
 youtube_metadata_cache = TTLCache(ttl_seconds=604800)   # 7 days (from 24h) - 60-80% fewer calls
 youtube_search_cache = TTLCache(ttl_seconds=1209600)    # 14 days for search results
-affection_cache = TTLCache(ttl_seconds=900)             # 15 min (from 5min) - 40-50% CPU reduction

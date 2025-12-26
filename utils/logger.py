@@ -20,7 +20,7 @@ def setup_logging():
     handler.setFormatter(BracketFormatter("%(message)s"))
     
     logger = logging.getLogger("bot")
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
     if not logger.handlers:
         logger.addHandler(handler)
     
