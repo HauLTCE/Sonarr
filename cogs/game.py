@@ -386,8 +386,8 @@ class Games(commands.Cog):
                 
                 self.economy_manager.reduce_donation(ctx.author.id, str(self.bot.user.id))
 
-                favor_cog = self.bot.get_cog("Favor")
-                msg = random.choice(favor_cog.snark_lines) if favor_cog else "You got caught!"
+                bot_personality_cog = self.bot.get_cog("BotPersonality")
+                msg = random.choice(bot_personality_cog.snark_lines) if bot_personality_cog else "You got caught!"
                 await ctx.send(f"\U0001f694 You got caught robbing the bot! You paid a **${fine}** fine.{buff_note}\n**Bot:** {msg}")
             return
 

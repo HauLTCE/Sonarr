@@ -11,7 +11,7 @@ logger = logging.getLogger("bot")
 
 CREATOR_ID = "chito8196"
 
-class Favor(commands.Cog):
+class BotPersonality(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.economy_manager = EconomyManager()
@@ -254,7 +254,7 @@ class Favor(commands.Cog):
         if self.bot.user not in message.mentions and not (message.reference and message.reference.resolved and message.reference.resolved.author == self.bot.user):
             return
         
-        logger.debug(f"[Favor] Mention detected from {message.author}: {message.content}")
+        logger.debug(f"[BotPersonality] Mention detected from {message.author}: {message.content}")
         
         # Don't respond to commands
         if message.content.startswith("!"):
@@ -351,7 +351,7 @@ class Favor(commands.Cog):
         # Get premade response (simplified - no more affection system)
         response = get_response(message_type=message_type)
         
-        logger.debug(f"[Favor] Type: {message_type}, Response: {response}")
+        logger.debug(f"[BotPersonality] Type: {message_type}, Response: {response}")
         
         try:
             await message.reply(response, mention_author=False)
@@ -385,4 +385,4 @@ class Favor(commands.Cog):
         await ctx.send(embed=embed)
 
 async def setup(bot):
-    await bot.add_cog(Favor(bot))
+    await bot.add_cog(BotPersonality(bot))

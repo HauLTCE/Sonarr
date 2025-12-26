@@ -196,7 +196,7 @@ class AIChat(commands.Cog):
         if bot_id_str not in favor_cog.economy:
             return "Social Hierarchy: [No Tributes Found]"
 
-        donors = favor_cog.economy[bot_id_str].get("donations", {})
+        donors = bot_personality_cog.economy[bot_id_str].get("donations", {})
         
         if not donors:
             return "Social Hierarchy: [No Tributes Found]"
@@ -261,13 +261,7 @@ class AIChat(commands.Cog):
             return
         
         try:
-            favor_cog = self.bot.get_cog("Favor")
-            affection = favor_cog.get_affection(message.author.id) if favor_cog else 50
-            
-            if favor_cog and affection < 50:
-                block_chance = (50 - affection) / 500.0
-                if random.random() < block_chance:
-                    return
+            # Removed affection-based blocking since favor system is removed
             
             content_lower = message.content.lower()
             
@@ -315,7 +309,7 @@ class AIChat(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        """AI background grader - analyzes user behavior but doesn't respond (favor.py handles responses)."""
+        """AI background grader - analyzes user behavior but doesn't respond (bot_personality.py handles responses)."""
         if message.author.bot or not message.guild:
             return
         
