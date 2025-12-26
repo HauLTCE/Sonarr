@@ -27,13 +27,11 @@ class LazyQueueItem:
         
         try:
             self.loading = True
-            logger.debug(f"[LazyQueue] Loading metadata for: {self.title}")
             player = await YTDLSource.from_url(self.url, loop=bot_loop, stream=False)
             self.metadata = player.data
             self.loading = False
             return self.metadata
         except Exception as e:
-            logger.error(f"[LazyQueue] Failed to load metadata for {self.url}: {e}")
             self.loading = False
             return None
     
@@ -50,14 +48,12 @@ class LazyMusicQueue:
         """Add item to queue (O(1), no metadata loading)."""
         item = LazyQueueItem(title, url)
         self.items.append(item)
-        logger.debug(f"[LazyQueue] Added: {title} (queue length: {len(self.items)})")
         return item
     
     def pop(self, index: int = 0):
         """Remove and return item from queue."""
         if index < len(self.items):
             item = self.items.pop(index)
-            logger.debug(f"[LazyQueue] Removed: {item.title} (queue length: {len(self.items)})")
             return item
         return None
     
@@ -69,7 +65,6 @@ class LazyMusicQueue:
     def clear(self):
         """Clear all items from queue."""
         self.items.clear()
-        logger.debug(f"[LazyQueue] Queue cleared")
     
     def __len__(self):
         return len(self.items)

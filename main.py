@@ -4,6 +4,7 @@ import asyncio
 import shlex
 import copy
 import logging
+import random
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
 
@@ -17,7 +18,6 @@ from utils.command_history import log_command, update_command_status
 load_dotenv()
 logger = setup_logging()
 
-# Setup bot
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True 
@@ -29,41 +29,31 @@ bot.server_config = load_config()
 async def on_ready():
     logger.info(f"Logged in as {bot.user} (ID: {bot.user.id})")
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="for !help"))
-    cleanup_archived_memory.start()
-    cleanup_permission_cache.start()
+    cleanup_youtube_cache.start()
 
-@tasks.loop(hours=24)
-async def cleanup_archived_memory():
-    """Tier 2 Optimization: Background cleanup of archived AI memory messages (90+ days old)."""
+@tasks.loop(hours=6)
+async def cleanup_youtube_cache():
+    """Clean expired YouTube cache entries every 6 hours."""
     try:
-        from utils.database import db
-        deleted = db.cleanup_archived_messages(days_archived=90)
-        logger.info(f"[Memory Cleanup] Removed {deleted} archived messages older than 90 days")
+        from utils.cache import youtube_metadata_cache, youtube_search_cache
+        youtube_metadata_cache.cleanup()
+        youtube_search_cache.cleanup()
+        logger.info("[Cache Cleanup] YouTube caches cleaned")
     except Exception as e:
-        logger.error(f"[Memory Cleanup] Error: {e}")
+        logger.error(f"[Cache Cleanup] Error: {e}")
 
-@cleanup_archived_memory.before_loop
-async def before_cleanup():
-    """Wait until bot is ready before starting cleanup."""
-    await bot.wait_until_ready()
-
-@tasks.loop(minutes=5)
-async def cleanup_permission_cache():
-    """Tier 3.2: Periodically clean expired permission cache entries."""
-    try:
-        from utils.permission_cache import permission_cache
-        permission_cache.cleanup_expired()
-    except Exception as e:
-        logger.error(f"[PermCache Cleanup] Error: {e}")
-
-@cleanup_permission_cache.before_loop
-async def before_perm_cleanup():
-    """Wait until bot is ready before starting cleanup."""
+@cleanup_youtube_cache.before_loop
+async def before_cache_cleanup():
     await bot.wait_until_ready()
 
 @bot.before_invoke
 async def _log_command(ctx):
-    # Check for command-type spam (same command used too many times)
+    if ctx.command:
+        music_commands = ['play', 'skip', 'stop', 'pause', 'resume', 'queue', 'nowplaying', 'join', 'leave', 'disconnect', 'loop', 'shuffle', 'clear', 'remove', 'playlist_save', 'playlist_load', 'playlist_list']
+        if ctx.command.name not in music_commands and random.random() < 0.05:
+            await ctx.send("The bot is asleep.", delete_after=5)
+            raise commands.CheckFailure("Random 5% command block")
+    
     if ctx.command:
         is_spamming, remaining = check_command_type_spam(ctx.author.id, ctx.command.name)
         if is_spamming:
@@ -76,28 +66,15 @@ async def _log_command(ctx):
             )
             raise commands.CheckFailure(f"User in timeout for command: {ctx.command.name}")
     
-    # Tier 1 Optimization: Parallelize independent operations
     async def log_and_track():
         try:
             logger.info(f"User {ctx.author.display_name} used {ctx.message.content}")
             log_command(ctx.command.name if ctx.command else "unknown", ctx.author.display_name)
             update_command_status("executed")
         except Exception as e:
-            logger.debug(f"Error in command logging: {e}")
+            pass
     
-    async def check_favor():
-        try:
-            favor_cog = bot.get_cog("Favor")
-            if favor_cog:
-                should_proceed = await favor_cog.maybe_block_command(ctx)
-                if not should_proceed:
-                    raise commands.CheckFailure("Blocked by favor system")
-                await favor_cog.send_personality_response(ctx)
-        except Exception as e:
-            logger.debug(f"Error in favor system: {e}")
-    
-    # Execute logging and favor check in parallel (independent operations)
-    await asyncio.gather(log_and_track(), check_favor(), return_exceptions=True)
+    await log_and_track()
 
 @bot.event
 async def on_command_error(ctx, error):
@@ -157,10 +134,7 @@ async def on_message(message):
     content = message.content.strip()
     prefix = '!'
 
-    # Always process commands at the end to trigger all listeners
-    # (including cog on_message handlers for @mentions)
     if not content.startswith(prefix):
-        # Let process_commands handle it - this WILL trigger cog listeners
         await bot.process_commands(message)
         return
 
@@ -292,7 +266,6 @@ async def load_extensions():
             logger.error(f"Failed to load extension {filename}: {e}")
             return False
     
-    # Load all cogs in parallel instead of sequentially
     results = await asyncio.gather(*[load_cog(f) for f in cog_files], return_exceptions=True)
 
 async def main():

@@ -13,8 +13,6 @@ class Utility(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.start_time = time.time()
-
-    # ===== INTERNAL COMMAND METHODS =====
     
     def internal_ping(self):
         """Internal: Get bot ping silently"""
@@ -34,8 +32,6 @@ class Utility(commands.Cog):
             return InternalCommandResult(True, "Reminder sent")
         except Exception as e:
             return InternalCommandResult(False, str(e))
-
-    # ===== END INTERNAL COMMANDS =====
 
     @commands.command()
     async def ping(self, ctx):

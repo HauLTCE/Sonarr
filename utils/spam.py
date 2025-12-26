@@ -69,7 +69,6 @@ def check_command_type_spam(user_id, command_name):
         timeout_end = command_type_spam[command_key]
         remaining = timeout_end - current_time
         if remaining > 0:
-            logger.debug(f"[Spam] User {user_id} is in timeout for !{command_name} ({remaining:.0f}s remaining)")
             return True, remaining
         else:
             del command_type_spam[command_key]
@@ -98,7 +97,6 @@ def check_command_type_spam(user_id, command_name):
         logger.warning(f"[Spam] User {user_id} exceeded spam threshold for !{command_name} ({count} uses in {PER_COMMAND_TIME_WINDOW}s). Timeout for 10 minutes.")
         return True, PER_COMMAND_COOLDOWN
     
-    logger.debug(f"[Spam] User {user_id} used !{command_name} ({count}/{PER_COMMAND_THRESHOLD})")
     return False, 0
 
 def cleanup_spam_data():
