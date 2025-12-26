@@ -58,8 +58,6 @@ async def cleanup_permission_cache():
 
 @cleanup_permission_cache.before_loop
 async def before_perm_cleanup():
-    """Wait until bot is ready."""
-    await bot.wait_until_ready()
     """Wait until bot is ready before starting cleanup."""
     await bot.wait_until_ready()
 
