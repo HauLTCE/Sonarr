@@ -32,7 +32,6 @@ class QueueView(discord.ui.View):
 
         desc = ""
         for i, item in enumerate(current_items, start=start + 1):
-            # Handle both lazy items and old tuple format
             title = item.title if hasattr(item, 'title') else item[0]
             url = item.url if hasattr(item, 'url') else item[1]
             desc += f"`{i}.` [{title}]({url})\n"
@@ -43,7 +42,7 @@ class QueueView(discord.ui.View):
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.music_queue = LazyMusicQueue()  # Tier 2: Lazy-loaded queue for 500-1000ms faster operations
+        self.music_queue = LazyMusicQueue()
         self.history = []
         self.loop_mode = 'off'
         self.loop_playlist_backup = []
@@ -57,7 +56,6 @@ class Music(commands.Cog):
             except (json.JSONDecodeError, IOError) as e:
                 logger.warning(f"Failed to load playlists.json: {e}. Initializing empty playlists.")
                 self.saved_playlists = {}
-                # Reset the file
                 try:
                     with open(PLAYLIST_FILE, "w") as f:
                         json.dump({}, f)
@@ -75,15 +73,12 @@ class Music(commands.Cog):
         """Save playlists with atomic writes to prevent corruption."""
         import tempfile
         try:
-            # Write to temp file first
             temp_fd, temp_path = tempfile.mkstemp(suffix='.json', dir='.')
             with open(temp_fd, 'w') as f:
                 json.dump(self.saved_playlists, f, indent=2)
             
-            # Atomic rename (replaces old file)
             import shutil
             shutil.move(temp_path, PLAYLIST_FILE)
-            logger.debug(f"[Music] Playlists saved atomically")
             return True
         except Exception as e:
             logger.error(f"[Music] Failed to save playlists: {e}")
@@ -162,7 +157,6 @@ class Music(commands.Cog):
             if len(self.history) > 20: self.history.pop()
         else:
             if self.loop_mode == 'playlist' and self.loop_playlist_backup:
-                # Reinitialize queue with backup items
                 self.music_queue = LazyMusicQueue()
                 for title, url in self.loop_playlist_backup:
                     self.music_queue.add(title, url)
@@ -235,7 +229,6 @@ class Music(commands.Cog):
                     for entry in info[:MAX_PLAYLIST_ADD]:
                         if not entry or not entry.get('url'):
                             continue
-                        # Tier 2: Add via lazy queue (no metadata loading yet)
                         title = entry.get('title', 'Unknown')
                         if first_title is None:
                             first_title = title
@@ -265,7 +258,6 @@ class Music(commands.Cog):
                     url = info['url']
                     title = info['title']
 
-                    # Tier 2: Add via lazy queue (no metadata loading yet)
                     self.music_queue.add(title, url)
 
                     if ctx.voice_client.is_playing():
@@ -331,7 +323,6 @@ class Music(commands.Cog):
                 return
 
             selected = results[idx - 1]
-            # Tier 2: Add via lazy queue (no metadata loading yet)
             self.music_queue.add(selected['title'], selected['url'])
             await ctx.send(f"✅ Added to queue: **{selected['title']}** (Position {len(self.music_queue)})")
 
@@ -465,14 +456,12 @@ class Music(commands.Cog):
         if not self.music_queue:
             await ctx.send("❌ Queue is empty, nothing to save.")
             return
-        # Serialize LazyQueueItems to tuples for JSON compatibility
         serialized_queue = [
             (item.title, item.url) if hasattr(item, 'title') else item
             for item in self.music_queue.items
         ]
         self.saved_playlists[name] = serialized_queue
         
-        # Use atomic write to prevent corruption
         if self._save_playlists_atomic():
             await ctx.send(f"💾 Playlist **{name}** saved ({len(serialized_queue)} songs).")
         else:
@@ -486,7 +475,6 @@ class Music(commands.Cog):
             await ctx.send("❌ Playlist not found.", delete_after=5)
             return
         loaded = self.saved_playlists[name]
-        # Tier 2: Use lazy queue extend
         self.music_queue.extend([tuple(x) for x in loaded])
         await ctx.send(f"📂 Loaded playlist **{name}** ({len(loaded)} songs added).")
         if not ctx.voice_client or not ctx.voice_client.is_playing():

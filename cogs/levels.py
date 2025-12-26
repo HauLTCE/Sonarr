@@ -49,7 +49,6 @@ class Levels(commands.Cog):
         if message.author.bot or not message.guild:
             return
         
-        # Skip if bot was mentioned (let bot_personality.py handle it)
         if self.bot.user in message.mentions:
             return
 

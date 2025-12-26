@@ -14,7 +14,6 @@ logger = logging.getLogger("bot")
 
 SHOP_FILE = "shop.json"
 ITEMS_FILE = "items.json"
-CREATOR_ID = "chito8196"
 
 class Games(commands.Cog):
     def __init__(self, bot):

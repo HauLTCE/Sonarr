@@ -9,8 +9,6 @@ logger = logging.getLogger("bot")
 class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
-    # ===== INTERNAL COMMAND METHODS =====
     
     async def internal_mute(self, member, duration_minutes=5, reason=""):
         """Internal: Mute a member silently"""
@@ -30,8 +28,6 @@ class Moderation(commands.Cog):
             return InternalCommandResult(True, f"Unmuted {member.display_name}")
         except Exception as e:
             return InternalCommandResult(False, str(e))
-
-    # ===== END INTERNAL COMMANDS =====
 
     @commands.command()
     @commands.has_permissions(manage_messages=True)

@@ -37,7 +37,7 @@ class EconomyManager:
 
     def force_save(self):
         """No-op for SQLite (data is persisted immediately)."""
-        logger.debug("[EconomyManager] Force save (no-op for SQLite)")
+        pass
 
     def set_daily_status(self, user_id, last_daily, daily_streak):
         """Update daily tracking fields without changing balances."""
