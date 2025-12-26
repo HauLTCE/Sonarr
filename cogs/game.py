@@ -1,5 +1,7 @@
 import discord
 from discord.ext import commands
+import json
+import os
 import random
 import logging
 from datetime import datetime, timezone, timedelta, time as datetime_time
@@ -11,12 +13,14 @@ from utils.internal_commands import InternalCommandResult, InternalCommandExecut
 logger = logging.getLogger("bot")
 
 SHOP_FILE = "shop.json"
+ITEMS_FILE = "items.json"
 CREATOR_ID = "chito8196"
 
 class Games(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.economy_manager = EconomyManager()
+        self.items = self.load_items()
         self.donation_responses = [
             "Oh, how *generous* of you. I suppose I'll accept this pittance.",
             "Finally, someone with taste. This goes straight to my collection.",
@@ -39,6 +43,29 @@ class Games(commands.Cog):
             "You know what? You might actually be worthy of my presence.",
             "A new contender for my affections? This is promising..."
         ]
+
+    def load_items(self):
+        if not os.path.exists(ITEMS_FILE):
+            logger.warning("[Items] items.json not found")
+            return {}
+        try:
+            with open(ITEMS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    return data
+        except Exception as e:
+            logger.error(f"[Items] Failed to load items: {e}")
+        return {}
+
+    def find_item(self, query):
+        key = query.lower().strip()
+        if key in self.items:
+            return key, self.items[key]
+        for item_id, item in self.items.items():
+            name = str(item.get("name", "")).lower()
+            if name == key:
+                return item_id, item
+        return None, None
 
     def get_balance(self, user_id, location="wallet"):
         return self.economy_manager.get_balance(user_id, location)
@@ -92,6 +119,84 @@ class Games(commands.Cog):
         InternalCommandExecutor.log_rob(victim_name, rob_amount, reason)
         
         return InternalCommandResult(True, f"Robbed ${rob_amount}", data={"amount": rob_amount})
+
+    @commands.command()
+    async def shop(self, ctx):
+        """List available items."""
+        if not self.items:
+            return await ctx.send("Shop is empty right now.")
+
+        lines = []
+        for item_id, item in self.items.items():
+            name = item.get("name", item_id)
+            price = item.get("price", 0)
+            desc = item.get("description", "No description.")
+            lines.append(f"**{name}** (`{item_id}`) - ${price} | {desc}")
+
+        embed = discord.Embed(title="Shop", description="\n".join(lines), color=0xFFD700)
+        await ctx.send(embed=embed)
+
+    @commands.command(aliases=["inv"])
+    async def inventory(self, ctx):
+        """Show your inventory."""
+        uid = str(ctx.author.id)
+        inv = self.economy_manager.db.get_inventory(uid)
+        if not inv:
+            return await ctx.send("Your inventory is empty.")
+
+        lines = []
+        for item_id, qty in inv.items():
+            item = self.items.get(item_id, {})
+            name = item.get("name", item_id)
+            lines.append(f"{name} (`{item_id}`) x{qty}")
+
+        embed = discord.Embed(title=f"Inventory: {ctx.author.display_name}", description="\n".join(lines), color=0x3498db)
+        await ctx.send(embed=embed)
+
+    @commands.command()
+    async def buy(self, ctx, item_name: str, quantity: int = 1):
+        """Buy an item from the shop."""
+        if quantity <= 0:
+            return await ctx.send("Quantity must be positive.")
+
+        item_id, item = self.find_item(item_name)
+        if not item:
+            return await ctx.send("Item not found.")
+
+        price = int(item.get("price", 0))
+        total_cost = price * quantity
+        wallet = self.get_balance(ctx.author.id, "wallet")
+        if wallet < total_cost:
+            return await ctx.send("You don't have enough money in your wallet.")
+
+        self.update_balance(ctx.author.id, -total_cost, "wallet")
+        uid = str(ctx.author.id)
+        new_qty = self.economy_manager.db.update_inventory(uid, item_id, quantity)
+        await ctx.send(f"Purchased {quantity}x {item.get('name', item_id)}. You now have {new_qty}.")
+
+    @commands.command()
+    async def use(self, ctx, item_name: str):
+        """Use a consumable item."""
+        item_id, item = self.find_item(item_name)
+        if not item:
+            return await ctx.send("Item not found.")
+        if item.get("type") != "consumable":
+            return await ctx.send("This item cannot be used.")
+
+        uid = str(ctx.author.id)
+        qty = self.economy_manager.db.get_inventory_item(uid, item_id)
+        if qty <= 0:
+            return await ctx.send("You don't own that item.")
+
+        buff_id = item.get("buff_id")
+        buff_value = float(item.get("buff_value", 0))
+        duration_minutes = int(item.get("buff_duration_minutes", 0))
+        if not buff_id or duration_minutes <= 0:
+            return await ctx.send("This item has no usable effect.")
+
+        self.economy_manager.db.update_inventory(uid, item_id, -1)
+        self.economy_manager.db.set_active_buff(uid, buff_id, buff_value, duration_minutes * 60)
+        await ctx.send(f"Used {item.get('name', item_id)}. Effect active for {duration_minutes} minutes.")
 
     @commands.command(aliases=['bal', 'money'])
     async def balance(self, ctx, member: discord.Member = None):
@@ -158,12 +263,17 @@ class Games(commands.Cog):
     async def work(self, ctx):
         """Work a random job to earn money. Cooldown: 1 hour."""
         earnings = random.randint(50, 250)
-        self.update_balance(ctx.author.id, earnings, "wallet")
+        uid = str(ctx.author.id)
+        luck_bonus_pct = self.economy_manager.db.get_active_buff(uid, "luck_boost") or 0
+        luck_bonus = int(earnings * luck_bonus_pct) if luck_bonus_pct else 0
+        total_earnings = earnings + luck_bonus
+        self.update_balance(ctx.author.id, total_earnings, "wallet")
         
         jobs = ["Developer", "Pizza Delivery", "Discord Mod", "Uber Driver", "Artist"]
         job = random.choice(jobs)
         
-        await ctx.send(f"👷 You worked as a **{job}** and earned **${earnings}**!")
+        bonus_text = f" (Luck bonus +${luck_bonus})" if luck_bonus > 0 else ""
+        await ctx.send(f"\U0001f477 You worked as a **{job}** and earned **${total_earnings}**!{bonus_text}")
 
     @commands.command()
     async def pay(self, ctx, member: discord.Member, amount: int):
@@ -194,12 +304,14 @@ class Games(commands.Cog):
         tz = timezone(timedelta(hours=7))
         now_tz = now_utc.astimezone(tz)
         today = now_tz.date().isoformat()
+        yesterday = (now_tz.date() - timedelta(days=1)).isoformat()
 
         uid = str(ctx.author.id)
         self.economy_manager.check_account(uid)
         
-        user_data = self.economy_manager.economy[uid]
+        user_data = self.economy_manager.db.get_user_economy(uid)
         last = user_data.get("last_daily")
+        streak = int(user_data.get("daily_streak", 0))
 
         if last == today:
             next_reset = datetime.combine(now_tz.date() + timedelta(days=1), datetime_time.min, tzinfo=tz)
@@ -210,10 +322,27 @@ class Games(commands.Cog):
             await ctx.send(f"⏳ Come back in **{h}h {m}m** for your daily reward.")
             return
 
-        self.update_balance(ctx.author.id, 100, "wallet")
-        self.economy_manager.economy[uid]["last_daily"] = today
-        self.economy_manager.force_save()
-        await ctx.send(f"💸 {ctx.author.mention}, you collected your daily **$100**!")
+        if last == yesterday:
+            streak += 1
+        else:
+            streak = 1
+
+        base_reward = 100
+        streak_bonus = min(200, (streak - 1) * 10)
+        luck_bonus_pct = self.economy_manager.db.get_active_buff(uid, "luck_boost") or 0
+        luck_bonus = int((base_reward + streak_bonus) * luck_bonus_pct) if luck_bonus_pct else 0
+        total_reward = base_reward + streak_bonus + luck_bonus
+
+        self.update_balance(ctx.author.id, total_reward, "wallet")
+        self.economy_manager.set_daily_status(uid, today, streak)
+
+        parts = [f"\U0001f4b8 {ctx.author.mention}, you collected your daily **${total_reward}**!"]
+        parts.append(f"Streak: **{streak}**")
+        if streak_bonus > 0:
+            parts.append(f"Streak bonus +${streak_bonus}")
+        if luck_bonus > 0:
+            parts.append(f"Luck bonus +${luck_bonus}")
+        await ctx.send(" | ".join(parts))
 
     @commands.command()
     @commands.cooldown(1, 3600, commands.BucketType.user)
@@ -222,6 +351,7 @@ class Games(commands.Cog):
         if target == ctx.author:
             return await ctx.send("Invalid target.")
         
+        uid = str(ctx.author.id)
         robber_wallet = self.get_balance(ctx.author.id, "wallet")
         if robber_wallet < 500: 
             return await ctx.send("You need at least $500 in your wallet to attempt a robbery (bail money).")
@@ -231,15 +361,26 @@ class Games(commands.Cog):
             if bot_wallet < 100: 
                 return await ctx.send("They are too poor to rob.")
 
-            success = random.choice([True, False])
+            buff_value = self.economy_manager.db.get_active_buff(uid, "rob_safety")
+            fine_reduction = 0.0
+            buff_note = ""
+            if buff_value:
+                self.economy_manager.db.clear_active_buff(uid, "rob_safety")
+                fine_reduction = 0.5
+                buff_note = " (Safety buff used)"
+
+            success_chance = min(0.95, 0.5 + float(buff_value or 0))
+            success = random.random() < success_chance
             if success:
                 percent = random.randint(10, 30) / 100
                 stolen = int(bot_wallet * percent)
                 self.update_balance(ctx.author.id, stolen, "wallet")
                 self.update_balance(self.bot.user.id, -stolen, "wallet")
-                await ctx.send(f"😈 You stole **${stolen}** from the bot's wallet!")
+                await ctx.send(f"\U0001f608 You stole **${stolen}** from the bot's wallet!{buff_note}")
             else:
                 fine = min(500, robber_wallet)
+                if fine_reduction > 0:
+                    fine = max(1, int(fine * (1 - fine_reduction)))
                 self.update_balance(ctx.author.id, -fine, "wallet")
                 self.update_balance(self.bot.user.id, fine, "wallet")
                 
@@ -247,24 +388,35 @@ class Games(commands.Cog):
 
                 favor_cog = self.bot.get_cog("Favor")
                 msg = random.choice(favor_cog.snark_lines) if favor_cog else "You got caught!"
-                await ctx.send(f"🚔 You got caught robbing the bot! You paid a **${fine}** fine.\n**Bot:** {msg}")
+                await ctx.send(f"\U0001f694 You got caught robbing the bot! You paid a **${fine}** fine.{buff_note}\n**Bot:** {msg}")
             return
 
         target_wallet = self.get_balance(target.id, "wallet")
         if target_wallet < 100: 
             return await ctx.send("They are too poor to rob.")
 
-        success = random.choice([True, False])
+        buff_value = self.economy_manager.db.get_active_buff(uid, "rob_safety")
+        fine_reduction = 0.0
+        buff_note = ""
+        if buff_value:
+            self.economy_manager.db.clear_active_buff(uid, "rob_safety")
+            fine_reduction = 0.5
+            buff_note = " (Safety buff used)"
+
+        success_chance = min(0.95, 0.5 + float(buff_value or 0))
+        success = random.random() < success_chance
         if success:
             percent = random.randint(10, 30) / 100
             stolen = int(target_wallet * percent)
             self.update_balance(ctx.author.id, stolen, "wallet")
             self.update_balance(target.id, -stolen, "wallet")
-            await ctx.send(f"😈 You stole **${stolen}** from {target.mention}'s wallet!")
+            await ctx.send(f"\U0001f608 You stole **${stolen}** from {target.mention}'s wallet!{buff_note}")
         else:
             fine = 500
+            if fine_reduction > 0:
+                fine = max(1, int(fine * (1 - fine_reduction)))
             self.update_balance(ctx.author.id, -fine, "wallet")
-            await ctx.send(f"🚔 You got caught! You paid a **${fine}** fine.")
+            await ctx.send(f"\U0001f694 You got caught! You paid a **${fine}** fine.{buff_note}")
 
     @commands.command()
     async def tictactoe(self, ctx, opponent: discord.Member):
