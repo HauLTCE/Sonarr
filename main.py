@@ -63,6 +63,13 @@ async def before_perm_cleanup():
 
 @bot.before_invoke
 async def _log_command(ctx):
+    # Check for sleep mode (Favor cog)
+    favor_cog = bot.get_cog("Favor")
+    if favor_cog:
+        allowed = await favor_cog.maybe_block_command(ctx)
+        if not allowed:
+            raise commands.CheckFailure("Bot is in sleep mode")
+    
     # Check for command-type spam (same command used too many times)
     if ctx.command:
         is_spamming, remaining = check_command_type_spam(ctx.author.id, ctx.command.name)
