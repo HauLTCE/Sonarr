@@ -230,26 +230,22 @@ class DuelView(discord.ui.View):
         self.resolved = False
 
     async def _end_duel(self, interaction, loser, winner):
-        # Mark resolved to avoid double execution
         if self.resolved:
             return
         self.resolved = True
 
-        # Winner receives the whole pot (both bets were deducted at start)
         pot = self.bet * 2
         self.game_cog.update_balance(winner.id, pot,)
         logger.info(f"Duel result: {winner.display_name} won ${pot} vs {loser.display_name}")
 
         embed = discord.Embed(title="💀 Duel Ended", description=f"**BANG!** {loser.mention} is dead.\n{winner.mention} wins **${pot}**!", color=0xff0000)
 
-        # Disable buttons and update message
         for child in self.children:
             child.disabled = True
 
         try:
             await interaction.response.edit_message(embed=embed, view=self)
         except Exception:
-            # Fallback: try editing channel message
             try:
                 msg = interaction.message
                 await msg.edit(embed=embed, view=self)
@@ -266,7 +262,6 @@ class DuelView(discord.ui.View):
             await interaction.response.send_message("Not your turn!", ephemeral=True)
             return
 
-        # Prevent re-entrancy if duel already resolved
         if self.resolved:
             await interaction.response.send_message("This duel has already finished.", ephemeral=True)
             return
@@ -279,14 +274,12 @@ class DuelView(discord.ui.View):
             self.current_shot += 1
             self.turn_idx = 1 if self.turn_idx == 0 else 0
             next_shooter = self.players[self.turn_idx]
-            # Update content to show who's turn it is
             try:
                 await interaction.response.edit_message(content=f"💨 Click... empty. {next_shooter.mention}'s turn.", view=self)
             except Exception:
                 pass
 
     async def on_timeout(self):
-        # If the duel times out, refund both players if not resolved
         if not self.resolved:
             for p in self.players:
                 self.game_cog.update_balance(p.id, self.bet)
@@ -297,7 +290,6 @@ class DuelView(discord.ui.View):
             except Exception:
                 pass
         self.resolved = True
-        # ensure view is stopped
         try:
             self.stop()
         except Exception:

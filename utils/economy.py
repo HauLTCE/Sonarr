@@ -37,7 +37,7 @@ class EconomyManager:
 
     def force_save(self):
         """No-op for SQLite (data is persisted immediately)."""
-        logger.debug("[EconomyManager] Force save (no-op for SQLite)")
+        pass
 
     def set_daily_status(self, user_id, last_daily, daily_streak):
         """Update daily tracking fields without changing balances."""
@@ -75,20 +75,6 @@ class EconomyManager:
             bot_data["last_daily"],
             bot_data.get("daily_streak", 0)
         )
-        
-        # Log to affection sources so it counts toward affection
-        try:
-            from utils.knowledge_base import kb
-            kb.add_affection_source(uid, "donation", amount)
-        except Exception as e:
-            logger.debug(f"Error logging donation to affection: {e}")
-        
-        # Invalidate affection cache since donations changed
-        try:
-            from utils.affection_cache import affection_cache
-            affection_cache.invalidate(uid)
-        except:
-            pass
 
     def reduce_donation(self, user_id, bot_id):
         """Reduce a user's donation score (used as punishment)."""
@@ -107,12 +93,6 @@ class EconomyManager:
             bot_data["last_daily"],
             bot_data.get("daily_streak", 0)
         )
-        
-        try:
-            from utils.affection_cache import affection_cache
-            affection_cache.invalidate(uid)
-        except:
-            pass
 
     # Add compatibility properties for legacy code
     @property

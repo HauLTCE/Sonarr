@@ -19,7 +19,7 @@ def log_command(command_name, user_display_name, args=""):
         }
         command_history.append(cmd_entry)
     except Exception as e:
-        logger.debug(f"Error logging command to history: {e}")
+        pass
 
 def update_command_status(status_msg):
     """Update the last command's status."""
@@ -27,7 +27,7 @@ def update_command_status(status_msg):
         if command_history:
             command_history[-1]["status"] = status_msg
     except Exception as e:
-        logger.debug(f"Error updating command status: {e}")
+        pass
 
 def get_recent_commands(limit=15):
     """Get recently executed commands formatted for display."""
@@ -55,5 +55,4 @@ def get_recent_commands(limit=15):
         
         return cmd_text
     except Exception as e:
-        logger.debug(f"Error getting command history: {e}")
         return "Recent commands: [Unavailable]"
