@@ -5,8 +5,6 @@ import logging
 import asyncio
 from datetime import datetime, timezone
 from utils.economy import EconomyManager
-from utils.affection_cache import affection_cache
-from utils.knowledge_base import kb
 from utils.premade_answers import get_response
 
 logger = logging.getLogger("bot")
@@ -250,9 +248,6 @@ class Favor(commands.Cog):
             target = random.choice(mentioned_users)
             gossip = random.choice(self.gossip_lines).format(target=target.display_name)
             await message.channel.send(gossip)
-            
-            # Learn behavior: track who talks about whom
-            kb.update_user_rating(str(message.author.id), score_delta=1)  # Track activity
             return
         
         # Only respond to @mentions or replies to the bot
@@ -264,12 +259,6 @@ class Favor(commands.Cog):
         # Don't respond to commands
         if message.content.startswith("!"):
             return
-        
-        # Everyone gets cold treatment (affection = 0)
-        affection = 0
-        
-        # Get user's rating/grade from AI
-        user_rating = kb.get_user_rating(str(message.author.id))
         
         # Determine message type from content
         content_lower = message.content.lower()
@@ -309,14 +298,10 @@ class Favor(commands.Cog):
         else:
             message_type = "greeting"
         
-        # Get premade response based on affection tier and message type
-        response, affection_delta = get_response(affection, ai_grade=user_rating.get("grade"), message_type=message_type)
+        # Get premade response from cold tier only (no affection system)
+        response, _ = get_response(affection=0, ai_grade="F", message_type=message_type)
         
-        logger.debug(f"[Favor] Affection: {affection}, Type: {message_type}, Response: {response}, Delta: {affection_delta}")
-        
-        # Update AI rating for this interaction
-        kb.update_user_rating(str(message.author.id), chat_delta=1, score_delta=1)
-        kb.add_affection_source(str(message.author.id), "chat", affection_delta)
+        logger.debug(f"[Favor] Type: {message_type}, Response: {response}")
         
         try:
             await message.reply(response, mention_author=False)
@@ -339,22 +324,13 @@ class Favor(commands.Cog):
 
     @commands.command()
     async def grade(self, ctx, member: discord.Member = None):
-        """Check the bot's behavioral analysis of a user."""
+        """Behavioral analysis system removed."""
         member = member or ctx.author
-        rating = kb.get_user_rating(str(member.id))
         
-        embed = discord.Embed(title="📊 Behavioral Analysis", color=0x9C27B0)
-        embed.description = "I track everything. Here's what I know about you."
-        embed.add_field(name=f"Target: {member.display_name}", value=rating["grade"], inline=False)
-        embed.add_field(name="Data Collected", value=
-            f"Interactions Logged: {rating['chats']}\n"
-            f"Activity Score: {rating['score']}\n"
-            f"Contributions: {rating['qa_contrib']}", inline=False
-        )
-        if rating["notes"]:
-            embed.add_field(name="My Notes", value=rating["notes"], inline=False)
-        else:
-            embed.add_field(name="My Notes", value="Not enough data yet. But I'm watching.", inline=False)
+        embed = discord.Embed(title="📊 Behavioral Analysis", color=0x808080)
+        embed.description = "I don't grade people anymore. Everyone's equally disappointing."
+        embed.add_field(name=f"Analysis for {member.display_name}", value="**Status:** Cold 🥶", inline=False)
+        embed.add_field(name="Notes", value="I treat everyone with equal disdain now. No favorites, no tracking.", inline=False)
         
         await ctx.send(embed=embed)
 

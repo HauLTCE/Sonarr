@@ -315,14 +315,14 @@ class AIChat(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        """AI background grader - analyzes user behavior and profiles them, but doesn't chat."""
+        """AI background grader - analyzes user behavior but doesn't respond (favor.py handles responses)."""
         if message.author.bot or not message.guild:
             return
         
         if message.content.startswith("!"):
             return
         
-        # Only grade when bot is mentioned, don't chat back
+        # Only grade when bot is mentioned, but don't chat back (favor.py handles that)
         if self.bot.user not in message.mentions and not (message.reference and message.reference.resolved and message.reference.resolved.author == self.bot.user):
             return
         
@@ -330,7 +330,8 @@ class AIChat(commands.Cog):
         await self.check_and_execute_autonomous_commands(message)
         
         # Update user's AI profile based on this interaction (async, no await)
-        if random.random() < 0.15:  # Update 15% of mentions to avoid API spam
+        # Reduced to 5% to minimize API usage since we're not generating responses
+        if random.random() < 0.05:
             self.bot.loop.create_task(self.update_user_profile(str(message.author.id)))
 
     @commands.command()
