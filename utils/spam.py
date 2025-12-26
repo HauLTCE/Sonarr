@@ -12,8 +12,8 @@ TIME_WINDOW = 10
 COOLDOWN_DURATION = 300
 
 # Per-command spam settings
-PER_COMMAND_THRESHOLD = 5  # Max uses of same command in 5 minutes
-PER_COMMAND_TIME_WINDOW = 300  # 5 minutes
+PER_COMMAND_THRESHOLD = 50  # Max uses of same command in 5 minutes
+PER_COMMAND_TIME_WINDOW = 300  # 5 minutes (reset count every 5 minutes)
 PER_COMMAND_COOLDOWN = 600  # 10 minutes timeout
 
 # Commands exempt from per-command spam detection (music, utility, etc.)
