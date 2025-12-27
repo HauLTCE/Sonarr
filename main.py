@@ -30,6 +30,7 @@ async def on_ready():
     logger.info(f"Logged in as {bot.user} (ID: {bot.user.id})")
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="for !help"))
     cleanup_youtube_cache.start()
+    cleanup_message_cache.start()
 
 @tasks.loop(hours=6)
 async def cleanup_youtube_cache():
@@ -41,6 +42,19 @@ async def cleanup_youtube_cache():
         logger.info("[Cache Cleanup] YouTube caches cleaned")
     except Exception as e:
         logger.error(f"[Cache Cleanup] Error: {e}")
+
+@tasks.loop(hours=24)
+async def cleanup_message_cache():
+    """Smart LRU cleanup of message classification cache daily per guild."""
+    try:
+        from utils.database import db
+        db.cleanup_all_guilds_cache()
+    except Exception as e:
+        logger.error(f"[Cache Cleanup] Message cache error: {e}")
+
+@cleanup_message_cache.before_loop
+async def before_message_cache_cleanup():
+    await bot.wait_until_ready()
 
 @cleanup_youtube_cache.before_loop
 async def before_cache_cleanup():
