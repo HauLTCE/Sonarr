@@ -9,11 +9,57 @@ from datetime import datetime, timezone, timedelta, time as datetime_time
 from .views import TicTacToeView
 from utils.economy import EconomyManager
 from utils.internal_commands import InternalCommandResult, InternalCommandExecutor
+from utils.pokemon_system import get_species_name
 
 logger = logging.getLogger("bot")
 
 SHOP_FILE = "shop.json"
 ITEMS_FILE = "items.json"
+
+POKEMON_PASSIVE_BONUS = {
+    "common": 0.05,
+    "uncommon": 0.07,
+    "rare": 0.1,
+    "epic": 0.13,
+    "legendary": 0.18,
+}
+POKEMON_PASSIVE_LEVEL_PCT = 0.001
+POKEMON_PASSIVE_LEVEL_CAP = 0.1
+POKEMON_PASSIVE_CAP = 0.25
+
+WORK_POKEMON_LINES = {
+    "Developer": [
+        "{pokemon} helped you squash bugs and run tests before the deploy.",
+        "{pokemon} kept the servers cool so the build finished faster.",
+        "{pokemon} handled code review and reminded you to back up.",
+    ],
+    "Pizza Delivery": [
+        "{pokemon} kept the pizzas hot and cleared a faster route.",
+        "{pokemon} scouted the neighborhood to speed up deliveries.",
+        "{pokemon} helped carry the boxes and kept you on schedule.",
+    ],
+    "Discord Mod": [
+        "{pokemon} watched the chat, cleaned up spam, and kept order.",
+        "{pokemon} spotted trolls early and kept the server calm.",
+        "{pokemon} modded alongside you and filtered bad content.",
+    ],
+    "Uber Driver": [
+        "{pokemon} guided shortcuts and kept the ride smooth.",
+        "{pokemon} kept the car spotless, earning five-star ratings.",
+        "{pokemon} helped you pick up riders faster.",
+    ],
+    "Artist": [
+        "{pokemon} sparked inspiration and picked a better color palette.",
+        "{pokemon} mixed paints and set up your tools.",
+        "{pokemon} added the finishing touch that sold the piece.",
+    ],
+}
+
+DAILY_POKEMON_LINES = [
+    "{pokemon} handled chores so you could earn a little extra.",
+    "{pokemon} kept your schedule tight and brought in bonus income.",
+    "{pokemon} tidied up, freeing you to make more money.",
+]
 
 class Games(commands.Cog):
     def __init__(self, bot):
@@ -65,6 +111,39 @@ class Games(commands.Cog):
             if name == key:
                 return item_id, item
         return None, None
+
+    def _get_equipped_pokemon(self, user_id):
+        pokemon = self.economy_manager.db.get_equipped_pokemon(str(user_id))
+        if not pokemon or pokemon.get("is_fainted"):
+            return None
+        return pokemon
+
+    def _pokemon_display_name(self, pokemon):
+        nickname = str(pokemon.get("nickname") or "").strip()
+        if nickname:
+            return nickname
+        return get_species_name(pokemon.get("species_id"))
+
+    def _calc_pokemon_passive_bonus(self, base_amount, pokemon):
+        rarity = (pokemon.get("rarity") or "common").lower()
+        base_pct = POKEMON_PASSIVE_BONUS.get(rarity, 0.05)
+        level = int(pokemon.get("level", 1))
+        level_pct = min(POKEMON_PASSIVE_LEVEL_CAP, level * POKEMON_PASSIVE_LEVEL_PCT)
+        pct = min(POKEMON_PASSIVE_CAP, base_pct + level_pct)
+        return int(base_amount * pct), pct
+
+    def _get_work_pokemon_line(self, job, pokemon):
+        lines = WORK_POKEMON_LINES.get(job) or []
+        if not lines:
+            return None
+        name = self._pokemon_display_name(pokemon)
+        return random.choice(lines).format(pokemon=name)
+
+    def _get_daily_pokemon_line(self, pokemon):
+        if not DAILY_POKEMON_LINES:
+            return None
+        name = self._pokemon_display_name(pokemon)
+        return random.choice(DAILY_POKEMON_LINES).format(pokemon=name)
 
     def get_balance(self, user_id, location="wallet"):
         return self.economy_manager.get_balance(user_id, location)
@@ -265,14 +344,29 @@ class Games(commands.Cog):
         uid = str(ctx.author.id)
         luck_bonus_pct = self.economy_manager.db.get_active_buff(uid, "luck_boost") or 0
         luck_bonus = int(earnings * luck_bonus_pct) if luck_bonus_pct else 0
-        total_earnings = earnings + luck_bonus
-        self.update_balance(ctx.author.id, total_earnings, "wallet")
-        
         jobs = ["Developer", "Pizza Delivery", "Discord Mod", "Uber Driver", "Artist"]
         job = random.choice(jobs)
-        
-        bonus_text = f" (Luck bonus +${luck_bonus})" if luck_bonus > 0 else ""
-        await ctx.send(f"\U0001f477 You worked as a **{job}** and earned **${total_earnings}**!{bonus_text}")
+        pokemon = self._get_equipped_pokemon(uid)
+        pokemon_bonus = 0
+        pokemon_line = None
+        if pokemon:
+            pokemon_bonus, _ = self._calc_pokemon_passive_bonus(earnings, pokemon)
+            pokemon_line = self._get_work_pokemon_line(job, pokemon)
+
+        total_earnings = earnings + luck_bonus + pokemon_bonus
+        self.update_balance(ctx.author.id, total_earnings, "wallet")
+
+        lines = [f"\U0001f477 You worked as a **{job}** and earned **${total_earnings}**!"]
+        if pokemon_line:
+            lines.append(f"\U0001f43e {pokemon_line}")
+        bonus_parts = []
+        if luck_bonus > 0:
+            bonus_parts.append(f"Luck bonus +${luck_bonus}")
+        if pokemon_bonus > 0:
+            bonus_parts.append(f"Pokemon passive +${pokemon_bonus}")
+        if bonus_parts:
+            lines.append(" | ".join(bonus_parts))
+        await ctx.send("\n".join(lines))
 
     @commands.command()
     async def pay(self, ctx, member: discord.Member, amount: int):
@@ -328,20 +422,34 @@ class Games(commands.Cog):
 
         base_reward = 100
         streak_bonus = min(200, (streak - 1) * 10)
+        base_total = base_reward + streak_bonus
         luck_bonus_pct = self.economy_manager.db.get_active_buff(uid, "luck_boost") or 0
-        luck_bonus = int((base_reward + streak_bonus) * luck_bonus_pct) if luck_bonus_pct else 0
-        total_reward = base_reward + streak_bonus + luck_bonus
+        luck_bonus = int(base_total * luck_bonus_pct) if luck_bonus_pct else 0
+
+        pokemon = self._get_equipped_pokemon(uid)
+        pokemon_bonus = 0
+        pokemon_line = None
+        if pokemon:
+            pokemon_bonus, _ = self._calc_pokemon_passive_bonus(base_total, pokemon)
+            pokemon_line = self._get_daily_pokemon_line(pokemon)
+
+        total_reward = base_total + luck_bonus + pokemon_bonus
 
         self.update_balance(ctx.author.id, total_reward, "wallet")
         self.economy_manager.set_daily_status(uid, today, streak)
 
-        parts = [f"\U0001f4b8 {ctx.author.mention}, you collected your daily **${total_reward}**!"]
-        parts.append(f"Streak: **{streak}**")
+        lines = [f"\U0001f4b8 {ctx.author.mention}, you collected your daily **${total_reward}**!"]
+        if pokemon_line:
+            lines.append(f"\U0001f43e {pokemon_line}")
+        parts = [f"Streak: **{streak}**"]
         if streak_bonus > 0:
             parts.append(f"Streak bonus +${streak_bonus}")
         if luck_bonus > 0:
             parts.append(f"Luck bonus +${luck_bonus}")
-        await ctx.send(" | ".join(parts))
+        if pokemon_bonus > 0:
+            parts.append(f"Pokemon passive +${pokemon_bonus}")
+        lines.append(" | ".join(parts))
+        await ctx.send("\n".join(lines))
 
     @commands.command()
     @commands.cooldown(1, 3600, commands.BucketType.user)

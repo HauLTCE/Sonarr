@@ -31,7 +31,26 @@ class PrettyHelp(commands.HelpCommand):
                     if current_chunk:
                         field_name = f"📂 {name}" if field_counter == 1 else f"📂 {name} (Part {field_counter})"
                         embed.add_field(name=field_name, value=current_chunk, inline=False)
-        
+
+        pokemon_help = [
+            "`!pokemon starter <name>` Pick your starter",
+            "`!pokemon` or `!pokemon list` View your party",
+            "`!pokemon info <id>` Detailed stats",
+            "`!pokemon equip <id>` Equip a pokemon",
+            "`!pokemon zones` View zones",
+            "`!pokemon hunt [zone]` Start a wild encounter",
+            "`!pokemon battle` Resume a wild battle",
+            "`!pokemon catch [ball]` Throw a ball",
+            "`!pokemon train <id> [sessions]` Train for XP",
+            "`!pokemon evolve <id> [target]` Evolve if eligible",
+            "`!pokemon heal <id> [item]` Heal HP",
+            "`!pokemon revive <id> [item]` Revive fainted",
+            "`!pokemon daycare add <id> <hours>` Daycare training",
+            "`!pokemon weekly` / `!pokemon weekly_claim` Weekly missions",
+            "`!pokemon upgrade [item]` Increase party capacity",
+        ]
+        embed.add_field(name="Pokemon Guide", value="\n".join(pokemon_help), inline=False)
+
         embed.set_footer(text="Type !help <command> for more details.")
         await self.get_destination().send(embed=embed)
 

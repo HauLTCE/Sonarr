@@ -2,6 +2,13 @@ import discord
 import random
 import logging
 
+from utils.pokemon_system import (
+    GAMBLE_BET_CAP,
+    calc_loss_refund,
+    calc_win_bonus,
+    get_gamble_modifiers,
+)
+
 logger = logging.getLogger("bot")
 
 
@@ -141,9 +148,16 @@ class BlackjackView(discord.ui.View):
         score = self.calculate_score(self.player_hand)
         if score > 21:
             self.game_over = True
-            self.game_cog.update_balance(self.ctx.author.id, -self.bet)
-            await self.update_message(interaction, f"💥 **Bust!** You went over 21. You lost **${self.bet}**.")
-            logger.info(f"User {self.ctx.author.display_name} busted in blackjack and lost ${self.bet}")
+            pokemon, _, loss_pct = get_gamble_modifiers(self.ctx.author.id)
+            refund = 0
+            if pokemon and self.bet <= GAMBLE_BET_CAP:
+                refund = calc_loss_refund(self.bet, loss_pct)
+            net_loss = max(0, self.bet - refund)
+            if net_loss > 0:
+                self.game_cog.update_balance(self.ctx.author.id, -net_loss)
+            refund_note = f" (Pokemon refund +${refund})" if refund > 0 else ""
+            await self.update_message(interaction, f"?? **Bust!** You went over 21. You lost **${net_loss}**.{refund_note}")
+            logger.info(f"User {self.ctx.author.display_name} busted in blackjack and lost ${net_loss}")
         else:
             await self.update_message(interaction)
 
@@ -157,20 +171,39 @@ class BlackjackView(discord.ui.View):
         d_score = self.calculate_score(self.dealer_hand)
         
         if d_score > 21:
-            self.game_cog.update_balance(self.ctx.author.id, self.bet)
-            msg = f"🎉 **Dealer Busted!** You won **${self.bet}**!"
-            logger.info(f"User {self.ctx.author.display_name} won ${self.bet} on blackjack (dealer busted)")
+            pokemon, win_pct, _ = get_gamble_modifiers(self.ctx.author.id)
+            bonus = 0
+            if pokemon and self.bet <= GAMBLE_BET_CAP:
+                bonus = calc_win_bonus(self.bet, win_pct)
+            payout = self.bet + bonus
+            self.game_cog.update_balance(self.ctx.author.id, payout)
+            bonus_note = f" (Pokemon bonus +${bonus})" if bonus > 0 else ""
+            msg = f"?? **Dealer Busted!** You won **${payout}**!{bonus_note}"
+            logger.info(f"User {self.ctx.author.display_name} won ${payout} on blackjack (dealer busted)")
         elif p_score > d_score:
-            self.game_cog.update_balance(self.ctx.author.id, self.bet)
-            msg = f"🎉 **You Won!** {p_score} vs {d_score}."
-            logger.info(f"User {self.ctx.author.display_name} won ${self.bet} on blackjack ({p_score} vs {d_score})")
+            pokemon, win_pct, _ = get_gamble_modifiers(self.ctx.author.id)
+            bonus = 0
+            if pokemon and self.bet <= GAMBLE_BET_CAP:
+                bonus = calc_win_bonus(self.bet, win_pct)
+            payout = self.bet + bonus
+            self.game_cog.update_balance(self.ctx.author.id, payout)
+            bonus_note = f" (Pokemon bonus +${bonus})" if bonus > 0 else ""
+            msg = f"?? **You Won!** {p_score} vs {d_score}. Payout **${payout}**.{bonus_note}"
+            logger.info(f"User {self.ctx.author.display_name} won ${payout} on blackjack ({p_score} vs {d_score})")
         elif p_score == d_score:
-            msg = "🤝 **Push!** It's a tie. Money returned."
+            msg = "?? **Push!** It's a tie. Money returned."
             logger.info(f"User {self.ctx.author.display_name} pushed on blackjack ({p_score} vs {d_score})")
         else:
-            self.game_cog.update_balance(self.ctx.author.id, -self.bet)
-            msg = f"💸 **Dealer Won.** {d_score} vs {p_score}."
-            logger.info(f"User {self.ctx.author.display_name} lost ${self.bet} on blackjack ({d_score} vs {p_score})")
+            pokemon, _, loss_pct = get_gamble_modifiers(self.ctx.author.id)
+            refund = 0
+            if pokemon and self.bet <= GAMBLE_BET_CAP:
+                refund = calc_loss_refund(self.bet, loss_pct)
+            net_loss = max(0, self.bet - refund)
+            if net_loss > 0:
+                self.game_cog.update_balance(self.ctx.author.id, -net_loss)
+            refund_note = f" (Pokemon refund +${refund})" if refund > 0 else ""
+            msg = f"?? **Dealer Won.** {d_score} vs {p_score}. You lost **${net_loss}**.{refund_note}"
+            logger.info(f"User {self.ctx.author.display_name} lost ${net_loss} on blackjack ({d_score} vs {p_score})")
         await self.update_message(interaction, msg)
 
 
@@ -192,15 +225,28 @@ class HighLowView(discord.ui.View):
         elif choice == "lower" and next_num < self.number: won = True
 
         if won:
-            self.game_cog.update_balance(self.ctx.author.id, self.bet)
-            msg = f"🎉 Correct! The number was **{next_num}**. You won **${self.bet}**!"
+            pokemon, win_pct, _ = get_gamble_modifiers(self.ctx.author.id)
+            bonus = 0
+            if pokemon and self.bet <= GAMBLE_BET_CAP:
+                bonus = calc_win_bonus(self.bet, win_pct)
+            payout = self.bet + bonus
+            self.game_cog.update_balance(self.ctx.author.id, payout)
+            bonus_note = f" (Pokemon bonus +${bonus})" if bonus > 0 else ""
+            msg = f"?? Correct! The number was **{next_num}**. You won **${payout}**!{bonus_note}"
             color = 0x00ff00
-            logger.info(f"User {self.ctx.author.display_name} won ${self.bet} on highlow (number {next_num})")
+            logger.info(f"User {self.ctx.author.display_name} won ${payout} on highlow (number {next_num})")
         else:
-            self.game_cog.update_balance(self.ctx.author.id, -self.bet)
-            msg = f"❌ Wrong! The number was **{next_num}**. You lost **${self.bet}**."
+            pokemon, _, loss_pct = get_gamble_modifiers(self.ctx.author.id)
+            refund = 0
+            if pokemon and self.bet <= GAMBLE_BET_CAP:
+                refund = calc_loss_refund(self.bet, loss_pct)
+            net_loss = max(0, self.bet - refund)
+            if net_loss > 0:
+                self.game_cog.update_balance(self.ctx.author.id, -net_loss)
+            refund_note = f" (Pokemon refund +${refund})" if refund > 0 else ""
+            msg = f"? Wrong! The number was **{next_num}**. You lost **${net_loss}**.{refund_note}"
             color = 0xff0000
-            logger.info(f"User {self.ctx.author.display_name} lost ${self.bet} on highlow (number {next_num})")
+            logger.info(f"User {self.ctx.author.display_name} lost ${net_loss} on highlow (number {next_num})")
 
         embed = discord.Embed(title="📉 High Low", description=msg, color=color)
         self.clear_items()

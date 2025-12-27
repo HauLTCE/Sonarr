@@ -3,11 +3,14 @@ from discord.ext import commands
 import json
 import os
 
+from utils.economy import EconomyManager
+
 CONFIG_FILE = "server_config.json"
 
 class Admin(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.economy_manager = EconomyManager()
 
     def save_config(self):
         with open(CONFIG_FILE, "w") as f:
@@ -86,6 +89,18 @@ class Admin(commands.Cog):
         await channel.send(embed=embed)
         await ctx.message.delete()
         await ctx.send(f"✅ Announcement sent to {channel.mention}", delete_after=5)
+
+    @commands.command(name="admin_addmoney", hidden=True)
+    @commands.has_permissions(administrator=True)
+    async def admin_addmoney(self, ctx, amount: int, location: str = "wallet"):
+        """Add money to your own balance (admin only)."""
+        if amount <= 0:
+            return await ctx.send("❌ Amount must be positive.")
+        location = location.lower()
+        if location not in ["wallet", "bank"]:
+            return await ctx.send("❌ Location must be 'wallet' or 'bank'.")
+        self.economy_manager.update_balance(ctx.author.id, amount, location)
+        await ctx.send(f"✅ Added ${amount} to your {location}.")
 
 async def setup(bot):
     await bot.add_cog(Admin(bot))
