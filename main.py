@@ -250,7 +250,7 @@ async def load_extensions():
     if not os.path.exists('./cogs'):
         os.makedirs('./cogs')
     
-    ignored_files = ['views.py']
+    ignored_files = ['views.py', 'pokemon_views.py']
     cog_files = []
     
     for filename in os.listdir('./cogs'):

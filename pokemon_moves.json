@@ -1,0 +1,135 @@
+{
+  "tackle": {
+    "name": "Tackle",
+    "type": "normal",
+    "power": 40,
+    "accuracy": 100
+  },
+  "scratch": {
+    "name": "Scratch",
+    "type": "normal",
+    "power": 40,
+    "accuracy": 100
+  },
+  "quick_attack": {
+    "name": "Quick Attack",
+    "type": "normal",
+    "power": 40,
+    "accuracy": 100,
+    "priority": 1
+  },
+  "bite": {
+    "name": "Bite",
+    "type": "dark",
+    "power": 60,
+    "accuracy": 100
+  },
+  "body_slam": {
+    "name": "Body Slam",
+    "type": "normal",
+    "power": 80,
+    "accuracy": 85
+  },
+  "ember": {
+    "name": "Ember",
+    "type": "fire",
+    "power": 40,
+    "accuracy": 100
+  },
+  "flame_burst": {
+    "name": "Flame Burst",
+    "type": "fire",
+    "power": 70,
+    "accuracy": 95
+  },
+  "flamethrower": {
+    "name": "Flamethrower",
+    "type": "fire",
+    "power": 90,
+    "accuracy": 90
+  },
+  "water_gun": {
+    "name": "Water Gun",
+    "type": "water",
+    "power": 40,
+    "accuracy": 100
+  },
+  "aqua_tail": {
+    "name": "Aqua Tail",
+    "type": "water",
+    "power": 80,
+    "accuracy": 90
+  },
+  "hydro_pump": {
+    "name": "Hydro Pump",
+    "type": "water",
+    "power": 100,
+    "accuracy": 80
+  },
+  "vine_whip": {
+    "name": "Vine Whip",
+    "type": "grass",
+    "power": 45,
+    "accuracy": 100
+  },
+  "razor_leaf": {
+    "name": "Razor Leaf",
+    "type": "grass",
+    "power": 55,
+    "accuracy": 95
+  },
+  "thunder_shock": {
+    "name": "Thunder Shock",
+    "type": "electric",
+    "power": 40,
+    "accuracy": 100
+  },
+  "thunderbolt": {
+    "name": "Thunderbolt",
+    "type": "electric",
+    "power": 90,
+    "accuracy": 90
+  },
+  "gust": {
+    "name": "Gust",
+    "type": "flying",
+    "power": 40,
+    "accuracy": 100
+  },
+  "wing_attack": {
+    "name": "Wing Attack",
+    "type": "flying",
+    "power": 60,
+    "accuracy": 100
+  },
+  "sludge": {
+    "name": "Sludge",
+    "type": "poison",
+    "power": 65,
+    "accuracy": 100
+  },
+  "dragon_breath": {
+    "name": "Dragon Breath",
+    "type": "dragon",
+    "power": 60,
+    "accuracy": 100
+  },
+  "ice_shard": {
+    "name": "Ice Shard",
+    "type": "ice",
+    "power": 40,
+    "accuracy": 100
+  },
+  "ice_beam": {
+    "name": "Ice Beam",
+    "type": "ice",
+    "power": 90,
+    "accuracy": 90
+  },
+  "psybeam": {
+    "name": "Psybeam",
+    "type": "psychic",
+    "power": 65,
+    "accuracy": 100
+  }
+}

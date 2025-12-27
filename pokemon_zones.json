@@ -1,0 +1,131 @@
+{
+  "meadow": {
+    "name": "Meadow",
+    "unlock_species": 0,
+    "hunt_cost": 100,
+    "cooldown_seconds": 90,
+    "rarity_weights": {
+      "common": 65,
+      "uncommon": 22,
+      "rare": 10,
+      "epic": 2,
+      "legendary": 1
+    },
+    "species_pool": [
+      "bulbasaur",
+      "charmander",
+      "squirtle",
+      "pidgey",
+      "rattata",
+      "eevee",
+      "pikachu",
+      "pidgeotto",
+      "raticate",
+      "raichu",
+      "pidgeot"
+    ],
+    "level_ranges": {
+      "common": [1, 4],
+      "uncommon": [2, 5],
+      "rare": [3, 6],
+      "epic": [4, 7],
+      "legendary": [6, 9]
+    }
+  },
+  "forest": {
+    "name": "Forest",
+    "unlock_species": 5,
+    "hunt_cost": 200,
+    "cooldown_seconds": 150,
+    "rarity_weights": {
+      "common": 55,
+      "uncommon": 25,
+      "rare": 13,
+      "epic": 5,
+      "legendary": 2
+    },
+    "species_pool": [
+      "bulbasaur",
+      "ivysaur",
+      "venusaur",
+      "pidgey",
+      "pidgeotto",
+      "pidgeot",
+      "pikachu",
+      "raichu",
+      "eevee",
+      "snorlax"
+    ],
+    "level_ranges": {
+      "common": [2, 5],
+      "uncommon": [3, 6],
+      "rare": [4, 7],
+      "epic": [6, 9],
+      "legendary": [8, 11]
+    }
+  },
+  "coast": {
+    "name": "Coast",
+    "unlock_species": 10,
+    "hunt_cost": 350,
+    "cooldown_seconds": 210,
+    "rarity_weights": {
+      "common": 45,
+      "uncommon": 28,
+      "rare": 15,
+      "epic": 8,
+      "legendary": 4
+    },
+    "species_pool": [
+      "squirtle",
+      "wartortle",
+      "blastoise",
+      "vaporeon",
+      "lapras",
+      "articuno",
+      "eevee",
+      "pikachu"
+    ],
+    "level_ranges": {
+      "common": [3, 6],
+      "uncommon": [4, 7],
+      "rare": [6, 9],
+      "epic": [8, 11],
+      "legendary": [10, 14]
+    }
+  },
+  "mountain": {
+    "name": "Mountain",
+    "unlock_species": 20,
+    "hunt_cost": 500,
+    "cooldown_seconds": 300,
+    "rarity_weights": {
+      "common": 35,
+      "uncommon": 28,
+      "rare": 18,
+      "epic": 12,
+      "legendary": 7
+    },
+    "species_pool": [
+      "charmander",
+      "charmeleon",
+      "charizard",
+      "pidgey",
+      "pidgeotto",
+      "pidgeot",
+      "dratini",
+      "dragonair",
+      "dragonite",
+      "moltres",
+      "zapdos",
+      "articuno"
+    ],
+    "level_ranges": {
+      "common": [4, 7],
+      "uncommon": [6, 9],
+      "rare": [8, 11],
+      "epic": [10, 14],
+      "legendary": [12, 16]
+    }
+  }
+}
