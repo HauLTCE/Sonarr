@@ -19,7 +19,7 @@ class Database:
     def _init_db(self):
         """Initialize database and create tables if they don't exist."""
         try:
-            self.connection = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+            self.connection = sqlite3.connect(str(DB_PATH), check_same_thread=False, timeout=10.0)
             self.connection.row_factory = sqlite3.Row
             self.cursor = self.connection.cursor()
             
@@ -62,6 +62,54 @@ class Database:
                     PRIMARY KEY (user_id, buff_id)
                 )
             ''')
+            
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS message_cache (
+                    msg_hash TEXT PRIMARY KEY,
+                    guild_id TEXT DEFAULT 'global',
+                    category TEXT NOT NULL,
+                    hit_count INTEGER DEFAULT 1,
+                    created_at REAL NOT NULL,
+                    last_hit REAL NOT NULL
+                )
+            ''')
+            
+            # Response cache - stores AI-generated responses
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS response_cache (
+                    msg_hash TEXT PRIMARY KEY,
+                    response TEXT NOT NULL,
+                    hit_count INTEGER DEFAULT 1,
+                    created_at REAL NOT NULL,
+                    last_hit REAL NOT NULL
+                )
+            ''')
+            
+            # Per-guild cache threshold config
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS cache_config (
+                    key TEXT PRIMARY KEY,
+                    value INTEGER NOT NULL
+                )
+            ''')
+            
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS guild_cache_config (
+                    guild_id TEXT PRIMARY KEY,
+                    threshold INTEGER DEFAULT 1
+                )
+            ''')
+            
+            self.cursor.execute('INSERT OR IGNORE INTO cache_config (key, value) VALUES (?, ?)', ('keep_threshold', 10))
+            self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_cache_hits ON message_cache(hit_count DESC)')
+            self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_cache_last_hit ON message_cache(last_hit ASC)')
+            
+            # Migration: Add guild_id column if it doesn't exist (for older databases)
+            try:
+                self.cursor.execute('SELECT guild_id FROM message_cache LIMIT 1')
+            except sqlite3.OperationalError:
+                logger.info("[Database] Migrating message_cache: adding guild_id column")
+                self.cursor.execute('ALTER TABLE message_cache ADD COLUMN guild_id TEXT DEFAULT "global"')
             
             self.connection.commit()
             logger.info("[Database] SQLite initialized successfully")
@@ -207,6 +255,242 @@ class Database:
         now = datetime.now(timezone.utc).timestamp()
         self.cursor.execute('DELETE FROM active_buffs WHERE expires_at <= ?', (now,))
         self.connection.commit()
+    
+    def get_cached_category(self, msg_hash: str, guild_id: int = None):
+        """Get cached category. Returns None if not found or expired (7 days)."""
+        now = datetime.now(timezone.utc).timestamp()
+        seven_days_ago = now - (7 * 86400)  # 7 days in seconds
+        
+        # Query with guild_id if provided, otherwise match any
+        if guild_id:
+            self.cursor.execute(
+                'SELECT category, created_at FROM message_cache WHERE msg_hash = ? AND guild_id = ?', 
+                (msg_hash, str(guild_id))
+            )
+        else:
+            self.cursor.execute(
+                'SELECT category, created_at FROM message_cache WHERE msg_hash = ?', 
+                (msg_hash,)
+            )
+        row = self.cursor.fetchone()
+        if row:
+            # Check if expired (older than 7 days)
+            if row[1] < seven_days_ago:
+                # Delete expired entry
+                if guild_id:
+                    self.cursor.execute('DELETE FROM message_cache WHERE msg_hash = ? AND guild_id = ?', (msg_hash, str(guild_id)))
+                else:
+                    self.cursor.execute('DELETE FROM message_cache WHERE msg_hash = ?', (msg_hash,))
+                self.connection.commit()
+                return None
+            
+            # Update hit count and last_hit
+            if guild_id:
+                self.cursor.execute(
+                    'UPDATE message_cache SET hit_count = hit_count + 1, last_hit = ? WHERE msg_hash = ? AND guild_id = ?',
+                    (now, msg_hash, str(guild_id))
+                )
+            else:
+                self.cursor.execute(
+                    'UPDATE message_cache SET hit_count = hit_count + 1, last_hit = ? WHERE msg_hash = ?',
+                    (now, msg_hash)
+                )
+            self.connection.commit()
+            return row[0]
+        return None
+    
+    def cache_category(self, msg_hash: str, category: str, guild_id = None):
+        """Cache a message hash → category. Starts at hit_count=1. If full, evict least used."""
+        now = datetime.now(timezone.utc).timestamp()
+        guild_str = str(guild_id) if guild_id else "global"
+        
+        self.cursor.execute('SELECT COUNT(*) FROM message_cache WHERE guild_id = ?', (guild_str,))
+        count = self.cursor.fetchone()[0]
+        
+        if count >= 5000:
+            self.cursor.execute(
+                'DELETE FROM message_cache WHERE msg_hash = (SELECT msg_hash FROM message_cache WHERE guild_id = ? ORDER BY hit_count ASC, last_hit ASC LIMIT 1)',
+                (guild_str,)
+            )
+        
+        # New entries start with hit_count=1
+        self.cursor.execute('''
+            INSERT OR REPLACE INTO message_cache (msg_hash, guild_id, category, hit_count, created_at, last_hit)
+            VALUES (?, ?, ?, 1, ?, ?)
+        ''', (msg_hash, guild_str, category, now, now))
+        self.connection.commit()
+    
+    def get_cached_response(self, msg_hash: str):
+        """Get cached AI-generated response. Returns None if not found or expired (7 days)."""
+        now = datetime.now(timezone.utc).timestamp()
+        seven_days_ago = now - (7 * 86400)
+        
+        self.cursor.execute(
+            'SELECT response, created_at FROM response_cache WHERE msg_hash = ?', 
+            (msg_hash,)
+        )
+        row = self.cursor.fetchone()
+        if row:
+            if row[1] < seven_days_ago:
+                self.cursor.execute('DELETE FROM response_cache WHERE msg_hash = ?', (msg_hash,))
+                self.connection.commit()
+                return None
+            
+            self.cursor.execute(
+                'UPDATE response_cache SET hit_count = hit_count + 1, last_hit = ? WHERE msg_hash = ?',
+                (now, msg_hash)
+            )
+            self.connection.commit()
+            return row[0]
+        return None
+    
+    def cache_response(self, msg_hash: str, response: str):
+        """Cache an AI-generated response. If full, evict least used."""
+        now = datetime.now(timezone.utc).timestamp()
+        
+        self.cursor.execute('SELECT COUNT(*) FROM response_cache')
+        count = self.cursor.fetchone()[0]
+        
+        if count >= 3000:  # Lower limit for responses (they're longer)
+            self.cursor.execute('DELETE FROM response_cache WHERE msg_hash = (SELECT msg_hash FROM response_cache ORDER BY hit_count ASC, last_hit ASC LIMIT 1)')
+        
+        self.cursor.execute('''
+            INSERT OR REPLACE INTO response_cache (msg_hash, response, hit_count, created_at, last_hit)
+            VALUES (?, ?, 1, ?, ?)
+        ''', (msg_hash, response, now, now))
+        self.connection.commit()
+    
+    def fuzzy_search_category(self, content_words: list):
+        """Search for cached entries that share content words. Returns best match or None."""
+        if not content_words:
+            return None
+        
+        now = datetime.now(timezone.utc).timestamp()
+        seven_days_ago = now - (7 * 86400)
+        
+        # Get all non-expired cache entries
+        self.cursor.execute(
+            'SELECT msg_hash, category FROM message_cache WHERE created_at > ?',
+            (seven_days_ago,)
+        )
+        rows = self.cursor.fetchall()
+        
+        if not rows:
+            return None
+        
+        # Find entries with overlapping words (stored hash includes sorted words)
+        content_set = set(content_words)
+        best_match = None
+        best_overlap = 0
+        
+        for row in rows:
+            # We can't decode hash, but we can check if this exact combo exists
+            # For fuzzy, we'd need to store words separately - skip for now
+            pass
+        
+        return None  # Fuzzy search needs word storage - implement later
+    
+    def get_keep_threshold(self, guild_id: str = "global"):
+        """Get per-guild adaptive keep threshold."""
+        self.cursor.execute('SELECT threshold FROM guild_cache_config WHERE guild_id = ?', (guild_id,))
+        row = self.cursor.fetchone()
+        if row:
+            return row[0]
+        # Initialize with threshold 1 if not exists
+        self.cursor.execute('INSERT OR IGNORE INTO guild_cache_config (guild_id, threshold) VALUES (?, ?)', (guild_id, 1))
+        self.connection.commit()
+        return 1
+    
+    def set_keep_threshold(self, value: int, guild_id: str = "global"):
+        """Set per-guild adaptive keep threshold."""
+        value = max(0, value)  # Don't go below 0
+        self.cursor.execute('INSERT OR REPLACE INTO guild_cache_config (guild_id, threshold) VALUES (?, ?)', (guild_id, value))
+        self.connection.commit()
+    
+    def cleanup_message_cache(self, guild_id: str = "global"):
+        """
+        Smart cache cleanup per guild:
+        1. Delete entries with hit_count < threshold
+        2. Reset remaining hit_counts to 0
+        3. Adjust threshold based on remaining count
+        """
+        threshold = self.get_keep_threshold(guild_id)
+        
+        # Step 1: Delete entries below threshold
+        self.cursor.execute(
+            'DELETE FROM message_cache WHERE guild_id = ? AND hit_count < ?', 
+            (guild_id, threshold)
+        )
+        deleted = self.cursor.rowcount
+        
+        # Step 2: Reset hit_count to 0 for remaining entries
+        self.cursor.execute(
+            'UPDATE message_cache SET hit_count = 0 WHERE guild_id = ?',
+            (guild_id,)
+        )
+        
+        # Step 3: Count remaining entries
+        self.cursor.execute('SELECT COUNT(*) FROM message_cache WHERE guild_id = ?', (guild_id,))
+        remaining = self.cursor.fetchone()[0]
+        
+        # Step 4: Adjust threshold based on remaining count
+        old_threshold = threshold
+        if remaining < 100 and threshold > 0:
+            threshold -= 1
+            self.set_keep_threshold(threshold, guild_id)
+            logger.info(f"[Cache] Guild {guild_id}: Lowered threshold {old_threshold} → {threshold} (only {remaining} remaining)")
+        elif remaining > 2000:
+            threshold += 1
+            self.set_keep_threshold(threshold, guild_id)
+            logger.info(f"[Cache] Guild {guild_id}: Raised threshold {old_threshold} → {threshold} ({remaining} remaining)")
+        
+        self.connection.commit()
+        logger.info(f"[Cache] Guild {guild_id}: Cleanup done - deleted {deleted}, remaining {remaining}, threshold {threshold}")
+        return deleted, remaining, threshold
+    
+    def get_cache_stats(self, guild_id: int = None):
+        """Get cache statistics for a specific guild or all guilds."""
+        if guild_id:
+            guild_str = str(guild_id)
+            self.cursor.execute(
+                'SELECT COUNT(*), SUM(hit_count), AVG(hit_count) FROM message_cache WHERE guild_id = ?',
+                (guild_str,)
+            )
+            row = self.cursor.fetchone()
+            return {
+                "entries": row[0] or 0,
+                "total_hits": row[1] or 0,
+                "avg_hits": round(row[2] or 0, 2),
+                "threshold": self.get_keep_threshold(guild_str)
+            }
+        else:
+            self.cursor.execute('SELECT COUNT(*), SUM(hit_count), AVG(hit_count) FROM message_cache')
+            row = self.cursor.fetchone()
+            return {
+                "entries": row[0] or 0,
+                "total_hits": row[1] or 0,
+                "avg_hits": round(row[2] or 0, 2),
+                "threshold": "per-guild"
+            }
+    
+    def get_all_cache_guilds(self):
+        """Get all unique guild IDs from message cache."""
+        self.cursor.execute('SELECT DISTINCT guild_id FROM message_cache')
+        return [row[0] for row in self.cursor.fetchall()]
+    
+    def cleanup_all_guilds_cache(self):
+        """Run cleanup for all guilds in the cache."""
+        guilds = self.get_all_cache_guilds()
+        total_deleted = 0
+        total_remaining = 0
+        
+        for guild_id in guilds:
+            deleted, remaining, threshold = self.cleanup_message_cache(guild_id)
+            total_deleted += deleted
+            total_remaining += remaining
+        
+        logger.info(f"[Cache] All guilds cleanup: {len(guilds)} guilds, {total_deleted} deleted, {total_remaining} remaining")
+        return len(guilds), total_deleted, total_remaining
     
     def close(self):
         """Close database connection."""
