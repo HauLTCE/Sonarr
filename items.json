@@ -16,5 +16,81 @@
     "buff_id": "rob_safety",
     "buff_value": 0.15,
     "buff_duration_minutes": 30
+  },
+  "pokeball": {
+    "name": "Poke Ball",
+    "description": "Basic ball for catching pokemon.",
+    "price": 100,
+    "type": "pokemon_ball",
+    "catch_bonus": 0.0
+  },
+  "greatball": {
+    "name": "Great Ball",
+    "description": "Improved catch bonus for pokemon.",
+    "price": 250,
+    "type": "pokemon_ball",
+    "catch_bonus": 0.1
+  },
+  "ultraball": {
+    "name": "Ultra Ball",
+    "description": "High catch bonus for pokemon.",
+    "price": 600,
+    "type": "pokemon_ball",
+    "catch_bonus": 0.2
+  },
+  "lure": {
+    "name": "Lure",
+    "description": "Boosts chance of rarer pokemon encounters for 30 minutes.",
+    "price": 300,
+    "type": "consumable",
+    "buff_id": "encounter_boost",
+    "buff_value": 0.2,
+    "buff_duration_minutes": 30
+  },
+  "potion": {
+    "name": "Potion",
+    "description": "Heals a pokemon for 50 HP.",
+    "price": 150,
+    "type": "pokemon_heal",
+    "heal_amount": 50
+  },
+  "super_potion": {
+    "name": "Super Potion",
+    "description": "Heals a pokemon for 120 HP.",
+    "price": 350,
+    "type": "pokemon_heal",
+    "heal_amount": 120
+  },
+  "revive": {
+    "name": "Revive",
+    "description": "Revives a fainted pokemon to 50% HP.",
+    "price": 500,
+    "type": "pokemon_revive",
+    "revive_percent": 0.5
+  },
+  "fire_stone": {
+    "name": "Fire Stone",
+    "description": "Evolves certain pokemon.",
+    "price": 1200,
+    "type": "evo_stone"
+  },
+  "water_stone": {
+    "name": "Water Stone",
+    "description": "Evolves certain pokemon.",
+    "price": 1200,
+    "type": "evo_stone"
+  },
+  "thunder_stone": {
+    "name": "Thunder Stone",
+    "description": "Evolves certain pokemon.",
+    "price": 1200,
+    "type": "evo_stone"
+  },
+  "pc_upgrade": {
+    "name": "PC Upgrade",
+    "description": "Permanently increases your pokemon party capacity by 1.",
+    "price": 2500,
+    "type": "pokemon_capacity",
+    "slot_increase": 1
   }
 }
