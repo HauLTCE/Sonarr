@@ -21,12 +21,20 @@ ytdl_format_options = {
     'default_search': 'auto',
     'source_address': '0.0.0.0',
     'socket_timeout': 15,
-    'retries': 10
+    'retries': 10,
+    'extractor_retries': 5,
+    'fragment_retries': 10,
 }
 
+# Enhanced FFmpeg options for better YouTube stream stability
+# - reconnect: Enable reconnection on connection drops
+# - reconnect_streamed: Reconnect even on streamed content  
+# - reconnect_delay_max: Max delay between reconnection attempts (5 seconds)
+# - reconnect_on_network_error: Reconnect on network errors (TLS resets)
+# - reconnect_on_http_error: Reconnect on HTTP errors
 ffmpeg_options = {
-    'options': '-vn',
-    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5'
+    'options': '-vn -loglevel warning',
+    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -reconnect_on_network_error 1 -reconnect_on_http_error 4xx,5xx'
 }
 
 ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
