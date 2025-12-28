@@ -13,7 +13,7 @@ logger = logging.getLogger("bot")
 
 # ========== CONFIGURATION ==========
 MARKET_UPDATE_HOURS = 1  # How often prices update
-NEWS_CYCLE_HOURS = 4  # How often news is generated
+NEWS_CYCLE_HOURS = 1  # How often news is generated
 PRICE_HISTORY_DAYS = 7  # Days of price history to keep
 
 # === PRICE VOLATILITY ===

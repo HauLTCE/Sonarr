@@ -430,6 +430,23 @@ class BotPersonality(commands.Cog):
             "Even {target}'s Pokemon look tired of them.",
         ]
         
+        self.gossip_loudmouth = [
+            "{target} talks a LOT. High level and no off button.",
+            "I love {target}'s energy. Less so their constant commentary.",
+            "{target} is level {level} and will NOT shut up about it.",
+            "High level? Sure. Humble? Not in {target}'s vocabulary.",
+            "{target} has been grinding for years and will tell you... constantly.",
+            "{target}'s chat history is longer than most novels.",
+            "Level {level} and still needs validation from everyone.",
+            "{target} could monetize their voice at this point.",
+            "I've muted {target} conversations. Multiple times.",
+            "{target}'s level is impressive. Their social awareness? Less so.",
+            "Always talking, never listening. That's {target}.",
+            "{target}'s achievements are undeniable. The bragging? Insufferable.",
+            "I know {target}'s life story. Twice. They tell it often.",
+            "{target} at level {level} is living their best loud life.",
+        ]
+        
         self.gossip_criminal = [
             "{target} has robbed people. Takes one to know one.",
             "I respect {target}'s crime rate. Not their skill, though.",
@@ -489,6 +506,12 @@ class BotPersonality(commands.Cog):
         owned_pokemon = db.get_owned_pokemon(target_id)
         has_pokemon = len(owned_pokemon) > 0 if owned_pokemon else False
         
+        # Check if they're a loudmouth (high level + chatty)
+        user_data = db.get_user_economy(target_id)
+        user_level = db.get_user_level(target_id) if hasattr(db, 'get_user_level') else 0
+        command_count = len(db.cursor.execute('SELECT 1 FROM command_history WHERE user_id = ? LIMIT 100', (target_id,)).fetchall()) if hasattr(db, 'cursor') else 0
+        is_loudmouth = user_level >= 15 and command_count > 50  # High level + lots of chat
+        
         # Build weighted pool of applicable gossip categories
         gossip_pool = []
         
@@ -507,6 +530,11 @@ class BotPersonality(commands.Cog):
         
         if has_pokemon:
             gossip_pool.extend(self.gossip_pokemon * 1)
+        
+        if is_loudmouth:
+            # Format gossip with their level
+            loudmouth_lines = [line.format(target="{target}", level=user_level if user_level else "X") if "{level}" in line else line for line in self.gossip_loudmouth]
+            gossip_pool.extend(loudmouth_lines * 1)
         
         # Gambler and criminal categories removed - no tracking tables
         # Can add these back later if we track gambling/crime stats
