@@ -1,287 +1,472 @@
 # SONARR Discord Bot 🤖
 
-A feature-rich Discord bot with AI personality, advanced economy system, stock market, gambling, Pokémon, and moderation tools.
+A feature-rich Discord bot with a sarcastic diva personality, advanced economy system, stock market simulation, loan shark mechanics, gambling, Pokémon collection, and AI-driven interactions.
 
-**Stack**: Discord.py 2.4.0 | Google Gemini AI | SQLite | Python 3.x
+![Discord.py](https://img.shields.io/badge/Discord.py-2.4.0-blue)
+![Python](https://img.shields.io/badge/Python-3.10+-green)
+![License](https://img.shields.io/badge/License-MIT-yellow)
+
+---
+
+## 🌟 Features Overview
+
+| Feature | Description |
+|---------|-------------|
+| 💰 **Economy** | Wallet/bank system with daily rewards, work commands, and transactions |
+| 📈 **Stock Market** | 8 tradeable stocks with hourly updates, news cycles, and advanced balancing |
+| 🦈 **Loan Shark** | Credit-based lending with interest, collateral, and bankruptcy system |
+| 🎰 **Gambling** | Slots, blackjack, roulette, coinflip, and poker |
+| 🔴 **Pokémon** | Catch, trade, and collect Pokémon with passive income bonuses |
+| 🎭 **AI Personality** | Gemini-powered responses with smart caching and sarcastic attitude |
+| 🎵 **Music** | YouTube playback with queue management |
+| 🛡️ **Moderation** | Kick, ban, mute, and channel management |
 
 ---
 
 ## 📋 Table of Contents
 
-1. [Overview](#overview)
-2. [Features](#features)
-3. [Installation & Setup](#installation--setup)
-4. [Architecture](#architecture)
-5. [Economy System](#economy-system)
-6. [Stock Market](#stock-market)
-7. [Loan Shark System](#loan-shark-system)
-8. [Gambling](#gambling)
-9. [Pokémon System](#pokémon-system)
-10. [AI Personality](#ai-personality)
-11. [Commands Reference](#commands-reference)
-12. [Deployment](#deployment)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Economy System](#-economy-system)
+- [Stock Market](#-stock-market)
+- [Loan Shark System](#-loan-shark-system)
+- [Gambling](#-gambling)
+- [Pokémon System](#-pokémon-system)
+- [AI Personality](#-ai-personality)
+- [Commands Reference](#-commands-reference)
+- [Architecture](#-architecture)
+- [Deployment](#-deployment)
 
 ---
 
-## Overview
-
-SONARR is a sarcastic, diva-personality Discord bot that manages a complete in-game economy with stocks, loans, gambling, and AI-driven interactions. The bot features autonomous money management (auto-robbing, idle chat), comprehensive economy tracking, and sophisticated market mechanics.
-
-**Key Stats**:
-- 8 tradeable stocks with hourly updates
-- Loan shark system with credit scoring and bankruptcy
-- Advanced gambling (slots, blackjack, duel)
-- Pokémon collection/trading system
-- AI message classification with smart caching
-- 200+ database commands tracked
-
----
-
-## Features
-
-### 🎭 AI Personality
-- **Smart Classification**: Uses Gemini AI with keyword fallback
-- **Context-Aware Responses**: Replies to mentions with cached, categorized responses
-- **Debt Enforcement**: Automatically harasses users with overdue loans
-- **Auto-Robbing**: 3% hourly chance to steal from wallets/banks with weighted targeting
-- **Idle Chat**: Breaks silence after 4+ hours with random quips
-- **Gossip System**: 10% chance to comment on mentioned users based on their status
-  - Rich/poor/bankrupt comments
-  - Investor mocking (portfolio roasting)
-  - Debtor threats (loan shark attitude)
-  - Pokémon trainer teasing
-  - **Loudmouth detection** (level 15+ with 50+ commands: comments on excessive talking)
-  - Generic sarcasm fallback
-
-### 💰 Economy System
-- **Wallet/Bank Balance**: Dual-currency storage
-- **Daily Rewards**: !daily command with streak tracking
-- **Work System**: !work command with Pokémon passive income bonuses
-- **Passive Income**: Pokémon rarity/level affects earning rate
-- **Transactions**: Buy/sell items, trade Pokémon, gamble
-- **Bankruptcy Protection**: Automatic debt forgiveness with 3-day shame period
-
-### 📈 Stock Market
-**8 Stocks**:
-
-| Ticker | Name | Base Price | Volatility |
-|--------|------|-----------|-----------|
-| LABOR | Labor Industries | $100 | Medium |
-| TECH | TechCorp Holdings | $250 | High |
-| BANK | First National Bank | $500 | Low |
-| MEME | Meme Stonks Inc | $50 | Extreme |
-| PKMN | Pokemon Corp | $150 | Medium |
-| GAMB | Lucky Casino Group | $200 | High |
-| FOOD | Global Foods Ltd | $75 | Low |
-| ENRG | Energy Dynamics | $300 | Medium |
-
-**Advanced Balancing System** (3-factor algorithm):
-1. **Rubber Band to Base Price**
-   - Overvalued (>150% base): Increased crash chance, reduced boom chance
-   - Undervalued (<70% base): Increased boom chance, reduced crash chance
-   - Gentle drift toward equilibrium
-
-2. **Market Cap Pressure**
-   - When total user holdings exceed 100 shares, volatility scales up
-   - High demand + overvalued = bubble risk (crashes)
-   - High demand + undervalued = buying pressure (booms)
-
-3. **Momentum Reversals**
-   - 2+ consecutive gains: Increased reversal probability
-   - 2+ consecutive losses: Recovery bounce probability
-
-4. **News Sentiment**
-   - Recent positive/negative news affects short-term price bias
-
-**Market Events**:
-- Hourly price updates (1% swing normally, ±30% crash/boom)
-- **Hourly news cycle** with 1-4 news items per update
-- 8 news categories (earnings, dividends, layoffs, innovation, scandal, seasonal, partnerships, external)
-- Market news posted to dedicated channel
-- Price history tracking (7 days)
-
-**Commands**:
-- `!stocks` - View all stock prices & volatility
-- `!buy_stock <ticker> <shares>` - Purchase shares
-- `!sell_stock <ticker> <shares>` - Sell shares
-- `!portfolio` - View holdings with live P/L
-- `!stock_info <ticker>` - Detailed ticker info
-- `!market_news` - Latest market news
-- `!trade <user>` - Accept/propose trades
-
-### 🏦 Loan Shark System
-**Credit Tiers**:
-- Excellent (score 200+): 3% daily interest, up to $5,000 loan
-- Good (100-199): 5% daily, up to $3,000
-- Fair (50-99): 10% daily, up to $1,500
-- Poor (<50): 15% daily, up to $1,000
-
-**Features**:
-- Credit score based on history (work activity, won/lost gambling, etc.)
-- Interest compounds daily
-- Automated enforcement on overdue debt
-- Late notice escalation (3→7→14+ days overdue)
-- Collateral support (seize Pokémon on default)
-- Bankruptcy option with 7-day cooldown
-- Financial Ruin shame role (3 days, reduced earnings)
-
-**Commands**:
-- `!loan <amount>` - Request a loan
-- `!loan_status` - View current debt
-- `!pay_loan <amount>` - Make payments
-- `!bankruptcy` - Declare bankruptcy (costs collateral/shame)
-
-### 🎰 Gambling
-**Slots** (`!slots <amount>`):
-- 10 symbols, min bet $50
-- Payouts: 3x match = 2x, rainbow = 5x
-- Variance penalty: Higher bets = lower multipliers
-
-**Blackjack** (`!blackjack <amount>`):
-- Player vs AI dealer
-- Hit/stand/double down
-- Dealer rules: Hit on 16, stand on 17+
-- Ace flexibility
-
-**Duel** (`!duel <@user> <amount>`):
-- 50/50 coin flip
-- Winner takes all
-- Both players must accept
-
-**Modifications**:
-- Pokémon passive income reduces losses
-- Rarity matters: Legendary = 25% loss reduction
-
-### 🔴 Pokémon System
-**Catch Mechanics**:
-- Find Pokémon in specific zones (water, fire, grass, etc.)
-- Species rarity affects success rate
-- IVs, EVs, level tracking
-
-**Features**:
-- Trading between players
-- Daycare system for leveling
-- Pokedex progress tracking
-- Passive income from owned Pokémon (rarity/level bonus)
-- Collateral for loans
-
-**Commands**:
-- `!hunt <zone>` - Hunt Pokémon in zone
-- `!pokemon` - View collection
-- `!trade <@user>` - Trade Pokémon
-- `!daycare` - Breed/level Pokémon
-
----
-
-## Installation & Setup
+## Installation
 
 ### Prerequisites
 - Python 3.10+
-- Discord bot token
-- Google Gemini API key (x3 recommended for quota rotation)
-- SQLite (included in Python)
+- Discord Bot Token
+- Google Gemini API Keys (1-3 recommended for quota rotation)
 
-### Install
+### Setup
 
 ```bash
-# Clone repository
+# Clone the repository
 git clone https://github.com/HauLTCE/SONARR.git
 cd SONARR
 
 # Create virtual environment
 python -m venv venv
-source venv/bin/activate  # or: venv\Scripts\activate (Windows)
+source venv/bin/activate  # Linux/Mac
+# or: venv\Scripts\activate  # Windows
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Setup environment
+# Configure environment
 cp .env.example .env
-# Edit .env with your tokens:
-# DISCORD_TOKEN=your_token
-# GEMINI_API_KEY_1=key1
-# GEMINI_API_KEY_2=key2
-# GEMINI_API_KEY_3=key3
+# Edit .env with your tokens
 ```
 
-### Run Locally
+### Dependencies
 
-```bash
-python main.py
 ```
-
-### Deploy to Server
-
-```bash
-scp -r . root@192.168.1.101:/root/sonarr/bot/
-ssh root@192.168.1.101
-systemctl restart discordbot
-systemctl status discordbot
+discord.py==2.4.0
+google-genai>=1.0.0
+yt-dlp==2024.12.23
+PyNaCl==1.5.0
+python-dotenv==1.0.0
+psutil==6.0.0
+aiohttp==3.9.1
 ```
 
 ---
 
-## Architecture
+## Configuration
+
+### Environment Variables (`.env`)
+
+```env
+DISCORD_TOKEN=your_bot_token
+GEMINI_API_KEY_1=key1
+GEMINI_API_KEY_2=key2
+GEMINI_API_KEY_3=key3
+```
+
+### Server Configuration
+
+The bot uses `config.json` for per-server settings:
+- `general_channel` - Main chat channel
+- `music_channel` - Music command channel
+- `market_channel` - Stock market announcements
+- `announce_channel` - Bot announcements
+
+---
+
+## 💰 Economy System
+
+### Core Features
+- **Dual Currency**: Wallet (spending) and Bank (savings)
+- **Daily Rewards**: `!daily` with streak bonuses
+- **Work System**: `!work` with Pokémon passive income
+- **Transactions**: Deposit, withdraw, transfer
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `!balance` | View wallet, bank, and total balance |
+| `!daily` | Claim daily reward ($100-500 + streaks) |
+| `!work` | Earn $50-300 (Pokémon boost up to 25%) |
+| `!deposit <amount>` | Move money to bank |
+| `!withdraw <amount>` | Move money to wallet |
+| `!give @user <amount>` | Transfer to another user |
+| `!donate <amount>` | Donate to the bot |
+
+### Passive Income Formula
+
+```
+Base Work: $50-300
+Pokémon Bonus = Rarity% + (Level × 0.1%)
+Max Bonus: 25%
+
+Example: Rare Pokémon (10%) at Level 50 = 15% bonus
+```
+
+---
+
+## 📈 Stock Market
+
+### Available Stocks
+
+| Ticker | Company | Base Price | Volatility |
+|--------|---------|------------|------------|
+| LABOR | Labor Industries | $100 | Medium |
+| TECH | TechCorp Holdings | $250 | High |
+| BANK | First National Bank | $500 | Low |
+| MEME | Meme Stonks Inc | $50 | Extreme |
+| PKMN | Pokemon Corp | $150 | Medium |
+| FOOD | FoodChain Ltd | $75 | Low |
+| ENRG | Energy Dynamics | $200 | High |
+| GAMB | GambleCorp | $100 | Extreme |
+
+### Price Balancing Algorithm
+
+The stock market uses a sophisticated 4-factor balancing system:
+
+**1. Rubber Band to Base Price**
+```python
+if price > base_price × 1.5:  # Overvalued
+    crash_chance increases, boom_chance decreases
+if price < base_price × 0.7:  # Undervalued
+    boom_chance increases, crash_chance decreases
+```
+
+**2. Market Cap Pressure**
+- Total user holdings affect volatility
+- High demand + overvalued = bubble risk
+- High demand + undervalued = buying pressure
+
+**3. Momentum Reversals**
+- 2+ consecutive gains → increased crash probability
+- 2+ consecutive losses → recovery bounce probability
+
+**4. News Sentiment**
+- Recent positive news → slight correction bias
+- Recent negative news → slight recovery bias
+
+### Market Events
+
+- **Hourly Updates**: Prices fluctuate ±1-5% normally
+- **Hourly News**: 1-4 news items affecting specific stocks
+- **Crashes**: 2% chance, -30% price impact
+- **Booms**: 3% chance, +30% price impact
+- **8 News Categories**: Earnings, layoffs, partnerships, seasonal, etc.
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `!stocks` | View all stock prices and changes |
+| `!buy_stock <ticker> <shares>` | Purchase shares |
+| `!sell_stock <ticker> <shares>` | Sell shares |
+| `!portfolio` | View your holdings with P/L |
+| `!stock_info <ticker>` | Detailed ticker information |
+| `!market_news` | Recent market news |
+
+---
+
+## 🦈 Loan Shark System
+
+### Credit Tiers
+
+| Tier | Min Score | Interest Rate | Max Loan |
+|------|-----------|---------------|----------|
+| Excellent | 200+ | 3% daily | $5,000 |
+| Good | 100-199 | 5% daily | $3,000 |
+| Fair | 50-99 | 10% daily | $1,500 |
+| Poor | 0-49 | 15% daily | $1,000 |
+
+### Credit Score Factors
+- ✅ Work activity (+1 per $100 earned)
+- ✅ Gambling wins (+5 per win)
+- ❌ Gambling losses (-2 per loss)
+- ✅ Loan repayment (+20 on full repay)
+- ❌ Loan default (-50 on bankruptcy)
+
+### Loan Terms
+- **Duration**: 14 days
+- **Grace Period**: 7 days before enforcement
+- **Interest**: Compounds daily
+- **Collateral**: Optional Pokémon as security
+
+### Enforcement Timeline
+
+| Days Overdue | Action |
+|--------------|--------|
+| 0-7 | Grace period, friendly reminders |
+| 7-14 | Wallet seizure (10%), rename to "Debtor" |
+| 14-21 | Escalated seizure (20%), timeouts |
+| 21+ | Collateral seizure, severe penalties |
+
+### Bankruptcy
+- Wipes all debt
+- **3-day "Financial Ruin" shame role**
+- 50% work earnings for 3 days
+- 7-day cooldown before borrowing again
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `!loan <amount>` | Request a loan |
+| `!loan_status` | View debt and interest |
+| `!pay_loan <amount>` | Make a payment |
+| `!bankruptcy` | Declare bankruptcy |
+| `!credit_score` | Check your credit rating |
+
+---
+
+## 🎰 Gambling
+
+### Slots (`!slots <amount>`)
+- **Minimum Bet**: $50
+- **Symbols**: 9 emojis
+- **Payouts**: 3-match = 6x, 2-match = 2.5x
+- **Variance Penalty**: Higher bets = slightly lower multipliers
+
+### Blackjack (`!blackjack <amount>`)
+- Standard 21 rules
+- Hit, Stand, Double Down
+- Dealer hits on <17
+- Ace = 1 or 11
+
+### Roulette (`!roulette <amount> <choice>`)
+- Bet on: red, black, odd, even, or 0-36
+- Number hit = 35x
+- Color/parity = 2x
+
+### Coinflip (`!coinflip <amount> <heads/tails>`)
+- 50/50 odds
+- Win = 2x
+
+### Duel (`!duel @user <amount>`)
+- Challenge another player
+- Both must accept
+- Winner takes all
+
+### Pokémon Gambling Modifiers
+- **Win Bonus**: Up to +18% based on Pokémon rarity
+- **Loss Refund**: Up to 18% of losses returned
+- **Bet Cap**: Bonuses only apply up to $1,000 bets
+
+---
+
+## 🔴 Pokémon System
+
+### Hunting Zones
+- Water, Fire, Grass, Electric, Psychic, Dragon, etc.
+- Each zone has unique species pool
+- Cooldown between hunts
+
+### Rarity Tiers
+
+| Rarity | Catch Rate | Passive Bonus |
+|--------|------------|---------------|
+| Common | 80% | +5% work |
+| Uncommon | 60% | +7% work |
+| Rare | 40% | +10% work |
+| Epic | 20% | +13% work |
+| Legendary | 5% | +18% work |
+
+### Features
+- **Collection**: Catch and store Pokémon
+- **Trading**: Trade with other players
+- **Daycare**: Level up Pokémon over time
+- **Passive Income**: Equipped Pokémon boost earnings
+- **Loan Collateral**: Risk Pokémon for larger loans
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `!hunt <zone>` | Hunt Pokémon in a zone |
+| `!pokemon` | View your collection |
+| `!equip <pokemon_id>` | Equip for passive bonus |
+| `!trade @user` | Initiate trade |
+| `!pokedex` | View completion progress |
+| `!daycare` | Manage daycare |
+
+---
+
+## 🎭 AI Personality
+
+### Classification Pipeline
+
+1. **Keyword Check** (≤2 words): Instant categorization
+2. **Dominant Keywords** (3+ words): 2+ category matches
+3. **Cache Lookup**: SQLite cache with smart hashing
+4. **Gemini API**: Full AI classification
+5. **Rate Limit**: 3 AI calls per user per hour
+6. **Key Rotation**: Cycles through 3 API keys
+
+### Response Categories (35+)
+greeting, thanks, goodbye, question, confusion, insult, affection, vent, excitement, complaint, joke, help, agreement, disagreement, bored, flirt, brag, flex, beg, chitchat, advice, compliment, request, apology, statement, sarcasm, threat, command, praise, spam, excuse, overshare, challenge, opinion, lie, guilt, random
+
+### Auto-Behaviors
+
+| Feature | Description |
+|---------|-------------|
+| **Auto-Rob** | 3% chance every 10-30 min to steal from users |
+| **Idle Chat** | Breaks silence after 4+ hours |
+| **Debt Enforcement** | 20% chance to harass debtors |
+| **Rude Punishment** | 30% chance to rob users who swear |
+| **Gossip** | 10% chance to comment on mentioned users |
+
+### Status-Based Gossip
+
+| Status | Trigger | Example |
+|--------|---------|---------|
+| Bankrupt | In shame period | "They hit rock bottom. I was there. I pushed." |
+| Rich | >$50,000 | "Ah yes, the walking ATM." |
+| Poor | <$500 | "Can't rob someone with nothing." |
+| Investor | Has stocks | "I've seen their portfolio. Bold strategy." |
+| Debtor | Has loan | "I've got their loan papers right here." |
+| Pokémon | Has collection | "Collects Pokemon. At their age. Bold." |
+| Loudmouth | Level 15+ & 50+ commands | "High level and no off button." |
+
+---
+
+## 📜 Commands Reference
+
+### Economy
+```
+!balance, !daily, !work, !deposit, !withdraw, !give, !donate
+!inventory, !shop, !buy, !sell, !use
+```
+
+### Stock Market
+```
+!stocks, !buy_stock, !sell_stock, !portfolio, !stock_info, !market_news
+```
+
+### Loans
+```
+!loan, !loan_status, !pay_loan, !bankruptcy, !credit_score
+```
+
+### Gambling
+```
+!slots, !blackjack, !roulette, !coinflip, !duel, !poker
+```
+
+### Pokémon
+```
+!hunt, !pokemon, !equip, !trade, !pokedex, !daycare, !release
+```
+
+### Music
+```
+!play, !skip, !stop, !queue, !pause, !resume, !volume, !nowplaying
+```
+
+### Moderation
+```
+!kick, !ban, !unban, !mute, !unmute, !clear, !warn
+```
+
+### Utility
+```
+!help, !ping, !level, !leaderboard, !serverinfo, !userinfo
+```
+
+### Admin (Owner Only)
+```
+!bot_balance, !bot_config, !reload, !eval
+```
+
+---
+
+## 🏗 Architecture
 
 ### Directory Structure
+
 ```
 bot/
-├── main.py                    # Bot initialization & startup
-├── requirements.txt           # Python dependencies
-├── items.json                 # Shop inventory
-├── pokemon_moves.json         # Pokémon move database
-├── pokemon_species.json       # Species rarity/stats
-├── pokemon_zones.json         # Hunt zones
+├── main.py                 # Bot initialization & startup
+├── requirements.txt        # Python dependencies
+├── items.json              # Shop inventory
+├── pokemon_species.json    # Pokémon data
+├── pokemon_moves.json      # Move database
+├── pokemon_zones.json      # Hunt zones
 │
-├── cogs/                      # Command modules
-│   ├── admin.py               # Admin commands (!eval, etc)
-│   ├── bot_economy.py         # Economy commands (!balance, !work, !daily)
-│   ├── bot_personality.py     # AI personality (message listener)
-│   ├── fun.py                 # Fun commands
-│   ├── gambling.py            # Gambling system
-│   ├── game.py                # General game commands
-│   ├── levels.py              # Level/XP tracking
-│   ├── loans.py               # Loan shark system
-│   ├── moderation.py          # Mod commands
-│   ├── music.py               # Music playback
-│   ├── pokemon.py             # Pokémon commands
-│   ├── stocks.py              # Stock market system
-│   ├── utility.py             # Utility commands
-│   ├── views.py               # UI components
-│   ├── welcome.py             # Welcome messages
-│   └── ...
+├── cogs/                   # Command modules (16 cogs)
+│   ├── admin.py            # Admin commands
+│   ├── bot_economy.py      # Bot's own economy
+│   ├── bot_personality.py  # AI personality (1,200+ lines)
+│   ├── fun.py              # Fun commands
+│   ├── gambling.py         # Gambling games (1,000+ lines)
+│   ├── game.py             # Economy & shop
+│   ├── levels.py           # XP & leveling
+│   ├── loans.py            # Loan shark (650+ lines)
+│   ├── moderation.py       # Mod tools
+│   ├── music.py            # Music playback
+│   ├── pokemon.py          # Pokémon system
+│   ├── pokemon_views.py    # Pokémon UI
+│   ├── stocks.py           # Stock market (1,300+ lines)
+│   ├── utility.py          # Utility commands
+│   ├── views.py            # Discord UI components
+│   └── welcome.py          # Welcome messages
 │
-└── utils/                     # Shared utilities
-    ├── database.py            # SQLite ORM (1500+ lines)
-    ├── economy.py             # Economy manager
-    ├── cache.py               # YouTube/message caching
-    ├── checks.py              # Permission checks
-    ├── config.py              # Server configuration
-    ├── command_history.py     # Command logging
-    ├── help.py                # Custom help formatter
-    ├── internal_commands.py    # Internal command parser
-    ├── logger.py              # Logging setup
-    ├── music_queue.py         # Music queue management
-    ├── premade_answers.py     # Cold response templates
-    ├── response_effects.py    # Effect processing
-    ├── spam.py                # Spam detection
-    ├── ytdl.py                # YouTube-DL wrapper
-    └── pokemon_system.py      # Pokémon logic
+└── utils/                  # Shared utilities (15 modules)
+    ├── cache.py            # YouTube/message caching
+    ├── checks.py           # Permission checks
+    ├── command_history.py  # Command logging
+    ├── config.py           # Server configuration
+    ├── database.py         # SQLite ORM (1,500+ lines)
+    ├── economy.py          # Economy manager
+    ├── help.py             # Custom help formatter
+    ├── internal_commands.py # Internal command parser
+    ├── logger.py           # Logging setup
+    ├── music_queue.py      # Music queue management
+    ├── pokemon_system.py   # Pokémon logic
+    ├── premade_answers.py  # Cold responses (300+ lines)
+    ├── response_effects.py # Effect processing
+    ├── spam.py             # Spam detection
+    └── ytdl.py             # YouTube-DL wrapper
 ```
 
-### Database Schema
-SQLite with 15+ tables:
-- **economy** - User balances, daily streak
+### Database Schema (15+ Tables)
+
+- **economy** - User balances, daily streaks
+- **inventory** - User items
 - **portfolio** - Stock holdings
 - **stock_history** - Price history
 - **market_news** - News items
-- **loans** - Active loans, repayment tracking
+- **loans** - Active loans
 - **bankruptcies** - Bankruptcy records
 - **pokemon** - Pokémon collection
 - **pokemon_daily** - Hunt cooldowns
-- **items** - User inventory
+- **message_cache** - AI response cache
 - **command_history** - Command tracking
-- **message_cache** - AI response cache (LRU per guild)
 - And more...
 
 ### Data Flow
@@ -289,338 +474,43 @@ SQLite with 15+ tables:
 ```
 User Message
     ↓
-bot_personality.on_message()
+on_message() listener
     ├─ Spam check
-    ├─ Debt enforcement (20% chance)
-    ├─ Rude user punishment (30% if negative keywords)
-    ├─ Gossip trigger (10% if user mentioned)
+    ├─ Debt enforcement (20%)
+    ├─ Rude punishment (30%)
+    ├─ Gossip trigger (10%)
     └─ AI Classification
-        ├─ Keyword match (short messages)
-        ├─ Cache lookup (smart hashing)
-        ├─ Gemini API (full classification)
-        └─ Rate limit + key rotation
+        ├─ Keyword match
+        ├─ Cache lookup
+        ├─ Gemini API
+        └─ Rate limiting
     ↓
 Response Selection
-    ├─ COLD_RESPONSES dict (300+ premade lines)
-    ├─ Status-based gossip (weighted pool)
-    └─ Effect processing (rename, rob, timeout, etc)
+    ├─ COLD_RESPONSES (300+ lines)
+    ├─ Status-based gossip
+    └─ Effect processing
     ↓
 Send Reply
 ```
 
 ---
 
-## Economy System
+## 🚀 Deployment
 
-### Balance Management
-
-```python
-# Wallet: Daily spending, earnings from work/gambling
-# Bank: Savings, protected from theft
-wallet = 1000
-bank = 5000
-total = 6000  # What matters for net worth
-
-# Commands
-!balance              # View wallet + bank
-!daily                # $100-500 daily reward (streak bonus)
-!work                 # Earn $50-300 based on Pokémon passive income
-!deposit <amount>     # Move wallet → bank
-!withdraw <amount>    # Move bank → wallet
-```
-
-### Auto-Features
-
-- **Auto Rob** (every 10-30 min): 3% chance to steal from weighted targets (richer = higher chance)
-- **Secure Bot Wallet**: Keeps only $500 in wallet, deposits excess to bank
-- **Bankruptcy Protection**: Automatic after 14+ days of overdue debt
-
----
-
-## Stock Market
-
-### Price Dynamics
-
-```python
-# Price change calculation with 4-factor balancing:
-
-1. Rubber Band:
-   if price > base_price * 1.5:
-       crash_chance *= (price/base_price - 0.5)
-   if price < base_price * 0.7:
-       boom_chance *= (1.5 - price/base_price)
-
-2. Market Cap Pressure:
-   total_shares = db.get_total_shares_held(ticker)
-   if total_shares > 100:
-       volatility *= 1 + (total_shares / 500)
-
-3. Momentum:
-   history = db.get_stock_price_history(ticker, 24)
-   if 2+ consecutive gains:
-       crash_chance *= (1 + gains * 0.3)
-   if 2+ consecutive losses:
-       boom_chance *= (1 + losses * 0.3)
-
-4. News Sentiment:
-   if recent_positive_news:
-       crash_chance *= 1.2  # Correction bias
-   if recent_negative_news:
-       boom_chance *= 1.2   # Recovery bias
-```
-
-### News Categories (8 types)
-
-Weighted probabilities:
-- **Positive** (18%): Earnings beat, dividend announcement, product success
-- **Negative** (18%): Layoffs, scandal, product recall, failed partnership
-- **Bullish** (9%): New partnership, market expansion
-- **Bearish** (9%): Competition, regulation
-- **Neutral** (10%): Status updates, conferences
-- **Seasonal** (15%): Holiday sales, Q4 rush, summer slump
-- **External** (13%): Macro economy, sector cascades
-- **Stock-Specific** (8%): Insider rumors, analyst ratings
-
-### Example Session
-
-```
-Market Update (Hourly):
-LABOR: $150 → $155 (+3.3%)  ← Momentum reversal after 3-day rally
-TECH:  $200 → $196 (-2.0%)  ← News: Layoffs announced
-WATER: $100 → $108 (+8%)    ← Rubber band: Was undervalued
-DRAGON: $300 → $310 (+3.3%) ← Market cap pressure easing
-
-Portfolio Impact:
-Player A: 50 TECH @ $200 = $10,000 → Now $9,800 (−$200) 😬
-Player B: 200 LABOR @ $100 = $20,000 → Now $31,000 (+$11,000) 🤑
-```
-
----
-
-## Loan Shark System
-
-### Credit Scoring
-
-Credit score factors:
-- Work activity (positive: +1 per $100 earned)
-- Gambling wins (positive: +5 per win)
-- Gambling losses (negative: −2 per loss)
-- Loan repayment (positive: +20 on full repay)
-- Loan default (negative: −50 on bankruptcy)
-
-### Enforcement Timeline
-
-```
-Day 0-7:     Grace period (no action)
-Day 7-14:    Late notices, friendly reminders
-Day 14-21:   Debt enforcement kicks in
-             - 10% wallet seizure every interaction
-             - Rename to "Debtor"
-             - Reduce work earnings
-Day 21+:     Severe enforcement
-             - 20% wallet seizure
-             - 30 min timeout
-             - Seize Pokémon collateral
-```
-
-### Bankruptcy
-
-**Trigger**: User declares bankruptcy when debt > income
-
-**Effects**:
-- Debt completely forgiven
-- Financial Ruin role (3 days)
-- 50% work earnings for 3 days
-- 7-day cooldown before borrowing again
-- Reputation hit (public announcement)
-
----
-
-## Gambling
-
-### Slots Payouts (nerf active)
-
-Min bet: **$50** (prevents spam)
-Symbols: 10 (reduced from 16)
-
-| Match | Payout | Variance Penalty |
-|-------|--------|------------------|
-| 3x    | 2x     | Higher bet = lower multiplier |
-| Rainbow | 5x | Max reduction: -30% |
-
-**Example**:
-- Small bet ($50): 2x payout = $100
-- Medium bet ($500): 1.8x payout = $900
-- Large bet ($2000): 1.4x payout = $2,800
-
-### Blackjack
-
-- Standard 21 rules
-- Hit/stand/double down
-- Dealer hits on <17
-- Ace = 1 or 11
-
-### Duel
-
-- 50/50 coin flip
-- Winner doubles money
-- Both must accept
-- Can refuse rigged attempt
-
----
-
-## Pokémon System
-
-### Hunt Zones
-
-Each zone has species pool:
-- **Water**: Squirtle, Psyduck, Seel, Slowpoke, etc.
-- **Fire**: Charmander, Vulpix, Growlithe, etc.
-- **Grass**: Bulbasaur, Bellsprout, Oddish, etc.
-- **Electric**: Pikachu, Magnemite, Voltorb, etc.
-- **Psychic**: Abra, Drowzee, Exeggcute, etc.
-- **Dragon**: Dratini, Bagon, Jangmo-o, etc.
-
-### Rarity Modifiers
-
-| Rarity | Catch Rate | Passive Bonus |
-|--------|-----------|---------------|
-| Common | 80% | +5% work |
-| Uncommon | 60% | +7% work |
-| Rare | 40% | +10% work |
-| Epic | 20% | +13% work |
-| Legendary | 5% | +18% work |
-
-### Passive Income Example
-
-```
-Base work: $100
-Own 1 Rare Pokemon: +10%
-Rare Pokemon level 50: +5% (50 * 0.1%)
-Total bonus: 15%
-Actual earnings: $115
-```
-
----
-
-## AI Personality
-
-### Classification Pipeline
-
-1. **Keyword Check** (<3 words): Instant categorization
-2. **Dominant Keywords** (3+ words): If 2+ matches in category
-3. **Cache Lookup**: Hash message content words, check SQLite cache
-4. **Gemini API**: Full classification if not cached
-5. **Rate Limit**: 3 AI calls per user per hour
-6. **Key Rotation**: Cycles through 3 API keys on quota exhaustion
-
-### Response Categories (35+)
-
-greeting, thanks, goodbye, question, confusion, insult, affection, vent, excitement, complaint, joke, help, agreement, disagreement, bored, flirt, brag, flex, beg, chitchat, advice, compliment, request, apology, statement, sarcasm, threat, command, praise, spam, excuse, overshare, challenge, opinion, lie, guilt, random
-
-### Gossip Categories (8)
-
-| Category | Trigger | Example |
-|----------|---------|---------|
-| Bankrupt | In shame period | "They hit rock bottom. I was there. I pushed." |
-| Rich | >$50k | "Ah yes, {target} the walking ATM." |
-| Poor | <$500 | "They're broke. Can't rob someone with nothing." |
-| Investor | Has stocks | "I've seen {target}'s portfolio. Bold strategy." |
-| Debtor | Has active loan | "I've got {target}'s loan papers right here." |
-| Pokémon | Has caught | "{target} collects Pokemon. At their age. Bold." |
-| **Loudmouth** | **Level 15+ & 50+ commands** | **"{target} at level {level} is living their best loud life."** |
-| Gambler | 10+ games | "The house always wins. {target} never learns." |
-| Criminal | 5+ robberies | "We're in the same business, {target} and I." |
-
----
-
-## Commands Reference
-
-### Economy
-
-```
-!balance              View wallet + bank + total
-!daily                Daily reward ($100-500)
-!work                 Earn $50-300
-!deposit <amount>     Move to bank
-!withdraw <amount>    Move to wallet
-!inventory            View items
-!shop                 Buy items
-```
-
-### Stock Market
-
-```
-!stocks               All prices & volatility
-!buy_stock TECH 10    Buy 10 shares
-!sell_stock TECH 5    Sell 5 shares
-!portfolio            Your holdings
-!stock_info LABOR     Ticker details
-!market_news          Recent news
-!trade @user          Trade with someone
-```
-
-### Loans
-
-```
-!loan 1000            Request $1000
-!loan_status          View debt + interest
-!pay_loan 500         Pay $500 toward debt
-!bankruptcy           Declare bankruptcy (7-day cooldown)
-```
-
-### Gambling
-
-```
-!slots 100            Spin slots ($50 min)
-!blackjack 100        Play blackjack
-!duel @user 100       Challenge another player
-```
-
-### Pokémon
-
-```
-!hunt water           Hunt in water zone
-!pokemon              View collection
-!trade @user          Trade Pokémon
-!daycare              Breed/level Pokémon
-!pokedex              Pokedex progress
-```
-
-### Other
-
-```
-!help                 Bot help menu
-!level                Your level/XP
-!leaderboard          Top earners
-!ping                 Bot latency
-```
-
----
-
-## Deployment
-
-### Server Setup (Linux)
+### Local Development
 
 ```bash
-# SSH into server
-ssh root@192.168.1.101
+python main.py
+```
 
-# Install dependencies
-apt update && apt install python3-pip python3-venv
+### Server Deployment (Linux)
 
-# Clone and setup
-git clone https://github.com/HauLTCE/SONARR.git /root/sonarr/bot
-cd /root/sonarr/bot
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
+```bash
 # Create systemd service
 sudo nano /etc/systemd/system/discordbot.service
 ```
 
-**Service file** (`discordbot.service`):
+**Service file:**
 ```ini
 [Unit]
 Description=Discord Bot SONARR
@@ -638,113 +528,63 @@ RestartSec=10
 WantedBy=multi-user.target
 ```
 
-### Management
-
+**Commands:**
 ```bash
-# Enable auto-start
+# Enable and start
 sudo systemctl enable discordbot
-
-# Start/stop/restart
 sudo systemctl start discordbot
-sudo systemctl stop discordbot
-sudo systemctl restart discordbot
 
 # View logs
-sudo journalctl -u discordbot -n 50 -f
-systemctl status discordbot
+journalctl -u discordbot -f
 
-# Deploy code changes
+# Restart after updates
+sudo systemctl restart discordbot
+```
+
+### Quick Deploy Script
+
+```bash
+# Upload and restart
 scp -r . root@192.168.1.101:/root/sonarr/bot/
 ssh root@192.168.1.101 "systemctl restart discordbot"
 ```
 
 ---
 
-## Configuration
+## 📊 Statistics
 
-### `.env` File
-
-```env
-DISCORD_TOKEN=your_bot_token_here
-GEMINI_API_KEY_1=key1
-GEMINI_API_KEY_2=key2
-GEMINI_API_KEY_3=key3
-```
-
-### Server Config (`config.json`)
-
-```json
-{
-  "guild_id": {
-    "general_channel": 12345,
-    "music_channel": 12346,
-    "market_channel": 12347,
-    "admin_role": "Mods"
-  }
-}
-```
+- **Cogs**: 16 command modules
+- **Utils**: 15 utility modules
+- **Commands**: 100+ commands
+- **Response Categories**: 35+
+- **Gossip Categories**: 9
+- **Stocks**: 8 tradeable
+- **Pokémon Species**: 300+
+- **Database Tables**: 15+
+- **Lines of Code**: 10,000+
 
 ---
 
-## Stats & Metrics
-
-### Database Tables: 15+
-- economy, portfolio, stock_history, market_news
-- loans, bankruptcies, pokemon, pokemon_daily
-- items, message_cache, command_history, etc.
-
-### Cogs: 16
-- 12 feature cogs + 4 system cogs
-
-### Commands: 100+
-- 50+ economy/market commands
-- 20+ Pokémon commands
-- 15+ admin/utility commands
-
-### Features:
-- 8 tradeable stocks
-- 300+ Pokémon species
-- 30+ items in shop
-- 3 gambling games
-- 35+ response categories
-- 8 gossip categories
-
----
-
-## Development
+## 🔧 Development
 
 ### Adding a New Command
 
 ```python
 # In cogs/example.py
-from discord.ext import commands
-
-class Example(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-    
-    @commands.command()
-    async def example(self, ctx, arg: str):
-        """Example command."""
-        await ctx.send(f"You said: {arg}")
-
-async def setup(bot):
-    await bot.add_cog(Example(bot))
+@commands.command()
+async def mycommand(self, ctx, arg: str):
+    """Command description."""
+    await ctx.send(f"You said: {arg}")
 ```
 
-Then load in `main.py`:
-```python
-await bot.load_extension("cogs.example")
-```
-
-### Adding a Cog
+### Adding a New Cog
 
 1. Create `cogs/newcog.py`
-2. Implement `class NewCog(commands.Cog)`
-3. Add `setup()` function
-4. Load in `main.py` at startup
+2. Define class inheriting `commands.Cog`
+3. Add `async def setup(bot)` function
+4. Bot auto-loads from cogs directory
 
-### Database Query
+### Database Queries
 
 ```python
 from utils.database import db
@@ -752,28 +592,37 @@ from utils.database import db
 # Get user balance
 balance = db.get_user_economy(user_id)
 
-# Add command
-db.add_command(user_id, command_name)
-
 # Update loan
 db.update_loan_amount(user_id, new_amount)
+
+# Get stock portfolio
+portfolio = db.get_portfolio(user_id)
 ```
 
 ---
 
-## License
+## 📄 License
 
-MIT License - See LICENSE file
-
----
-
-## Support
-
-For issues, feature requests, or questions:
-- GitHub Issues: https://github.com/HauLTCE/SONARR/issues
-- Contact: letrunghau2244@gmail.com
+MIT License - See [LICENSE](LICENSE) for details.
 
 ---
 
-**Last Updated**: December 28, 2025
-**Version**: 3.1 (Hourly News + Loudmouth Gossip)
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing`)
+5. Open Pull Request
+
+---
+
+## 📞 Support
+
+- **GitHub Issues**: [Report bugs](https://github.com/HauLTCE/SONARR/issues)
+- **Email**: letrunghau2244@gmail.com
+
+---
+
+**Last Updated**: December 28, 2025  
+**Version**: 3.1 (Stock Balancing + Gossip Overhaul + Hourly News)
