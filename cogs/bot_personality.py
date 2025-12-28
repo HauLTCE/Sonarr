@@ -709,6 +709,17 @@ class BotPersonality(commands.Cog):
         
         word_count = self.count_words(message_content)
         
+        if word_count == 0:
+            empty_responses = [
+                "...",
+                "Say something.",
+                "Really? Nothing?",
+                "Empty message, empty soul.",
+                "Are you there?",
+            ]
+            logger.info(f"[AI] EMPTY MESSAGE: '{message_content}' → random")
+            return random.choice(empty_responses)
+        
         if word_count <= 2:
             keyword_cat = self.keyword_classify(message_content)
             if keyword_cat:
