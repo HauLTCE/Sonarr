@@ -912,7 +912,7 @@ class Stocks(commands.Cog):
                         embed.add_field(name="Affected Stock", value=f"**{news['ticker']}** - {stock['name']}", inline=False)
                 
                 if news.get("effect"):
-                    effect_str = f"{news['effect']:+.1f}%" if isinstance(news['effect'], float) else str(news['effect'])
+                    effect_str = f"{news['effect']:+.0%}" if isinstance(news['effect'], float) else str(news['effect'])
                     embed.add_field(name="Market Impact", value=effect_str, inline=True)
                 
                 await channel.send(embed=embed)
