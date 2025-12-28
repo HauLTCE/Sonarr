@@ -740,6 +740,15 @@ class BotPersonality(commands.Cog):
             logger.info(f"[AI] CACHE hit ({word_count}w): '{message_content[:40]}' → {cached_cat} [words: {content_words[:5]}]")
             return random.choice(COLD_RESPONSES.get(cached_cat, COLD_RESPONSES["random"]))
         
+        # Try fuzzy search before API call
+        try:
+            fuzzy_cat = db.fuzzy_search_category(content_words)
+            if fuzzy_cat:
+                logger.info(f"[AI] FUZZY hit ({word_count}w): '{message_content[:40]}' → {fuzzy_cat} [words: {content_words[:5]}]")
+                return random.choice(COLD_RESPONSES.get(fuzzy_cat, COLD_RESPONSES["random"]))
+        except Exception as e:
+            logger.error(f"[AI] Fuzzy search error: {e}")
+        
         logger.debug(f"[AI] Checking rate limit for {user_id}")
         if user_id and not self.check_user_ai_limit(user_id):
             logger.warning(f"[AI] USER RATE LIMITED: {user_id} ({word_count}w): '{message_content[:40]}'")
@@ -819,7 +828,7 @@ Reply with ONLY the category name, nothing else."""
                         final_cat = "random"
                     logger.info(f"[AI] Fallback ({word_count}w): '{message_content[:30]}' → {final_cat}")
                 
-                db.cache_category(msg_hash, final_cat, guild_id)
+                db.cache_category(msg_hash, final_cat, guild_id, content_words=content_words)
                 logger.info(f"[AI] Classified & cached: '{message_content[:30]}' → {final_cat}")
                 
                 self.ai_available = True
