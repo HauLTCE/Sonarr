@@ -21,7 +21,13 @@ class Database:
         try:
             self.connection = sqlite3.connect(str(DB_PATH), check_same_thread=False, timeout=10.0)
             self.connection.row_factory = sqlite3.Row
+            
+            # Enable WAL mode for crash/power-loss resistance
             self.cursor = self.connection.cursor()
+            self.cursor.execute('PRAGMA journal_mode=WAL')
+            self.cursor.execute('PRAGMA synchronous=NORMAL')  # Balance safety vs performance
+            self.cursor.execute('PRAGMA cache_size=10000')  # Larger cache for better performance
+            self.connection.commit()
             
             self.cursor.execute('''
                 CREATE TABLE IF NOT EXISTS economy (
@@ -1014,7 +1020,7 @@ class Database:
         self.cursor.execute('SELECT COUNT(*) FROM response_cache')
         count = self.cursor.fetchone()[0]
         
-        if count >= 3000:  # Lower limit for responses (they're longer)
+        if count >= 3000:
             self.cursor.execute('DELETE FROM response_cache WHERE msg_hash = (SELECT msg_hash FROM response_cache ORDER BY hit_count ASC, last_hit ASC LIMIT 1)')
         
         self.cursor.execute('''
@@ -1031,7 +1037,6 @@ class Database:
         now = datetime.now(timezone.utc).timestamp()
         seven_days_ago = now - (7 * 86400)
         
-        # Get all non-expired cache entries
         self.cursor.execute(
             'SELECT msg_hash, category FROM message_cache WHERE created_at > ?',
             (seven_days_ago,)
@@ -1059,14 +1064,13 @@ class Database:
         row = self.cursor.fetchone()
         if row:
             return row[0]
-        # Initialize with threshold 1 if not exists
         self.cursor.execute('INSERT OR IGNORE INTO guild_cache_config (guild_id, threshold) VALUES (?, ?)', (guild_id, 1))
         self.connection.commit()
         return 1
     
     def set_keep_threshold(self, value: int, guild_id: str = "global"):
         """Set per-guild adaptive keep threshold."""
-        value = max(0, value)  # Don't go below 0
+        value = max(0, value)
         self.cursor.execute('INSERT OR REPLACE INTO guild_cache_config (guild_id, threshold) VALUES (?, ?)', (guild_id, value))
         self.connection.commit()
     
@@ -1079,24 +1083,20 @@ class Database:
         """
         threshold = self.get_keep_threshold(guild_id)
         
-        # Step 1: Delete entries below threshold
         self.cursor.execute(
             'DELETE FROM message_cache WHERE guild_id = ? AND hit_count < ?', 
             (guild_id, threshold)
         )
         deleted = self.cursor.rowcount
         
-        # Step 2: Reset hit_count to 0 for remaining entries
         self.cursor.execute(
             'UPDATE message_cache SET hit_count = 0 WHERE guild_id = ?',
             (guild_id,)
         )
         
-        # Step 3: Count remaining entries
         self.cursor.execute('SELECT COUNT(*) FROM message_cache WHERE guild_id = ?', (guild_id,))
         remaining = self.cursor.fetchone()[0]
         
-        # Step 4: Adjust threshold based on remaining count
         old_threshold = threshold
         if remaining < 100 and threshold > 0:
             threshold -= 1
