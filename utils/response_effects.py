@@ -7,8 +7,16 @@ Supported prefixes:
 - TIMEOUT:30m:message - Apply custom duration timeout
 - ROB:message - Rob 5% from user's wallet
 - ROB:10:message - Rob custom % from user's wallet
-- GOOGLE:message - Add a Google search link with their query
-- (More can be added later: RECURSIVE:, REACT:, DM:, etc.)
+- SEARCH:GOOGLE:message - Add Google search link
+- SEARCH:YOUTUBE:message - Add YouTube search link
+- SEARCH:WIKIPEDIA:message - Add Wikipedia search link
+- SEARCH:CHATGPT:message - Add ChatGPT link
+- SEARCH:REDDIT:message - Add Reddit search link
+- RENAME:NewNick:message - Change user's nickname (Discord shows system message)
+- REACT:🤡:message - Add emoji reaction to user's message
+- REACT:🤡 - Add reaction without bot reply
+- (Legacy: GOOGLE:message still supported for backwards compatibility)
+- (More can be added later: DM:, RECURSIVE:, etc.)
 """
 
 import re
@@ -27,9 +35,11 @@ class ResponseEffect:
     message: str
     timeout_duration: Optional[timedelta] = None
     rob_percent: Optional[float] = None  # e.g., 0.05 for 5%
-    google_query: Optional[str] = None  # Query to create Google search link
+    search_platform: Optional[str] = None  # Platform to search: google, youtube, wikipedia, chatgpt, reddit
+    search_query: Optional[str] = None  # User's query to search
+    rename_nickname: Optional[str] = None  # New nickname to set
+    reactions: List[str] = field(default_factory=list)  # Emoji reactions to add
     # Future effects can be added here:
-    # reactions: List[str] = None
     # dm_message: str = None
     # recursive_category: str = None
 
@@ -75,6 +85,9 @@ def parse_response(response: str) -> ResponseEffect:
         "ROB:Took your money" -> ResponseEffect(message="Took your money", rob_percent=0.05)
         "ROB:10:Took 10%" -> ResponseEffect(message="Took 10%", rob_percent=0.10)
         "GOOGLE:Go search it" -> ResponseEffect(message="Go search it", google_query=original_user_query)
+        "RENAME:Clown:You're dressed for it" -> ResponseEffect(message="You're...", rename_nickname="Clown")
+        "REACT:🤡:Honk honk" -> ResponseEffect(message="Honk honk", reactions=["🤡"])
+        "REACT:🤡" -> ResponseEffect(message="", reactions=["🤡"])
     """
     effect = ResponseEffect(message=response)
     remaining = response
@@ -103,10 +116,48 @@ def parse_response(response: str) -> ResponseEffect:
         else:
             effect.rob_percent = 0.05  # Default 5%
     
-    # Parse GOOGLE: prefix
+    # Parse SEARCH: prefix (SEARCH:GOOGLE:, SEARCH:YOUTUBE:, etc.)
+    if remaining.startswith("SEARCH:"):
+        remaining = remaining[7:]  # Remove "SEARCH:"
+        platform_match = re.match(r'^(GOOGLE|YOUTUBE|WIKIPEDIA|CHATGPT|REDDIT):(.+)$', remaining, re.DOTALL)
+        
+        if platform_match:
+            effect.search_platform = platform_match.group(1).lower()
+            remaining = platform_match.group(2)
+        else:
+            # Fallback to google if no platform specified
+            effect.search_platform = "google"
+    
+    # Legacy GOOGLE: prefix support (backwards compatibility)
     if remaining.startswith("GOOGLE:"):
         remaining = remaining[7:]
-        effect.google_query = True  # Flag to use user's query
+        effect.search_platform = "google"
+    
+    # Parse RENAME: prefix
+    if remaining.startswith("RENAME:"):
+        remaining = remaining[7:]
+        nickname_match = re.match(r'^([^:]+):(.+)$', remaining, re.DOTALL)
+        
+        if nickname_match:
+            effect.rename_nickname = nickname_match.group(1).strip()
+            remaining = nickname_match.group(2)
+        else:
+            # RENAME without message is allowed
+            effect.rename_nickname = remaining.strip()
+            remaining = ""
+    
+    # Parse REACT: prefix
+    if remaining.startswith("REACT:"):
+        remaining = remaining[6:]
+        emoji_match = re.match(r'^([^:]+):(.+)$', remaining, re.DOTALL)
+        
+        if emoji_match:
+            effect.reactions.append(emoji_match.group(1).strip())
+            remaining = emoji_match.group(2)
+        else:
+            # REACT without message (reaction-only)
+            effect.reactions.append(remaining.strip())
+            remaining = ""
     
     effect.message = remaining
     return effect
@@ -164,24 +215,70 @@ async def apply_effects(effect: ResponseEffect, message, user_query: str = None,
         except Exception as e:
             logger.error(f"{logger_prefix} Rob error: {e}")
     
-    # Apply Google search effect
-    if effect.google_query and user_query:
+    # Apply search effect (Google, YouTube, Wikipedia, ChatGPT, Reddit)
+    if effect.search_platform and user_query:
         try:
             clean_query = user_query.strip()
             encoded_query = urllib.parse.quote_plus(clean_query)
-            google_url = f"https://www.google.com/search?q={encoded_query}"
-            final_message = f"{effect.message}\n🔍 {google_url}"
+            
+            # Generate platform-specific URL
+            if effect.search_platform == "google":
+                search_url = f"https://www.google.com/search?q={encoded_query}"
+                emoji = "🔍"
+            elif effect.search_platform == "youtube":
+                search_url = f"https://www.youtube.com/results?search_query={encoded_query}"
+                emoji = "📺"
+            elif effect.search_platform == "wikipedia":
+                search_url = f"https://en.wikipedia.org/wiki/Special:Search?search={encoded_query}"
+                emoji = "📖"
+            elif effect.search_platform == "chatgpt":
+                # ChatGPT doesn't have direct search URL, use Google to find ChatGPT + query
+                search_url = f"https://chat.openai.com/"
+                emoji = "🤖"
+            elif effect.search_platform == "reddit":
+                search_url = f"https://www.reddit.com/search/?q={encoded_query}"
+                emoji = "🗨️"
+            else:
+                search_url = f"https://www.google.com/search?q={encoded_query}"
+                emoji = "🔍"
+            
+            final_message = f"{effect.message}\n{emoji} {search_url}"
+            logger.info(f"{logger_prefix} Added {effect.search_platform} search link")
         except Exception as e:
-            logger.error(f"{logger_prefix} Google link error: {e}")
+            logger.error(f"{logger_prefix} Search link error: {e}")
+    
+    # Apply rename effect
+    if effect.rename_nickname:
+        try:
+            old_nick = message.author.display_name
+            await message.author.edit(nick=effect.rename_nickname, reason="Bot penalty")
+            logger.warning(f"{logger_prefix} Renamed {old_nick} to '{effect.rename_nickname}'")
+            # Discord automatically shows system message: "Bot changed User to NewNick"
+        except discord.Forbidden:
+            logger.warning(f"{logger_prefix} Could not rename {message.author} - missing permissions")
+        except discord.HTTPException as e:
+            logger.error(f"{logger_prefix} Rename error: {e}")
+        except Exception as e:
+            logger.error(f"{logger_prefix} Unexpected rename error: {e}")
+    
+    # Apply reaction effects
+    if effect.reactions:
+        for emoji in effect.reactions:
+            try:
+                await message.add_reaction(emoji)
+                logger.info(f"{logger_prefix} Added reaction {emoji} to message")
+            except discord.Forbidden:
+                logger.warning(f"{logger_prefix} Could not add reaction {emoji} - missing permissions")
+            except discord.HTTPException as e:
+                logger.warning(f"{logger_prefix} Invalid emoji {emoji}: {e}")
+            except Exception as e:
+                logger.error(f"{logger_prefix} Unexpected reaction error: {e}")
     
     # Future effects would be applied here:
-    # if effect.reactions:
-    #     for emoji in effect.reactions:
-    #         await message.add_reaction(emoji)
     # if effect.dm_message:
     #     await message.author.send(effect.dm_message)
     
-    return final_message
+    return final_message if final_message else None
 
 
 def format_duration(td: timedelta) -> str:
