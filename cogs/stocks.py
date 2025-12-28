@@ -861,7 +861,7 @@ class Stocks(commands.Cog):
                     emoji = "💥" if event["type"] == "crash" else "🚀" if event["type"] == "boom" else "⚖️"
                     event_type = "CRASH" if event["type"] == "crash" else "BOOM" if event["type"] == "boom" else "CORRECTION"
                     
-                    value = f"${event['old']} → ${event['new']}\n{event['change']:+.1f}%"
+                    value = f"${event['old']} → ${event['new']}\n{event['change']:+.0f}%"
                     embed.add_field(
                         name=f"{emoji} {event['ticker']} {event_type}",
                         value=value,
