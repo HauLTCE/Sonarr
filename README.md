@@ -541,16 +541,6 @@ journalctl -u discordbot -f
 sudo systemctl restart discordbot
 ```
 
-### Quick Deploy Script
-
-```bash
-# Upload and restart
-scp -r . root@192.168.1.101:/root/sonarr/bot/
-ssh root@192.168.1.101 "systemctl restart discordbot"
-```
-
----
-
 ## 📊 Statistics
 
 - **Cogs**: 16 command modules
