@@ -62,7 +62,18 @@ SONARR is a sarcastic, diva-personality Discord bot that manages a complete in-g
 - **Bankruptcy Protection**: Automatic debt forgiveness with 3-day shame period
 
 ### 📈 Stock Market
-**8 Stocks**: LABOR, TECH, WATER, FIRE, GRASS, ELECTRIC, PSYCHIC, DRAGON
+**8 Stocks**:
+
+| Ticker | Name | Base Price | Volatility |
+|--------|------|-----------|-----------|
+| LABOR | Labor Industries | $100 | Medium |
+| TECH | TechCorp Holdings | $250 | High |
+| BANK | First National Bank | $500 | Low |
+| MEME | Meme Stonks Inc | $50 | Extreme |
+| PKMN | Pokemon Corp | $150 | Medium |
+| GAMB | Lucky Casino Group | $200 | High |
+| FOOD | Global Foods Ltd | $75 | Low |
+| ENRG | Energy Dynamics | $300 | Medium |
 
 **Advanced Balancing System** (3-factor algorithm):
 1. **Rubber Band to Base Price**
