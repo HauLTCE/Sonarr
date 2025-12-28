@@ -22,11 +22,10 @@ class Database:
             self.connection = sqlite3.connect(str(DB_PATH), check_same_thread=False, timeout=10.0)
             self.connection.row_factory = sqlite3.Row
             
-            # Enable WAL mode for crash/power-loss resistance
             self.cursor = self.connection.cursor()
             self.cursor.execute('PRAGMA journal_mode=WAL')
-            self.cursor.execute('PRAGMA synchronous=NORMAL')  # Balance safety vs performance
-            self.cursor.execute('PRAGMA cache_size=10000')  # Larger cache for better performance
+            self.cursor.execute('PRAGMA synchronous=NORMAL')
+            self.cursor.execute('PRAGMA cache_size=10000')
             self.connection.commit()
             
             self.cursor.execute('''
@@ -187,7 +186,6 @@ class Database:
                 )
             ''')
             
-            # Response cache - stores AI-generated responses
             self.cursor.execute('''
                 CREATE TABLE IF NOT EXISTS response_cache (
                     msg_hash TEXT PRIMARY KEY,
@@ -198,7 +196,6 @@ class Database:
                 )
             ''')
             
-            # Per-guild cache threshold config
             self.cursor.execute('''
                 CREATE TABLE IF NOT EXISTS cache_config (
                     key TEXT PRIMARY KEY,
@@ -217,12 +214,18 @@ class Database:
             self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_cache_hits ON message_cache(hit_count DESC)')
             self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_cache_last_hit ON message_cache(last_hit ASC)')
             
-            # Migration: Add guild_id column if it doesn't exist (for older databases)
             try:
                 self.cursor.execute('SELECT guild_id FROM message_cache LIMIT 1')
             except sqlite3.OperationalError:
                 logger.info("[Database] Migrating message_cache: adding guild_id column")
                 self.cursor.execute('ALTER TABLE message_cache ADD COLUMN guild_id TEXT DEFAULT "global"')
+            
+            # Add words_json column for fuzzy search (preserves existing data)
+            self.cursor.execute("PRAGMA table_info(message_cache)")
+            cache_columns = {row[1] for row in self.cursor.fetchall()}
+            if "words_json" not in cache_columns:
+                logger.info("[Database] Migrating message_cache: adding words_json column for fuzzy search")
+                self.cursor.execute('ALTER TABLE message_cache ADD COLUMN words_json TEXT')
             
             # ========== LOAN SHARK SYSTEM ==========
             self.cursor.execute('''
@@ -928,9 +931,8 @@ class Database:
     def get_cached_category(self, msg_hash: str, guild_id: int = None):
         """Get cached category. Returns None if not found or expired (7 days)."""
         now = datetime.now(timezone.utc).timestamp()
-        seven_days_ago = now - (7 * 86400)  # 7 days in seconds
+        seven_days_ago = now - (7 * 86400)
         
-        # Query with guild_id if provided, otherwise match any
         if guild_id:
             self.cursor.execute(
                 'SELECT category, created_at FROM message_cache WHERE msg_hash = ? AND guild_id = ?', 
@@ -943,9 +945,7 @@ class Database:
             )
         row = self.cursor.fetchone()
         if row:
-            # Check if expired (older than 7 days)
             if row[1] < seven_days_ago:
-                # Delete expired entry
                 if guild_id:
                     self.cursor.execute('DELETE FROM message_cache WHERE msg_hash = ? AND guild_id = ?', (msg_hash, str(guild_id)))
                 else:
@@ -953,7 +953,6 @@ class Database:
                 self.connection.commit()
                 return None
             
-            # Update hit count and last_hit
             if guild_id:
                 self.cursor.execute(
                     'UPDATE message_cache SET hit_count = hit_count + 1, last_hit = ? WHERE msg_hash = ? AND guild_id = ?',
@@ -968,10 +967,11 @@ class Database:
             return row[0]
         return None
     
-    def cache_category(self, msg_hash: str, category: str, guild_id = None):
+    def cache_category(self, msg_hash: str, category: str, guild_id = None, content_words: list = None):
         """Cache a message hash → category. Starts at hit_count=1. If full, evict least used."""
         now = datetime.now(timezone.utc).timestamp()
         guild_str = str(guild_id) if guild_id else "global"
+        words_json = json.dumps(content_words) if content_words else None
         
         self.cursor.execute('SELECT COUNT(*) FROM message_cache WHERE guild_id = ?', (guild_str,))
         count = self.cursor.fetchone()[0]
@@ -982,11 +982,10 @@ class Database:
                 (guild_str,)
             )
         
-        # New entries start with hit_count=1
         self.cursor.execute('''
-            INSERT OR REPLACE INTO message_cache (msg_hash, guild_id, category, hit_count, created_at, last_hit)
-            VALUES (?, ?, ?, 1, ?, ?)
-        ''', (msg_hash, guild_str, category, now, now))
+            INSERT OR REPLACE INTO message_cache (msg_hash, guild_id, category, hit_count, created_at, last_hit, words_json)
+            VALUES (?, ?, ?, 1, ?, ?, ?)
+        ''', (msg_hash, guild_str, category, now, now, words_json))
         self.connection.commit()
     
     def get_cached_response(self, msg_hash: str):
@@ -1029,16 +1028,22 @@ class Database:
         ''', (msg_hash, response, now, now))
         self.connection.commit()
     
-    def fuzzy_search_category(self, content_words: list):
-        """Search for cached entries that share content words. Returns best match or None."""
-        if not content_words:
+    def fuzzy_search_category(self, content_words: list, min_overlap: float = 0.6):
+        """Search for cached entries that share content words. Returns best match or None.
+        
+        Args:
+            content_words: List of content words from the message
+            min_overlap: Minimum overlap ratio (0.6 = 60% of words must match)
+        """
+        if not content_words or len(content_words) < 2:
             return None
         
         now = datetime.now(timezone.utc).timestamp()
         seven_days_ago = now - (7 * 86400)
         
+        # Only get entries that have words_json populated
         self.cursor.execute(
-            'SELECT msg_hash, category FROM message_cache WHERE created_at > ?',
+            'SELECT category, words_json, hit_count FROM message_cache WHERE created_at > ? AND words_json IS NOT NULL ORDER BY hit_count DESC LIMIT 500',
             (seven_days_ago,)
         )
         rows = self.cursor.fetchall()
@@ -1046,17 +1051,40 @@ class Database:
         if not rows:
             return None
         
-        # Find entries with overlapping words (stored hash includes sorted words)
         content_set = set(content_words)
         best_match = None
         best_overlap = 0
         
         for row in rows:
-            # We can't decode hash, but we can check if this exact combo exists
-            # For fuzzy, we'd need to store words separately - skip for now
-            pass
+            category, words_json, hit_count = row[0], row[1], row[2]
+            try:
+                cached_words = set(json.loads(words_json))
+            except (json.JSONDecodeError, TypeError):
+                continue
+            
+            if not cached_words:
+                continue
+            
+            # Calculate Jaccard similarity (intersection / union)
+            intersection = len(content_set & cached_words)
+            union = len(content_set | cached_words)
+            
+            if union == 0:
+                continue
+            
+            overlap = intersection / union
+            
+            # Boost score by hit_count (popular entries are more reliable)
+            score = overlap * (1 + min(hit_count, 10) * 0.05)
+            
+            if score > best_overlap and overlap >= min_overlap:
+                best_overlap = score
+                best_match = category
         
-        return None  # Fuzzy search needs word storage - implement later
+        if best_match:
+            logger.debug(f"[Cache] Fuzzy match found: {best_match} (score: {best_overlap:.2f})")
+        
+        return best_match
     
     def get_keep_threshold(self, guild_id: str = "global"):
         """Get per-guild adaptive keep threshold."""
@@ -1251,7 +1279,6 @@ class Database:
             "late_notice_count": row[8]
         } for row in rows]
     
-    # Collateral Locker
     def add_to_locker(self, user_id: str, pokemon_id: str, buyback_cost: int, original_loan_amount: int):
         """Add a Pokemon to the collateral locker."""
         now = datetime.now(timezone.utc).timestamp()
@@ -1284,7 +1311,6 @@ class Database:
         )
         self.connection.commit()
     
-    # Bankruptcy
     def record_bankruptcy(self, user_id: str, debt_forgiven: int, shame_days: int = 3, borrow_cooldown_days: int = 7):
         """Record a bankruptcy event."""
         now = datetime.now(timezone.utc).timestamp()
@@ -1382,13 +1408,11 @@ class Database:
         if not existing:
             return False
         
-        # Update stock
         self.cursor.execute(
             'UPDATE stocks SET previous_price = price, price = ?, last_updated = ? WHERE ticker = ?',
             (new_price, now, ticker)
         )
         
-        # Record history
         self.cursor.execute(
             'INSERT INTO stock_history (ticker, price, timestamp) VALUES (?, ?, ?)',
             (ticker, new_price, now)
@@ -1405,7 +1429,6 @@ class Database:
         rows = self.cursor.fetchall()
         return [{"price": row[0], "timestamp": row[1]} for row in rows]
     
-    # Portfolio
     def get_portfolio(self, user_id: str):
         """Get user's stock portfolio."""
         self.cursor.execute(
@@ -1438,7 +1461,6 @@ class Database:
         old_avg = position["avg_buy_price"]
         new_shares = old_shares + shares
         
-        # Calculate new average buy price
         if new_shares > 0:
             total_old_cost = old_shares * old_avg
             total_new_cost = shares * price_per_share
@@ -1493,7 +1515,6 @@ class Database:
         rows = self.cursor.fetchall()
         return [{"price": row[0], "timestamp": row[1]} for row in rows]
     
-    # Market News
     def add_market_news(self, headline: str, affected_ticker: str = None, effect: str = None):
         """Add a market news item."""
         now = datetime.now(timezone.utc).timestamp()
@@ -1518,7 +1539,6 @@ class Database:
             "timestamp": row[4]
         } for row in rows]
     
-    # Work Activity Tracking (for stock market manipulation detection)
     def record_work_activity(self):
         """Record a work command being used (for stock market)."""
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
