@@ -8,6 +8,7 @@ from itertools import combinations
 
 from .views import BlackjackView, DuelView
 from utils.economy import EconomyManager
+from utils.checks import economy_allowed, BotRestrictedTimeError
 from utils.pokemon_system import (
     GAMBLE_BET_CAP,
     calc_loss_refund,
@@ -29,6 +30,7 @@ class Gambling(commands.Cog):
         self.economy_manager.update_balance(user_id, amount, location)
 
     @commands.command()
+    @economy_allowed()
     async def slots(self, ctx, amount: int):
         """Play the slot machine. Usage: !slots <amount>"""
         MIN_BET = 50
@@ -84,6 +86,7 @@ class Gambling(commands.Cog):
             await ctx.send(f"{result_msg}\nNo match. You lost ${amount}.{refund_note}")
 
     @commands.command(aliases=['bj'])
+    @economy_allowed()
     async def blackjack(self, ctx, amount: int):
         """Play a game of Blackjack against the dealer."""
         bal = self.get_balance(ctx.author.id, "wallet")
@@ -95,6 +98,7 @@ class Gambling(commands.Cog):
         await ctx.send(embed=embed, view=view)
 
     @commands.command()
+    @economy_allowed()
     async def roulette(self, ctx, amount: int, choice: str):
         """Bet on Roulette. Options: red, black, odd, even, or number 0-36."""
         bal = self.get_balance(ctx.author.id, "wallet")
@@ -146,6 +150,7 @@ class Gambling(commands.Cog):
             await ctx.send(msg + f"? You lost ${amount}.{refund_note}")
 
     @commands.command()
+    @economy_allowed()
     async def poker(self, ctx, bet: int):
         """Start a poker lobby. Usage: !poker <bet>"""
         if bet <= 0:
@@ -160,6 +165,7 @@ class Gambling(commands.Cog):
         view.message = message
 
     @commands.command()
+    @economy_allowed()
     async def duel(self, ctx, opponent: discord.Member, amount: int):
         """Challenge a user to a wild west duel for cash."""
         bal = self.get_balance(ctx.author.id, "wallet")
