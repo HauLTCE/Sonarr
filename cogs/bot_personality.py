@@ -10,7 +10,13 @@ import warnings
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 from utils.economy import EconomyManager
-from utils.premade_answers import COLD_RESPONSES, EMPTY_MESSAGE_RESPONSES
+from utils.premade_answers import (
+    COLD_RESPONSES, 
+    EMPTY_MESSAGE_RESPONSES,
+    EVENING_GRACE_RESPONSES,
+    MORNING_GRACE_RESPONSES,
+    LUNCH_BREAK_RESPONSES,
+)
 from utils.database import db
 from utils.response_effects import process_response
 
@@ -619,6 +625,48 @@ class BotPersonality(commands.Cog):
         now = datetime.now(utc_plus_7)
         hour = now.hour
         return hour >= 22 or hour < 6
+    
+    def is_lunch_break(self):
+        """Check if bot is on lunch break (12PM - 1PM in UTC+7)"""
+        utc_plus_7 = timezone(timedelta(hours=7))
+        now = datetime.now(utc_plus_7)
+        return now.hour == 12
+    
+    def is_evening_grace(self):
+        """Check if bot is in evening grace period (9PM - 10PM in UTC+7)"""
+        utc_plus_7 = timezone(timedelta(hours=7))
+        now = datetime.now(utc_plus_7)
+        return now.hour == 21
+    
+    def is_morning_grace(self):
+        """Check if bot is in morning grace period (6AM - 7AM in UTC+7)"""
+        utc_plus_7 = timezone(timedelta(hours=7))
+        now = datetime.now(utc_plus_7)
+        return now.hour == 6
+    
+    def get_minutes_until_next_period(self):
+        """Get minutes until the next time period (sleep, wake, or end of break)"""
+        utc_plus_7 = timezone(timedelta(hours=7))
+        now = datetime.now(utc_plus_7)
+        return 60 - now.minute
+    
+    def is_restricted_time(self):
+        """Check if bot should restrict economy commands (sleep or lunch)"""
+        return self.is_sleep_time() or self.is_lunch_break()
+    
+    def get_grace_response(self):
+        """Get appropriate grace period response with dynamic time if applicable"""
+        minutes_left = self.get_minutes_until_next_period()
+        
+        if self.is_evening_grace():
+            response = random.choice(EVENING_GRACE_RESPONSES)
+            return response.format(minutes_left=minutes_left)
+        elif self.is_morning_grace():
+            return random.choice(MORNING_GRACE_RESPONSES)
+        elif self.is_lunch_break():
+            response = random.choice(LUNCH_BREAK_RESPONSES)
+            return response.format(minutes_left=minutes_left)
+        return None
 
     STOPWORDS = {
         "i", "me", "my", "myself", "we", "our", "you", "your", "he", "she", "it", "they",
@@ -1132,9 +1180,22 @@ Reply with ONLY the category name, nothing else."""
                     logger.error(f"[DebtEnforcement] Error: {e}")
                 return
         
+        # Check if bot is mentioned or replied to
+        is_bot_mentioned = self.bot.user in message.mentions or (message.reference and message.reference.resolved and message.reference.resolved.author == self.bot.user)
+        
+        # ========== SLEEP TIME (10PM - 6AM) ==========
         if self.is_sleep_time():
-            if self.bot.user in message.mentions or (message.reference and message.reference.resolved and message.reference.resolved.author == self.bot.user):
+            if is_bot_mentioned:
                 await message.reply("The bot is asleep.", mention_author=False)
+            return
+        
+        # ========== LUNCH BREAK (12PM - 1PM) ==========
+        if self.is_lunch_break():
+            if is_bot_mentioned:
+                response = self.get_grace_response()
+                final_response = await process_response(response, message, user_query=message.content)
+                if final_response and final_response.strip():
+                    await message.reply(final_response, mention_author=False)
             return
         
         mentioned_users = [u for u in message.mentions if u != self.bot.user and not u.bot]
@@ -1175,6 +1236,24 @@ Reply with ONLY the category name, nothing else."""
             return
         
         content_for_ai = message.content.replace(f"<@{self.bot.user.id}>", "").replace(f"<@!{self.bot.user.id}>", "").strip()
+        
+        # ========== GRACE PERIODS ==========
+        # Evening grace (9PM-10PM): Tired, impatient, warns about bedtime
+        # Morning grace (6AM-7AM): Groggy, sloppy, typos
+        if self.is_evening_grace() or self.is_morning_grace():
+            # 70% chance to use grace response, 30% normal response
+            if random.random() < 0.70:
+                grace_response = self.get_grace_response()
+                try:
+                    final_response = await process_response(grace_response, message, user_query=content_for_ai)
+                    if final_response and final_response.strip():
+                        grace_type = "Evening" if self.is_evening_grace() else "Morning"
+                        logger.info(f"[{grace_type}Grace] Trigger: {message.author} said '{content_for_ai[:60]}'")
+                        logger.info(f"[{grace_type}Grace] Response: '{final_response[:100]}'")
+                        await message.reply(final_response, mention_author=False)
+                        return
+                except Exception as e:
+                    logger.error(f"[GracePeriod] Error: {e}")
         
         reply_context = None
         if message.reference and message.reference.resolved:

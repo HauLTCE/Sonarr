@@ -9,7 +9,7 @@ from discord.ext import commands, tasks
 from dotenv import load_dotenv
 
 from utils.help import PrettyHelp
-from utils.checks import WrongChannelError
+from utils.checks import WrongChannelError, BotRestrictedTimeError
 from utils.logger import setup_logging
 from utils.config import load_config
 from utils.spam import check_spam, check_command_type_spam
@@ -99,6 +99,12 @@ async def on_command_error(ctx, error):
         target = ctx.guild.get_channel(error.channel_id)
         mention = target.mention if target else "the music channel"
         await ctx.send(f"❌ {ctx.author.mention}, please use {mention} for music commands!", delete_after=5)
+        return
+    
+    if isinstance(error, BotRestrictedTimeError):
+        logger.info(f"[RestrictedTime] {ctx.author.display_name} tried {ctx.command} during restricted hours")
+        await ctx.send(f"😴 {error.reason}", delete_after=10)
+        update_command_status("restricted time")
         return
 
     if isinstance(error, commands.CommandNotFound):

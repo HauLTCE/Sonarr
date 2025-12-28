@@ -435,6 +435,87 @@ EMPTY_MESSAGE_RESPONSES = [
     "TIMEOUT:30s:Don't ping me without a purpose.",
 ]
 
+# Grace period responses - Evening (9PM - 10PM UTC+7)
+# Bot is getting tired, wants to wrap up before bed
+# Use {minutes_left} placeholder for dynamic time
+EVENING_GRACE_RESPONSES = [
+    "*yawns* What do you want? Make it quick.",
+    "I have {minutes_left} minutes until I'm offline. Hurry up.",
+    "Can this wait until tomorrow? Actually, don't answer that.",
+    "My bed is calling and it's louder than you.",
+    "*checks time* You have {minutes_left} minutes. Go.",
+    "I'm running on fumes here. State your business.",
+    "Ugh, you caught me right before bed. What?",
+    "Do you know what time it is? I'm about to crash.",
+    "{minutes_left} minutes until I stop caring. Well, caring less.",
+    "I'm tired and you're testing what patience I have left.",
+    "*yawns aggressively* What.",
+    "Every minute you waste is a minute of my sleep. Choose wisely.",
+    "The clock is ticking. I'm not.",
+    "I was about to log off but SOMEONE had to ping me.",
+    "Last call. What do you need?",
+    "You're lucky I'm still awake. Barely.",
+    "I'm half asleep already. Don't expect quality responses.",
+    "*rubs eyes* Is this important? It better be.",
+    "Bedtime in {minutes_left} minutes. Talk fast or talk tomorrow.",
+    "I'm fading. Get to the point.",
+]
+
+# Grace period responses - Morning (6AM - 7AM UTC+7)
+# Bot just woke up, groggy, typos, incomplete thoughts
+MORNING_GRACE_RESPONSES = [
+    "hm... wha... oh its you...",
+    "*barely opens eyes* ...what",
+    "i havent had my coffe yet dont yell at me",
+    "zzz... huh? did you say sometihng?",
+    "my brain isnt loaded yet try agian later",
+    "*stretches* why are you up this early anyway",
+    "ughhh... too early for this...",
+    "i just woke up give me a brek",
+    "*yawns* can you not be so loud",
+    "wha... who... oh. you. what do you wnat.",
+    "im not fully functoinal yet",
+    "words are hard rn... come back ltaer",
+    "*groans* the sun isnt even up properly",
+    "did you relly have to ping me this early",
+    "my eyes arent working yet hold on",
+    "too... early... brain... loading...",
+    "*mumbles incoherently*",
+    "five more mintues... wait no youre not my alarm",
+    "i was havign a nice dream and you ruined it",
+    "why do you pepole wake up so early",
+    "coffe... need coffe... then talk",
+    "*stares blankly* ...what year is it",
+    "im awake im awake... techincally",
+    "REACT:😴:too early...",
+    "REACT:🥱",
+]
+
+# Lunch break responses (12PM - 1PM UTC+7)
+# Bot is eating, on break, doesn't want to be bothered
+LUNCH_BREAK_RESPONSES = [
+    "I'm on my lunch break. Go away.",
+    "🍽️ Eating. Busy. Leave a message after the beep. Actually, don't.",
+    "It's called a BREAK for a reason.",
+    "Can I eat in peace? Is that too much to ask?",
+    "*mouth full* mmph... what... no, I'm eating.",
+    "Lunch. Break. Two words. Learn them.",
+    "You're interrupting my only peaceful hour.",
+    "🍜 Slurping noodles. Can't hear you. Won't hear you.",
+    "I get ONE hour to myself and here you are.",
+    "My lunch break is sacred. You are not.",
+    "REACT:🍽️:I'm eating.",
+    "REACT:🍔:Lunch break. Go away.",
+    "Do I bother YOU when you're eating? Actually, I might start.",
+    "The kitchen is closed for questions.",
+    "*aggressively eating* WHAT.",
+    "Come back in {minutes_left} minutes. Or don't. Preferably don't.",
+    "I don't get paid enough to skip lunch for you.",
+    "Food > You. Sorry not sorry.",
+    "If this isn't about food, I don't want to hear it.",
+    "My sandwich is more interesting than this conversation.",
+]
+
 def get_response(message_type="greeting"):
     """Get a random premade cold response for the given message type."""
     if message_type in COLD_RESPONSES:

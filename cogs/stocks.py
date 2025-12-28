@@ -8,6 +8,7 @@ from collections import defaultdict
 
 from utils.economy import EconomyManager
 from utils.database import db
+from utils.checks import economy_allowed, BotRestrictedTimeError
 
 logger = logging.getLogger("bot")
 
@@ -1147,6 +1148,7 @@ class Stocks(commands.Cog):
         await ctx.send(embed=embed, view=view)
     
     @commands.command(name="buy_stock", aliases=["buystock"])
+    @economy_allowed()
     async def buy_stock(self, ctx, ticker: str, amount: str):
         """Buy shares of a stock. Usage: !buy_stock TECH 10"""
         ticker = ticker.upper().strip()
@@ -1196,6 +1198,7 @@ class Stocks(commands.Cog):
         await ctx.send(embed=embed)
     
     @commands.command(name="sell_stock", aliases=["sellstock"])
+    @economy_allowed()
     async def sell_stock(self, ctx, ticker: str, amount: str):
         """Sell shares of a stock. Usage: !sell_stock TECH 10"""
         ticker = ticker.upper().strip()
@@ -1313,6 +1316,7 @@ class Stocks(commands.Cog):
         await ctx.send(embed=embed)
     
     @commands.command(name="trade")
+    @economy_allowed()
     async def trade(self, ctx):
         """Open the trading interface."""
         embed = await self.build_market_embed()
