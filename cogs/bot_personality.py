@@ -1158,7 +1158,7 @@ Reply with ONLY the category name, nothing else."""
         self.user_mention_times[user_id] = [t for t in self.user_mention_times[user_id] if t > thirty_seconds_ago]
         self.user_mention_times[user_id].append(now)
         
-        if len(self.user_mention_times[user_id]) >= 8:
+        if len(self.user_mention_times[user_id]) >= 5:
             logger.warning(f"[SPAM] User {message.author} mentioned bot {len(self.user_mention_times[user_id])} times in 30s")
             response = random.choice(COLD_RESPONSES["spam"])
             try:
