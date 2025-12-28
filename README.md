@@ -1,4 +1,4 @@
-# SONARR Discord Bot 🤖
+# SONARR Discord Bot
 
 A feature-rich Discord bot with AI personality, advanced economy system, stock market, gambling, Pokémon, and moderation tools.
 
@@ -765,4 +765,4 @@ For issues, feature requests, or questions:
 ---
 
 **Last Updated**: December 28, 2025
-**Version**: 3.1 (Hourly News + Loudmouth Gossip)
+**Version**: 3.1
