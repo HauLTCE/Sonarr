@@ -1041,7 +1041,6 @@ class Database:
         now = datetime.now(timezone.utc).timestamp()
         seven_days_ago = now - (7 * 86400)
         
-        # Only get entries that have words_json populated
         self.cursor.execute(
             'SELECT category, words_json, hit_count FROM message_cache WHERE created_at > ? AND words_json IS NOT NULL ORDER BY hit_count DESC LIMIT 500',
             (seven_days_ago,)
@@ -1065,7 +1064,6 @@ class Database:
             if not cached_words:
                 continue
             
-            # Calculate Jaccard similarity (intersection / union)
             intersection = len(content_set & cached_words)
             union = len(content_set | cached_words)
             
@@ -1074,7 +1072,6 @@ class Database:
             
             overlap = intersection / union
             
-            # Boost score by hit_count (popular entries are more reliable)
             score = overlap * (1 + min(hit_count, 10) * 0.05)
             
             if score > best_overlap and overlap >= min_overlap:

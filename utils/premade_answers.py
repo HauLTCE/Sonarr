@@ -424,7 +424,7 @@ COLD_RESPONSES["sleep"] = COLD_RESPONSES["advice"]
 
 EMPTY_MESSAGE_RESPONSES = [
     "Speechless? I get that effect on people.",
-    "I'm an AI, not a mind reader.",
+    "REACT:❓:I'm an AI, not a mind reader.",
     "Really? Nothing?",
     "Did you forget how to type?",
     "Words. Use them.",
