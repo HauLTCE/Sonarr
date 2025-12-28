@@ -711,9 +711,8 @@ class BotPersonality(commands.Cog):
         
         if word_count == 0:
             response = random.choice(EMPTY_MESSAGE_RESPONSES)
-            logger.info(f"[AI] EMPTY MESSAGE: '{message_content}' → {response[:50]}")
-            final_response = await process_response(response, None, user_query=None)
-            return final_response if final_response else random.choice(COLD_RESPONSES["random"])
+            logger.info(f"[AI] EMPTY MESSAGE → {response[:50]}")
+            return response  # Return raw response, effects processed in on_message
         
         if word_count <= 2:
             keyword_cat = self.keyword_classify(message_content)
