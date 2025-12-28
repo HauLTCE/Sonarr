@@ -44,6 +44,14 @@ class Admin(commands.Cog):
         self.save_config()
         await ctx.send(f"✅ **{ctx.channel.mention}** is now the designated Announcement Channel.")
 
+    @setchannel.command(name="market")
+    async def set_market(self, ctx):
+        """Sets the current channel for Market announcements (stock updates, news, bankruptcies)."""
+        from utils.database import db
+        guild_id = str(ctx.guild.id)
+        db.set_market_channel(guild_id, ctx.channel.id)
+        await ctx.send(f"✅ **{ctx.channel.mention}** is now the designated Market Channel. I'll announce stock updates, news, and bankruptcies here.")
+
     @setchannel.command(name="welcome")
     async def set_welcome(self, ctx):
         """Sets the current channel for Welcome/Goodbye messages."""

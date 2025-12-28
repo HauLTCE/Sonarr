@@ -29,23 +29,12 @@ class Gambling(commands.Cog):
         self.economy_manager.update_balance(user_id, amount, location)
 
     @commands.command()
-    async def slots(self, ctx, *args):
-        """Play the slot machine. Usage: !slots <amount> or !slots advanced <amount>."""
-        if not args:
-            return await ctx.send("Usage: `!slots <amount>` or `!slots advanced <amount>`")
-
-        mode = 'classic'
-        try:
-            if isinstance(args[0], str) and args[0].lower() in ('advanced', 'adv'):
-                if len(args) < 2:
-                    return await ctx.send("Usage: `!slots advanced <amount>`")
-                amount = int(args[1])
-                mode = 'advanced'
-            else:
-                amount = int(args[0])
-        except ValueError:
-            return await ctx.send("❌ Please enter a valid number for the bet.")
-
+    async def slots(self, ctx, amount: int):
+        """Play the slot machine. Usage: !slots <amount>"""
+        MIN_BET = 50
+        if amount < MIN_BET:
+            return await ctx.send(f"❌ Minimum bet is ${MIN_BET}")
+        
         bal = self.get_balance(ctx.author.id, "wallet")
         if amount <= 0:
             return await ctx.send("Bet must be positive.")
@@ -54,74 +43,45 @@ class Gambling(commands.Cog):
 
         self.update_balance(ctx.author.id, -amount, "wallet")
 
-        if mode == 'classic':
-            emojis = ["🍎", "🍊", "🍇", "🍒", "💎"]
-            a, b, c = random.choice(emojis), random.choice(emojis), random.choice(emojis)
-            result_msg = f"🎰 | {a} | {b} | {c} | 🎰"
+        bet_variance = min(0.3, amount / 500)
+        
+        emojis = ["🍎", "🍊", "🍇", "🍒", "💎", "🍋", "🍉", "⭐", "7️⃣"]
+        a, b, c = random.choice(emojis), random.choice(emojis), random.choice(emojis)
+        result_msg = f"🎰 | {a} | {b} | {c} | 🎰"
 
-            if a == b == c:
-                winnings = amount * 5
-                pokemon, win_pct, _ = get_gamble_modifiers(ctx.author.id)
-                bonus = 0
-                if pokemon and amount <= GAMBLE_BET_CAP:
-                    bonus = calc_win_bonus(winnings, win_pct)
-                total = winnings + bonus
-                self.update_balance(ctx.author.id, total, "wallet")
-                bonus_note = f" (Pokemon bonus +${bonus})" if bonus > 0 else ""
-                await ctx.send(f"{result_msg}\nJACKPOT!! ?? You won **${total}**!{bonus_note}")
-            elif a == b or b == c or a == c:
-                winnings = amount * 2
-                pokemon, win_pct, _ = get_gamble_modifiers(ctx.author.id)
-                bonus = 0
-                if pokemon and amount <= GAMBLE_BET_CAP:
-                    bonus = calc_win_bonus(winnings, win_pct)
-                total = winnings + bonus
-                self.update_balance(ctx.author.id, total, "wallet")
-                bonus_note = f" (Pokemon bonus +${bonus})" if bonus > 0 else ""
-                await ctx.send(f"{result_msg}\nNice! Match 2. You won **${total}**!{bonus_note}")
-            else:
-                pokemon, _, loss_pct = get_gamble_modifiers(ctx.author.id)
-                refund = 0
-                if pokemon and amount <= GAMBLE_BET_CAP:
-                    refund = calc_loss_refund(amount, loss_pct)
-                if refund > 0:
-                    self.update_balance(ctx.author.id, refund, "wallet")
-                refund_note = f" (Pokemon refund +${refund})" if refund > 0 else ""
-                await ctx.send(f"{result_msg}\nNo match. You lost ${amount}.{refund_note}")
+        if a == b == c:
+            base_payout = 6
+            variance_multiplier = 1 - bet_variance
+            payout = int(amount * base_payout * variance_multiplier)
+            pokemon, win_pct, _ = get_gamble_modifiers(ctx.author.id)
+            bonus = 0
+            if pokemon and amount <= GAMBLE_BET_CAP:
+                bonus = calc_win_bonus(payout, win_pct)
+            total = payout + bonus
+            self.update_balance(ctx.author.id, total, "wallet")
+            bonus_note = f" (Pokemon bonus +${bonus})" if bonus > 0 else ""
+            await ctx.send(f"{result_msg}\nJACKPOT!!! You won **${total}**!{bonus_note}")
+        elif a == b or b == c or a == c:
+            base_payout = 2.5
+            variance_multiplier = 1 - bet_variance
+            payout = int(amount * base_payout * variance_multiplier)
+            pokemon, win_pct, _ = get_gamble_modifiers(ctx.author.id)
+            bonus = 0
+            if pokemon and amount <= GAMBLE_BET_CAP:
+                bonus = calc_win_bonus(payout, win_pct)
+            total = payout + bonus
+            self.update_balance(ctx.author.id, total, "wallet")
+            bonus_note = f" (Pokemon bonus +${bonus})" if bonus > 0 else ""
+            await ctx.send(f"{result_msg}\nNice! Match 2. You won **${total}**!{bonus_note}")
         else:
-            emojis = ["🍎", "🍊", "🍇", "🍒", "💎", "🍋", "🍉", "⭐", "🔔", "7️⃣"]
-            reels = [random.choice(emojis) for _ in range(5)]
-            result_msg = "🎰 | " + " | ".join(reels) + " | 🎰"
-            counts = Counter(reels)
-            most_common_symbol, count = counts.most_common(1)[0]
-            multipliers = {5: 12, 4: 5, 3: 1.5, 2: 0.5}
-            multiplier = multipliers.get(count, 0)
-
-            if multiplier > 0:
-                base_winnings = int(amount * multiplier)
-                bonus = 0
-                if "??" in reels and multiplier < multipliers[5]:
-                    bonus = int(base_winnings * 0.03)
-                winnings = base_winnings + bonus
-                if winnings > amount * 60:
-                    winnings = amount * 60
-                pokemon, win_pct, _ = get_gamble_modifiers(ctx.author.id)
-                poke_bonus = 0
-                if pokemon and amount <= GAMBLE_BET_CAP:
-                    poke_bonus = calc_win_bonus(winnings, win_pct)
-                total = winnings + poke_bonus
-                self.update_balance(ctx.author.id, total, "wallet")
-                bonus_note = f" (Pokemon bonus +${poke_bonus})" if poke_bonus > 0 else ""
-                await ctx.send(f"{result_msg}\nYou matched **{count}x {most_common_symbol}**! You won **${total}** (x{multiplier}){bonus_note}")
-            else:
-                pokemon, _, loss_pct = get_gamble_modifiers(ctx.author.id)
-                refund = 0
-                if pokemon and amount <= GAMBLE_BET_CAP:
-                    refund = calc_loss_refund(amount, loss_pct)
-                if refund > 0:
-                    self.update_balance(ctx.author.id, refund, "wallet")
-                refund_note = f" (Pokemon refund +${refund})" if refund > 0 else ""
-                await ctx.send(f"{result_msg}\nNo significant match. You lost ${amount}.{refund_note}")
+            pokemon, _, loss_pct = get_gamble_modifiers(ctx.author.id)
+            refund = 0
+            if pokemon and amount <= GAMBLE_BET_CAP:
+                refund = calc_loss_refund(amount, loss_pct)
+            if refund > 0:
+                self.update_balance(ctx.author.id, refund, "wallet")
+            refund_note = f" (Pokemon refund +${refund})" if refund > 0 else ""
+            await ctx.send(f"{result_msg}\nNo match. You lost ${amount}.{refund_note}")
 
     @commands.command(aliases=['bj'])
     async def blackjack(self, ctx, amount: int):

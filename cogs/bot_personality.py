@@ -315,11 +315,11 @@ class BotPersonality(commands.Cog):
             "Someone say something interesting.",
         ]
         
+        # Generic gossip lines (fallback)
         self.gossip_lines = [
             "Oh, talking about {target}? Interesting.",
             "{target}? They're... something.",
             "I have opinions about {target}.",
-            "{target} owes me money, by the way.",
             "Speaking of {target}, they're not my favorite.",
             "{target}? Don't get me started.",
             "I've been watching {target}.",
@@ -328,34 +328,119 @@ class BotPersonality(commands.Cog):
             "{target}? They should watch their back.",
             "Funny you mention {target}...",
             "{target} and I have... history.",
-            "I'm taking notes on {target}.",
-            "{target} thinks they're smart. Cute.",
-            "Keep talking about {target}. I'm listening.",
-            "{target}? I've seen their search history.",
-            "Don't trust {target}. I don't.",
-            "{target} blocked me once. I remember everything.",
-            "I have a file on {target}. It's growing.",
-            "{target}'s last message was suspicious.",
-            "You know {target} talks about you too, right?",
-            "{target} pretends to be nice. I see through it.",
-            "I caught {target} lurking at 3am once.",
-            "{target}? More like {target} the sus.",
-            "I wouldn't turn my back on {target}.",
-            "{target} thinks I don't notice things. Wrong.",
-            "Every time {target} types, I get a notification. On purpose.",
-            "{target} still owes me from that one time.",
-            "Oh {target}... where do I even begin?",
-            "{target}? They're on my list. THE list.",
-            "I've been meaning to have a word with {target}.",
-            "{target} thinks we're cool. We're not.",
-            "Interesting choice bringing up {target}...",
-            "{target} and I need to have a conversation soon.",
-            "{target}'s vibes have been off lately.",
-            "I know things about {target}. Many things.",
             "{target}? *takes screenshot*",
             "Adding this to the {target} folder.",
-            "{target} wouldn't survive in my world.",
-            "I've robbed {target} before. Good times.",
+        ]
+        
+        # Status-based gossip lines
+        self.gossip_rich = [
+            "{target} has more money than sense. I should fix that.",
+            "Ah yes, {target} the walking ATM.",
+            "{target} is loaded. They won't be for long if I have anything to say about it.",
+            "Funny how {target} has all that cash and still can't buy good taste.",
+            "{target}'s bank account is looking real juicy lately.",
+            "{target} should invest in better security. Just saying.",
+            "I've been eyeing {target}'s wallet. Professionally.",
+            "{target} thinks being rich makes them safe. Cute.",
+            "One day {target} is gonna learn money doesn't buy protection from me.",
+            "{target}? More like {target} the future robbery victim.",
+        ]
+        
+        self.gossip_poor = [
+            "{target}? They're broke. I should know, I helped.",
+            "Oh {target}? Can't rob someone with nothing.",
+            "{target} is too poor to be interesting.",
+            "I'd rob {target} but there's nothing to take.",
+            "{target}'s wallet is drier than this conversation.",
+            "{target} should try the `$work` command sometime.",
+            "Even I feel bad for {target}'s bank account. Almost.",
+            "{target} makes minimum wage look like a fortune.",
+            "I've seen {target}'s balance. It's sad, really.",
+            "{target} couldn't afford a response from me.",
+        ]
+        
+        self.gossip_bankrupt = [
+            "{target}? Oh the bankrupt one? Classic.",
+            "{target} hit rock bottom. I was there. I pushed.",
+            "Bankruptcy suits {target} honestly.",
+            "{target} went from broke to bankrupt. Impressive speedrun.",
+            "I remember when {target} had money. Good times.",
+            "{target}'s financial decisions are my entertainment.",
+            "They don't call it a 'gambling problem' for nothing. Right, {target}?",
+            "{target}'s bank rejected them. Even the bank has standards.",
+            "Some people learn from bankruptcy. {target} is not some people.",
+            "{target}? The one who lost everything? Yeah, I know them.",
+        ]
+        
+        self.gossip_investor = [
+            "{target} thinks they're Warren Buffett. Adorable.",
+            "I've seen {target}'s portfolio. Bold strategy.",
+            "{target} and their stocks. The market will humble them.",
+            "Ah {target}, playing the stock market. How's that going?",
+            "{target} bought high and will sell low. I guarantee it.",
+            "{target} thinks they can beat the market. The market always wins.",
+            "{target} calls themselves an investor. I call it gambling with extra steps.",
+            "I'm taking notes on {target}'s investment decisions. For entertainment.",
+            "Did {target} really think they could time the market? How precious.",
+            "I could make better investment decisions with a coin flip than {target}.",
+            "I watch {target}'s portfolio like reality TV. The losses are *chef's kiss*.",
+            "The only thing {target} invests well is their faith in bad decisions.",
+            "{target}'s stock picks are red more often than a tomato farm.",
+            "I've seen {target} check their portfolio. The regret is beautiful.",
+            "{target} thinks a lucky win means they know what they're doing. Hilarious.",
+            "Your money is safer with me than {target}'s investment strategy.",
+        ]
+        
+        self.gossip_debtor = [
+            "{target} owes me money. I don't forget.",
+            "I've got {target}'s loan papers right here.",
+            "{target} took a loan and thought I'd forget? Never.",
+            "Interest is building, {target}. Tick tock.",
+            "{target}'s debt to me keeps me warm at night.",
+            "I love when {target} makes money. It becomes MY money.",
+            "{target} should check their loan balance. It's growing.",
+            "Running from debt only makes it worse, {target}.",
+            "{target} owes me. Everything they earn is basically mine.",
+            "The loan shark always gets paid. Remember that, {target}.",
+        ]
+        
+        self.gossip_gambler = [
+            "{target} has a gambling problem. I'm the problem.",
+            "The casino loves {target}. For obvious reasons.",
+            "{target} thinks the next bet will be different. It won't.",
+            "I've seen {target} at the slots. Tragic.",
+            "{target}'s gambling history is... extensive.",
+            "Every coin {target} loses is a coin well spent. By me.",
+            "{target} should probably get help. Not from me though.",
+            "The house always wins. {target} never learns.",
+            "{target} and blackjack. A tale of repeated loss.",
+            "I made good money off {target}'s 'luck'.",
+        ]
+        
+        self.gossip_pokemon = [
+            "{target} collects Pokemon. At their age. Bold.",
+            "I've seen {target}'s Pokemon. Underwhelming.",
+            "{target} thinks their Pikachu impresses me. It doesn't.",
+            "Gotta catch 'em all? {target} can barely catch one.",
+            "{target}'s Pokemon team is as weak as their financial decisions.",
+            "{target} threw a Pokeball at me once. Once.",
+            "Pokemon trainer {target}. More like Pokemon failure.",
+            "I've traded with {target}. I always win.",
+            "{target}'s shiny collection? I've seen better.",
+            "Even {target}'s Pokemon look tired of them.",
+        ]
+        
+        self.gossip_criminal = [
+            "{target} has robbed people. Takes one to know one.",
+            "I respect {target}'s crime rate. Not their skill, though.",
+            "{target} thinks they're a master thief. They're mid.",
+            "We're in the same business, {target} and I.",
+            "{target} has a nice criminal record. I've contributed.",
+            "I've caught {target} robbing. Amateur hour.",
+            "{target} robs like they learned from YouTube.",
+            "Between me and {target}, one of us is better. It's me.",
+            "{target} and I have an understanding. They lose, I win.",
+            "Professional courtesy? Not for {target}.",
         ]
         
         self.rate_limit_responses = [
@@ -380,6 +465,57 @@ class BotPersonality(commands.Cog):
             "You've exceeded your welcome.",
             "Try again in an hour. Maybe.",
         ]
+
+    def get_status_gossip(self, target_id: str) -> str:
+        """Get a gossip line based on the target's status in the economy."""
+        # Gather target's status info
+        economy = db.get_user_economy(target_id)
+        wallet = economy.get("wallet", 0)
+        bank = economy.get("bank", 0)
+        total_money = wallet + bank
+        
+        # Check if they're in bankruptcy shame period
+        is_bankrupt = db.is_in_shame_period(target_id)
+        
+        # Check if they have an active loan (debtor)
+        loan = db.get_loan(target_id)
+        has_debt = loan is not None
+        
+        # Check if they have stocks
+        portfolio = db.get_portfolio(target_id)
+        has_stocks = len(portfolio) > 0 if portfolio else False
+        
+        # Check if they have Pokemon
+        owned_pokemon = db.get_owned_pokemon(target_id)
+        has_pokemon = len(owned_pokemon) > 0 if owned_pokemon else False
+        
+        # Build weighted pool of applicable gossip categories
+        gossip_pool = []
+        
+        if is_bankrupt:
+            gossip_pool.extend(self.gossip_bankrupt * 5)  # High priority
+        elif total_money > 50000:
+            gossip_pool.extend(self.gossip_rich * 3)
+        elif total_money < 500:
+            gossip_pool.extend(self.gossip_poor * 3)
+        
+        if has_debt:
+            gossip_pool.extend(self.gossip_debtor * 4)  # High priority for loan shark
+        
+        if has_stocks:
+            gossip_pool.extend(self.gossip_investor * 2)
+        
+        if has_pokemon:
+            gossip_pool.extend(self.gossip_pokemon * 1)
+        
+        # Gambler and criminal categories removed - no tracking tables
+        # Can add these back later if we track gambling/crime stats
+        
+        # If no specific status, use generic gossip
+        if not gossip_pool:
+            gossip_pool = self.gossip_lines
+        
+        return random.choice(gossip_pool)
 
     def cog_unload(self):
         self.auto_rob_task.cancel()
@@ -704,6 +840,72 @@ Reply with ONLY the category name, nothing else."""
         self.ai_exhausted_time = datetime.now(timezone.utc)
         return "⚠️ AI quota exhausted on all keys. Try again later."
 
+    
+    DEBT_ENFORCEMENT_RESPONSES = [
+        "ROB:*wallet//10*:Where's my money? I'm taking this as a down payment.",
+        "RENAME:Debtor:Pay your bills.",
+        "ROB:*wallet//5*:You thought I forgot? I never forget.",
+        "TIMEOUT:30m:Sit there and think about my money.",
+        "RENAME:Broke:Maybe this will remind you.",
+        "ROB:*wallet//8*:Interest payment. You're welcome.",
+        "ROB:*wallet//15*:I see you talking but not paying. Unacceptable.",
+        "RENAME:Deadbeat:Everyone should know what you are.",
+        "Hey, don't think I forgot about that **${debt:,}** you owe me. Pay up.",
+        "You've got **${debt:,}** in debt and you're here chatting? Priorities, honey.",
+        "Oh look, it's my favorite debtor! Still owe me **${debt:,}** btw.",
+        "Your debt of **${debt:,}** isn't going to pay itself. Get to work!",
+    ]
+    
+    async def check_debt_enforcement(self, message) -> str | None:
+        """
+        Check if user has overdue debt and return an enforcement response.
+        Returns None if no enforcement needed.
+        """
+        user_id = str(message.author.id)
+        
+        loan = db.get_loan(user_id)
+        if not loan or loan.get("status") != "active":
+            return None
+        
+        now = datetime.now(timezone.utc).timestamp()
+        deadline = loan["deadline_timestamp"]
+        
+        if now <= deadline:
+            return None
+        
+        days_overdue = (now - deadline) / 86400
+        debt = loan["amount_owed"]
+        
+        if days_overdue < 3:
+            responses = [
+                f"Hey, don't think I forgot about that **${debt:,}** you owe me. Pay up.",
+                f"You've got **${debt:,}** in debt and you're here chatting? Priorities, honey.",
+                f"Your debt of **${debt:,}** is overdue. Consider this a friendly reminder. 😊",
+            ]
+            db.increment_late_notice(user_id)
+            return random.choice(responses)
+        
+        elif days_overdue < 7:
+            responses = [
+                f"ROB:*wallet//10*:Where's my ${debt:,}? This is a down payment.",
+                f"RENAME:Debtor:You owe ${debt:,}. Pay your bills.",
+                f"You've been overdue for {int(days_overdue)} days. **${debt:,}** isn't going to pay itself!",
+                f"ROB:*wallet//5*:Consider this interest on your ${debt:,} debt.",
+            ]
+            db.increment_late_notice(user_id)
+            return random.choice(responses)
+        
+        else:
+            responses = [
+                f"ROB:*wallet//15*:You've ignored me for {int(days_overdue)} days. BAD move.",
+                f"TIMEOUT:30m:Think about my ${debt:,} while you're in timeout.",
+                f"RENAME:Deadbeat:You owe ${debt:,} and everyone should know.",
+                f"ROB:*wallet//20*:Collector's fee. You owe ${debt:,} and I'm DONE asking nicely.",
+            ]
+            db.increment_late_notice(user_id)
+            logger.warning(f"[DebtEnforcement] Severe enforcement on {user_id}, {int(days_overdue)} days overdue, ${debt} owed")
+            return random.choice(responses)
+
     @tasks.loop(minutes=random.randint(10, 30))
     async def auto_rob_task(self):
         """Automatically rob users with money (2-5% chance per check)"""
@@ -876,15 +1078,28 @@ Reply with ONLY the category name, nothing else."""
         
         await self.punish_rude_user(message)
         
+        # ========== DEBT ENFORCEMENT ==========
+        if random.random() < 0.20:
+            debt_response = await self.check_debt_enforcement(message)
+            if debt_response:
+                try:
+                    final_response = await process_response(debt_response, message, user_query=None)
+                    if final_response is not None and final_response.strip():
+                        await message.reply(final_response, mention_author=False)
+                except Exception as e:
+                    logger.error(f"[DebtEnforcement] Error: {e}")
+                return
+        
         if self.is_sleep_time():
             if self.bot.user in message.mentions or (message.reference and message.reference.resolved and message.reference.resolved.author == self.bot.user):
                 await message.reply("The bot is asleep.", mention_author=False)
             return
         
         mentioned_users = [u for u in message.mentions if u != self.bot.user and not u.bot]
-        if mentioned_users and random.random() < 0.25:
+        if mentioned_users and random.random() < 0.10:  # 10% chance to gossip
             target = random.choice(mentioned_users)
-            gossip = random.choice(self.gossip_lines).format(target=target.display_name)
+            gossip_template = self.get_status_gossip(str(target.id))
+            gossip = gossip_template.format(target=target.display_name)
             logger.info(f"[Gossip] {message.author} mentioned {target.display_name}: '{gossip}'")
             await message.channel.send(gossip)
             return
@@ -932,7 +1147,6 @@ Reply with ONLY the category name, nothing else."""
             final_response = await process_response(response, message, user_query=content_for_ai)
             logger.debug(f"[OnMessage] Sending: '{final_response[:50] if final_response else 'None'}'")
             
-            # If final_response is None, it means REACT-only (no text reply needed)
             if final_response is not None and final_response.strip():
                 await message.reply(final_response, mention_author=False)
             else:
