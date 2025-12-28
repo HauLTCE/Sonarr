@@ -1137,7 +1137,8 @@ Reply with ONLY the category name, nothing else."""
             target = random.choice(mentioned_users)
             gossip_template = self.get_status_gossip(str(target.id))
             gossip = gossip_template.format(target=target.display_name)
-            logger.info(f"[Gossip] {message.author} mentioned {target.display_name}: '{gossip}'")
+            logger.info(f"[Gossip] Trigger: {message.author} mentioned {target.display_name}")
+            logger.info(f"[Gossip] Response: '{gossip}'")
             await message.channel.send(gossip)
             return
         
@@ -1162,6 +1163,7 @@ Reply with ONLY the category name, nothing else."""
             response = random.choice(COLD_RESPONSES["spam"])
             try:
                 final_response = await process_response(response, message, user_query=None)
+                logger.info(f"[OnMessage] Spam response: '{final_response[:100]}'")
                 await message.reply(final_response, mention_author=False)
             except Exception as e:
                 logger.error(f"Error sending spam response: {e}")
@@ -1185,6 +1187,8 @@ Reply with ONLY the category name, nothing else."""
             logger.debug(f"[OnMessage] Sending: '{final_response[:50] if final_response else 'None'}'")
             
             if final_response is not None and final_response.strip():
+                logger.info(f"[OnMessage] Trigger: {message.author} said '{content_for_ai[:60]}'")
+                logger.info(f"[OnMessage] Response: '{final_response[:100]}'")
                 await message.reply(final_response, mention_author=False)
             else:
                 logger.debug(f"[OnMessage] Skipping reply (reaction-only or empty response)")
