@@ -588,12 +588,26 @@ class Stocks(commands.Cog):
                 gains = sum(1 for c in recent_changes if c > 0.02)
                 losses = sum(1 for c in recent_changes if c < -0.02)
                 
-                if gains >= 2:  # Winning streak - reversal more likely
-                    crash_chance *= (1 + gains * 0.3)
-                    boom_chance *= max(0.3, 1 - gains * 0.2)
-                elif losses >= 2:  # Losing streak - recovery more likely
-                    boom_chance *= (1 + losses * 0.3)
-                    crash_chance *= max(0.3, 1 - losses * 0.2)
+                if gains >= 4:  # Winning streak (need 4+ gains) - could go either way
+                    # FOMO Effect: 50% chance reversal, 50% chance parabolic
+                    if random.random() < 0.5:
+                        # Profit taking - subtle reversal (soft touch with 0.1 multiplier)
+                        crash_chance *= (1 + gains * 0.1)
+                        boom_chance *= max(0.3, 1 - gains * 0.15)
+                    else:
+                        # FOMO/Hype - continue the run or go parabolic
+                        boom_chance *= (1 + gains * 0.15)
+                        crash_chance *= max(0.2, 1 - gains * 0.1)
+                elif losses >= 4:  # Losing streak (need 4+ losses) - recovery or panic
+                    # Similar FOMO/panic logic
+                    if random.random() < 0.5:
+                        # Recovery - reversal with soft touch
+                        boom_chance *= (1 + losses * 0.1)
+                        crash_chance *= max(0.3, 1 - losses * 0.15)
+                    else:
+                        # Panic selling - continue the downward spiral
+                        crash_chance *= (1 + losses * 0.15)
+                        boom_chance *= max(0.2, 1 - losses * 0.1)
         
         # === BALANCING FACTOR 4: Recent News Sentiment ===
         recent_news = db.get_recent_news(5)
