@@ -1117,7 +1117,7 @@ Reply with ONLY the category name, nothing else."""
                 return
             
             if random.random() > 0.20:
-                logger.debug("[IdleChat] Random skip (80% chance)")
+                logger.debug("[IdleChat] Random skip")
                 return
             
             if random.random() < 0.3:
@@ -1199,7 +1199,7 @@ Reply with ONLY the category name, nothing else."""
             return
         
         mentioned_users = [u for u in message.mentions if u != self.bot.user and not u.bot]
-        if mentioned_users and random.random() < 0.10:  # 10% chance to gossip
+        if mentioned_users and random.random() < 0.10:
             target = random.choice(mentioned_users)
             gossip_template = self.get_status_gossip(str(target.id))
             gossip = gossip_template.format(target=target.display_name)
@@ -1238,10 +1238,7 @@ Reply with ONLY the category name, nothing else."""
         content_for_ai = message.content.replace(f"<@{self.bot.user.id}>", "").replace(f"<@!{self.bot.user.id}>", "").strip()
         
         # ========== GRACE PERIODS ==========
-        # Evening grace (9PM-10PM): Tired, impatient, warns about bedtime
-        # Morning grace (6AM-7AM): Groggy, sloppy, typos
         if self.is_evening_grace() or self.is_morning_grace():
-            # 70% chance to use grace response, 30% normal response
             if random.random() < 0.70:
                 grace_response = self.get_grace_response()
                 try:
