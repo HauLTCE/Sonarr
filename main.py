@@ -63,12 +63,6 @@ async def before_cache_cleanup():
 @bot.before_invoke
 async def _log_command(ctx):
     if ctx.command:
-        music_commands = ['play', 'skip', 'stop', 'pause', 'resume', 'queue', 'nowplaying', 'join', 'leave', 'disconnect', 'loop', 'shuffle', 'clear', 'remove', 'playlist_save', 'playlist_load', 'playlist_list']
-        if ctx.command.name not in music_commands and random.random() < 0.05:
-            await ctx.send("The bot is asleep.", delete_after=5)
-            raise commands.CheckFailure("Random 5% command block")
-    
-    if ctx.command:
         is_spamming, remaining = check_command_type_spam(ctx.author.id, ctx.command.name)
         if is_spamming:
             remaining_mins = int(remaining // 60)

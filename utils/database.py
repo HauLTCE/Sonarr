@@ -218,6 +218,102 @@ class Database:
                 logger.info("[Database] Migrating message_cache: adding guild_id column")
                 self.cursor.execute('ALTER TABLE message_cache ADD COLUMN guild_id TEXT DEFAULT "global"')
             
+            # ========== LOAN SHARK SYSTEM ==========
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS loans (
+                    user_id TEXT PRIMARY KEY,
+                    principal INTEGER NOT NULL,
+                    interest_rate REAL NOT NULL,
+                    amount_owed INTEGER NOT NULL,
+                    deadline_timestamp REAL NOT NULL,
+                    created_timestamp REAL NOT NULL,
+                    status TEXT DEFAULT 'active',
+                    collateral_pokemon_id TEXT,
+                    last_interest_applied REAL,
+                    late_notice_count INTEGER DEFAULT 0
+                )
+            ''')
+            
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS collateral_locker (
+                    user_id TEXT NOT NULL,
+                    pokemon_id TEXT NOT NULL,
+                    repo_timestamp REAL NOT NULL,
+                    buyback_cost INTEGER NOT NULL,
+                    original_loan_amount INTEGER NOT NULL,
+                    PRIMARY KEY (user_id, pokemon_id)
+                )
+            ''')
+            
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS bankruptcies (
+                    user_id TEXT PRIMARY KEY,
+                    timestamp REAL NOT NULL,
+                    shame_role_expires REAL NOT NULL,
+                    total_debt_forgiven INTEGER DEFAULT 0,
+                    can_borrow_after REAL NOT NULL
+                )
+            ''')
+            
+            # ========== STOCK MARKET SYSTEM ==========
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS stocks (
+                    ticker TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    price INTEGER NOT NULL,
+                    previous_price INTEGER NOT NULL,
+                    volatility TEXT DEFAULT 'medium',
+                    last_updated REAL NOT NULL
+                )
+            ''')
+            
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS stock_portfolio (
+                    user_id TEXT NOT NULL,
+                    ticker TEXT NOT NULL,
+                    shares INTEGER NOT NULL,
+                    avg_buy_price INTEGER NOT NULL,
+                    PRIMARY KEY (user_id, ticker)
+                )
+            ''')
+            
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS stock_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ticker TEXT NOT NULL,
+                    price INTEGER NOT NULL,
+                    timestamp REAL NOT NULL
+                )
+            ''')
+            
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS market_news (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    headline TEXT NOT NULL,
+                    affected_ticker TEXT,
+                    effect TEXT,
+                    timestamp REAL NOT NULL
+                )
+            ''')
+            
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS work_activity (
+                    date TEXT PRIMARY KEY,
+                    work_count INTEGER DEFAULT 0
+                )
+            ''')
+            
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS market_channels (
+                    guild_id TEXT PRIMARY KEY,
+                    channel_id INTEGER NOT NULL
+                )
+            ''')
+            
+            self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_loans_status ON loans(status)')
+            self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_loans_deadline ON loans(deadline_timestamp)')
+            self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_stock_history_ticker ON stock_history(ticker, timestamp DESC)')
+            
             self.connection.commit()
             logger.info("[Database] SQLite initialized successfully")
         except Exception as e:
@@ -1064,5 +1160,399 @@ class Database:
         if self.connection:
             self.connection.close()
             logger.info("[Database] Connection closed")
+
+    # ========== LOAN SHARK METHODS ==========
+    
+    def get_loan(self, user_id: str):
+        """Get active loan for a user."""
+        self.cursor.execute(
+            'SELECT principal, interest_rate, amount_owed, deadline_timestamp, created_timestamp, status, collateral_pokemon_id, last_interest_applied, late_notice_count FROM loans WHERE user_id = ?',
+            (user_id,)
+        )
+        row = self.cursor.fetchone()
+        if not row:
+            return None
+        return {
+            "principal": row[0],
+            "interest_rate": row[1],
+            "amount_owed": row[2],
+            "deadline_timestamp": row[3],
+            "created_timestamp": row[4],
+            "status": row[5],
+            "collateral_pokemon_id": row[6],
+            "last_interest_applied": row[7],
+            "late_notice_count": row[8]
+        }
+    
+    def create_loan(self, user_id: str, principal: int, interest_rate: float, deadline_timestamp: float, collateral_pokemon_id: str = None):
+        """Create a new loan for a user."""
+        now = datetime.now(timezone.utc).timestamp()
+        self.cursor.execute('''
+            INSERT OR REPLACE INTO loans 
+            (user_id, principal, interest_rate, amount_owed, deadline_timestamp, created_timestamp, status, collateral_pokemon_id, last_interest_applied, late_notice_count)
+            VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, 0)
+        ''', (user_id, principal, interest_rate, principal, deadline_timestamp, now, collateral_pokemon_id, now))
+        self.connection.commit()
+    
+    def update_loan_amount(self, user_id: str, new_amount: int, last_interest_applied: float = None):
+        """Update the amount owed on a loan."""
+        if last_interest_applied is None:
+            last_interest_applied = datetime.now(timezone.utc).timestamp()
+        self.cursor.execute(
+            'UPDATE loans SET amount_owed = ?, last_interest_applied = ? WHERE user_id = ?',
+            (new_amount, last_interest_applied, user_id)
+        )
+        self.connection.commit()
+    
+    def pay_loan(self, user_id: str, amount: int):
+        """Pay down a loan. Returns remaining amount."""
+        loan = self.get_loan(user_id)
+        if not loan:
+            return 0
+        new_amount = max(0, loan["amount_owed"] - amount)
+        if new_amount == 0:
+            self.cursor.execute('UPDATE loans SET amount_owed = 0, status = ? WHERE user_id = ?', ('paid_off', user_id))
+        else:
+            self.cursor.execute('UPDATE loans SET amount_owed = ? WHERE user_id = ?', (new_amount, user_id))
+        self.connection.commit()
+        return new_amount
+    
+    def default_loan(self, user_id: str):
+        """Mark a loan as defaulted."""
+        self.cursor.execute('UPDATE loans SET status = ? WHERE user_id = ?', ('defaulted', user_id))
+        self.connection.commit()
+    
+    def clear_loan(self, user_id: str):
+        """Remove a loan completely."""
+        self.cursor.execute('DELETE FROM loans WHERE user_id = ?', (user_id,))
+        self.connection.commit()
+    
+    def increment_late_notice(self, user_id: str):
+        """Increment late notice count."""
+        self.cursor.execute('UPDATE loans SET late_notice_count = late_notice_count + 1 WHERE user_id = ?', (user_id,))
+        self.connection.commit()
+    
+    def get_all_active_loans(self):
+        """Get all active loans (for interest/enforcement tasks)."""
+        self.cursor.execute(
+            'SELECT user_id, principal, interest_rate, amount_owed, deadline_timestamp, created_timestamp, collateral_pokemon_id, last_interest_applied, late_notice_count FROM loans WHERE status = ?',
+            ('active',)
+        )
+        rows = self.cursor.fetchall()
+        return [{
+            "user_id": row[0],
+            "principal": row[1],
+            "interest_rate": row[2],
+            "amount_owed": row[3],
+            "deadline_timestamp": row[4],
+            "created_timestamp": row[5],
+            "collateral_pokemon_id": row[6],
+            "last_interest_applied": row[7],
+            "late_notice_count": row[8]
+        } for row in rows]
+    
+    # Collateral Locker
+    def add_to_locker(self, user_id: str, pokemon_id: str, buyback_cost: int, original_loan_amount: int):
+        """Add a Pokemon to the collateral locker."""
+        now = datetime.now(timezone.utc).timestamp()
+        self.cursor.execute('''
+            INSERT OR REPLACE INTO collateral_locker 
+            (user_id, pokemon_id, repo_timestamp, buyback_cost, original_loan_amount)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (user_id, pokemon_id, now, buyback_cost, original_loan_amount))
+        self.connection.commit()
+    
+    def get_locker_items(self, user_id: str):
+        """Get all items in user's collateral locker."""
+        self.cursor.execute(
+            'SELECT pokemon_id, repo_timestamp, buyback_cost, original_loan_amount FROM collateral_locker WHERE user_id = ?',
+            (user_id,)
+        )
+        rows = self.cursor.fetchall()
+        return [{
+            "pokemon_id": row[0],
+            "repo_timestamp": row[1],
+            "buyback_cost": row[2],
+            "original_loan_amount": row[3]
+        } for row in rows]
+    
+    def remove_from_locker(self, user_id: str, pokemon_id: str):
+        """Remove a Pokemon from the locker (after buyback)."""
+        self.cursor.execute(
+            'DELETE FROM collateral_locker WHERE user_id = ? AND pokemon_id = ?',
+            (user_id, pokemon_id)
+        )
+        self.connection.commit()
+    
+    # Bankruptcy
+    def record_bankruptcy(self, user_id: str, debt_forgiven: int, shame_days: int = 3, borrow_cooldown_days: int = 7):
+        """Record a bankruptcy event."""
+        now = datetime.now(timezone.utc).timestamp()
+        shame_expires = now + (shame_days * 86400)
+        can_borrow = now + (borrow_cooldown_days * 86400)
+        self.cursor.execute('''
+            INSERT OR REPLACE INTO bankruptcies 
+            (user_id, timestamp, shame_role_expires, total_debt_forgiven, can_borrow_after)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (user_id, now, shame_expires, debt_forgiven, can_borrow))
+        self.connection.commit()
+    
+    def get_bankruptcy(self, user_id: str):
+        """Get bankruptcy info for a user."""
+        self.cursor.execute(
+            'SELECT timestamp, shame_role_expires, total_debt_forgiven, can_borrow_after FROM bankruptcies WHERE user_id = ?',
+            (user_id,)
+        )
+        row = self.cursor.fetchone()
+        if not row:
+            return None
+        return {
+            "timestamp": row[0],
+            "shame_role_expires": row[1],
+            "total_debt_forgiven": row[2],
+            "can_borrow_after": row[3]
+        }
+    
+    def is_in_shame_period(self, user_id: str):
+        """Check if user is still in bankruptcy shame period."""
+        bankruptcy = self.get_bankruptcy(user_id)
+        if not bankruptcy:
+            return False
+        now = datetime.now(timezone.utc).timestamp()
+        return now < bankruptcy["shame_role_expires"]
+    
+    def can_borrow(self, user_id: str):
+        """Check if user can borrow (not in cooldown from bankruptcy)."""
+        bankruptcy = self.get_bankruptcy(user_id)
+        if not bankruptcy:
+            return True
+        now = datetime.now(timezone.utc).timestamp()
+        return now >= bankruptcy["can_borrow_after"]
+    
+    # ========== STOCK MARKET METHODS ==========
+    
+    def get_stock(self, ticker: str):
+        """Get stock info by ticker."""
+        self.cursor.execute(
+            'SELECT ticker, name, price, previous_price, volatility, last_updated FROM stocks WHERE ticker = ?',
+            (ticker,)
+        )
+        row = self.cursor.fetchone()
+        if not row:
+            return None
+        return {
+            "ticker": row[0],
+            "name": row[1],
+            "price": row[2],
+            "previous_price": row[3],
+            "volatility": row[4],
+            "last_updated": row[5]
+        }
+    
+    def get_all_stocks(self):
+        """Get all stocks."""
+        self.cursor.execute('SELECT ticker, name, price, previous_price, volatility, last_updated FROM stocks')
+        rows = self.cursor.fetchall()
+        return [{
+            "ticker": row[0],
+            "name": row[1],
+            "price": row[2],
+            "previous_price": row[3],
+            "volatility": row[4],
+            "last_updated": row[5]
+        } for row in rows]
+    
+    def upsert_stock(self, ticker: str, name: str, price: int, volatility: str = 'medium'):
+        """Create or update a stock."""
+        now = datetime.now(timezone.utc).timestamp()
+        existing = self.get_stock(ticker)
+        previous_price = existing["price"] if existing else price
+        
+        self.cursor.execute('''
+            INSERT OR REPLACE INTO stocks 
+            (ticker, name, price, previous_price, volatility, last_updated)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (ticker, name, price, previous_price, volatility, now))
+        self.connection.commit()
+    
+    def update_stock_price(self, ticker: str, new_price: int):
+        """Update stock price and record history."""
+        now = datetime.now(timezone.utc).timestamp()
+        existing = self.get_stock(ticker)
+        if not existing:
+            return False
+        
+        # Update stock
+        self.cursor.execute(
+            'UPDATE stocks SET previous_price = price, price = ?, last_updated = ? WHERE ticker = ?',
+            (new_price, now, ticker)
+        )
+        
+        # Record history
+        self.cursor.execute(
+            'INSERT INTO stock_history (ticker, price, timestamp) VALUES (?, ?, ?)',
+            (ticker, new_price, now)
+        )
+        self.connection.commit()
+        return True
+    
+    def get_stock_history(self, ticker: str, limit: int = 24):
+        """Get recent price history for a stock."""
+        self.cursor.execute(
+            'SELECT price, timestamp FROM stock_history WHERE ticker = ? ORDER BY timestamp DESC LIMIT ?',
+            (ticker, limit)
+        )
+        rows = self.cursor.fetchall()
+        return [{"price": row[0], "timestamp": row[1]} for row in rows]
+    
+    # Portfolio
+    def get_portfolio(self, user_id: str):
+        """Get user's stock portfolio."""
+        self.cursor.execute(
+            'SELECT ticker, shares, avg_buy_price FROM stock_portfolio WHERE user_id = ? AND shares > 0',
+            (user_id,)
+        )
+        rows = self.cursor.fetchall()
+        return [{
+            "ticker": row[0],
+            "shares": row[1],
+            "avg_buy_price": row[2]
+        } for row in rows]
+    
+    def get_portfolio_position(self, user_id: str, ticker: str):
+        """Get user's position in a specific stock."""
+        self.cursor.execute(
+            'SELECT shares, avg_buy_price FROM stock_portfolio WHERE user_id = ? AND ticker = ?',
+            (user_id, ticker)
+        )
+        row = self.cursor.fetchone()
+        if not row:
+            return {"shares": 0, "avg_buy_price": 0}
+        return {"shares": row[0], "avg_buy_price": row[1]}
+    
+    def buy_stock(self, user_id: str, ticker: str, shares: int, price_per_share: int):
+        """Buy shares of a stock (updates average buy price)."""
+        position = self.get_portfolio_position(user_id, ticker)
+        
+        old_shares = position["shares"]
+        old_avg = position["avg_buy_price"]
+        new_shares = old_shares + shares
+        
+        # Calculate new average buy price
+        if new_shares > 0:
+            total_old_cost = old_shares * old_avg
+            total_new_cost = shares * price_per_share
+            new_avg = (total_old_cost + total_new_cost) // new_shares
+        else:
+            new_avg = 0
+        
+        self.cursor.execute('''
+            INSERT OR REPLACE INTO stock_portfolio (user_id, ticker, shares, avg_buy_price)
+            VALUES (?, ?, ?, ?)
+        ''', (user_id, ticker, new_shares, new_avg))
+        self.connection.commit()
+        return new_shares
+    
+    def sell_stock(self, user_id: str, ticker: str, shares: int):
+        """Sell shares of a stock. Returns shares sold."""
+        position = self.get_portfolio_position(user_id, ticker)
+        if position["shares"] < shares:
+            shares = position["shares"]
+        
+        new_shares = position["shares"] - shares
+        
+        if new_shares == 0:
+            self.cursor.execute(
+                'DELETE FROM stock_portfolio WHERE user_id = ? AND ticker = ?',
+                (user_id, ticker)
+            )
+        else:
+            self.cursor.execute(
+                'UPDATE stock_portfolio SET shares = ? WHERE user_id = ? AND ticker = ?',
+                (new_shares, user_id, ticker)
+            )
+        self.connection.commit()
+        return shares
+    
+    def get_total_shares_held(self, ticker: str) -> int:
+        """Get total shares of a stock held by all users."""
+        self.cursor.execute(
+            'SELECT COALESCE(SUM(shares), 0) FROM stock_portfolio WHERE ticker = ?',
+            (ticker,)
+        )
+        result = self.cursor.fetchone()
+        return result[0] if result else 0
+    
+    def get_stock_price_history(self, ticker: str, hours: int = 24) -> list:
+        """Get recent price history for momentum calculation."""
+        cutoff = datetime.now(timezone.utc).timestamp() - (hours * 3600)
+        self.cursor.execute(
+            'SELECT price, timestamp FROM stock_history WHERE ticker = ? AND timestamp > ? ORDER BY timestamp DESC',
+            (ticker, cutoff)
+        )
+        rows = self.cursor.fetchall()
+        return [{"price": row[0], "timestamp": row[1]} for row in rows]
+    
+    # Market News
+    def add_market_news(self, headline: str, affected_ticker: str = None, effect: str = None):
+        """Add a market news item."""
+        now = datetime.now(timezone.utc).timestamp()
+        self.cursor.execute(
+            'INSERT INTO market_news (headline, affected_ticker, effect, timestamp) VALUES (?, ?, ?, ?)',
+            (headline, affected_ticker, effect, now)
+        )
+        self.connection.commit()
+    
+    def get_recent_news(self, limit: int = 5):
+        """Get recent market news."""
+        self.cursor.execute(
+            'SELECT id, headline, affected_ticker, effect, timestamp FROM market_news ORDER BY timestamp DESC LIMIT ?',
+            (limit,)
+        )
+        rows = self.cursor.fetchall()
+        return [{
+            "id": row[0],
+            "headline": row[1],
+            "affected_ticker": row[2],
+            "effect": row[3],
+            "timestamp": row[4]
+        } for row in rows]
+    
+    # Work Activity Tracking (for stock market manipulation detection)
+    def record_work_activity(self):
+        """Record a work command being used (for stock market)."""
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        self.cursor.execute('''
+            INSERT INTO work_activity (date, work_count) VALUES (?, 1)
+            ON CONFLICT(date) DO UPDATE SET work_count = work_count + 1
+        ''', (today,))
+        self.connection.commit()
+    
+    def get_work_activity(self, days: int = 7):
+        """Get work activity for the last N days."""
+        self.cursor.execute(
+            'SELECT date, work_count FROM work_activity ORDER BY date DESC LIMIT ?',
+            (days,)
+        )
+        rows = self.cursor.fetchall()
+        return {row[0]: row[1] for row in rows}
+    
+    # ========== MARKET CHANNELS ==========
+    def set_market_channel(self, guild_id: str, channel_id: int):
+        """Set the market announcement channel for a guild."""
+        self.cursor.execute(
+            'INSERT OR REPLACE INTO market_channels (guild_id, channel_id) VALUES (?, ?)',
+            (guild_id, channel_id)
+        )
+        self.connection.commit()
+    
+    def get_market_channel(self, guild_id: str) -> int | None:
+        """Get the market announcement channel for a guild."""
+        self.cursor.execute(
+            'SELECT channel_id FROM market_channels WHERE guild_id = ?',
+            (guild_id,)
+        )
+        row = self.cursor.fetchone()
+        return row[0] if row else None
 
 db = Database()
