@@ -20,6 +20,7 @@ from .pokemon_views import (
     PokemonConfirmView,
 )
 from utils.economy import EconomyManager
+from utils.checks import economy_allowed, BotRestrictedTimeError
 from utils.database import db
 from utils.pokemon_system import (
     get_pokemon_capacity,
@@ -1780,6 +1781,7 @@ class Pokemon(commands.Cog):
         await self._send_party_overview(ctx)
 
     @pokemon.command(name="starter")
+    @economy_allowed()
     async def pokemon_starter(self, ctx, species_id: str = None):
         """Choose your starter pokemon."""
         uid = str(ctx.author.id)
@@ -1873,6 +1875,7 @@ class Pokemon(commands.Cog):
         view.message = message
 
     @pokemon.command(name="hunt")
+    @economy_allowed()
     async def pokemon_hunt(self, ctx, zone_id: str = None):
         """Spend money to find a wild pokemon."""
         uid = str(ctx.author.id)
@@ -1900,6 +1903,7 @@ class Pokemon(commands.Cog):
         await ctx.send(result["message"])
 
     @pokemon.command(name="daily")
+    @economy_allowed()
     async def pokemon_daily(self, ctx):
         """Collect daily income from your equipped pokemon."""
         uid = str(ctx.author.id)
@@ -1917,6 +1921,7 @@ class Pokemon(commands.Cog):
         view.message = message
 
     @pokemon.command(name="train")
+    @economy_allowed()
     async def pokemon_train(self, ctx, pokemon_id: str, sessions: int = 1):
         """Train a pokemon by spending money to gain XP."""
         uid = str(ctx.author.id)
@@ -1968,6 +1973,7 @@ class Pokemon(commands.Cog):
         )
 
     @pokemon.command(name="evolve")
+    @economy_allowed()
     async def pokemon_evolve(self, ctx, pokemon_id: str, target: str = None):
         """Evolve a pokemon if eligible."""
         uid = str(ctx.author.id)
@@ -2029,6 +2035,7 @@ class Pokemon(commands.Cog):
         await ctx.send(f"{old_name} evolved into {new_name}. Cost: ${cost}.")
 
     @pokemon.command(name="heal")
+    @economy_allowed()
     async def pokemon_heal(self, ctx, pokemon_id: str, item_name: str = None):
         """Heal a pokemon."""
         uid = str(ctx.author.id)
@@ -2068,6 +2075,7 @@ class Pokemon(commands.Cog):
         await ctx.send(f"Healed to full HP. Cost: ${cost}.")
 
     @pokemon.command(name="revive")
+    @economy_allowed()
     async def pokemon_revive(self, ctx, pokemon_id: str, item_name: str = None):
         """Revive a fainted pokemon."""
         uid = str(ctx.author.id)
@@ -2104,6 +2112,7 @@ class Pokemon(commands.Cog):
         await ctx.send(f"Revived to {new_hp}/{state['max_hp']} HP. Cost: ${cost}.")
 
     @pokemon.command(name="reroll")
+    @economy_allowed()
     async def pokemon_reroll(self, ctx, pokemon_id: str, lock_stat: str = None):
         """Reroll IVs and trait. Optionally lock one stat."""
         uid = str(ctx.author.id)
@@ -2241,6 +2250,7 @@ class Pokemon(commands.Cog):
         await ctx.send("Weekly reward claimed! You received balls and a fee discount buff.")
 
     @pokemon.command(name="duel")
+    @economy_allowed()
     async def pokemon_duel(self, ctx, opponent: discord.Member):
         """Challenge another user to a pokemon duel."""
         await self._start_duel(ctx, opponent)
@@ -2271,6 +2281,7 @@ class Pokemon(commands.Cog):
         view.message = message
 
     @pokemon.command(name="upgrade")
+    @economy_allowed()
     async def pokemon_upgrade(self, ctx, item_name: str = "pc_upgrade"):
         """Use an item to increase pokemon capacity."""
         uid = str(ctx.author.id)
