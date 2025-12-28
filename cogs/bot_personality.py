@@ -1109,8 +1109,8 @@ Reply with ONLY the category name, nothing else."""
             last_chat = self.last_user_chat_time.get(guild_id)
             if last_chat:
                 hours_since_chat = (datetime.now(timezone.utc) - last_chat).total_seconds() / 3600
-                if hours_since_chat < 4:
-                    logger.debug(f"[IdleChat] Only {hours_since_chat:.1f}h since last chat, need 4h")
+                if hours_since_chat < 2:
+                    logger.debug(f"[IdleChat] Only {hours_since_chat:.1f}h since last chat, need 2h")
                     return
             else:
                 self.last_user_chat_time[guild_id] = datetime.now(timezone.utc)
