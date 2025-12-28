@@ -422,6 +422,19 @@ COLD_RESPONSES["money"] = COLD_RESPONSES["flex"]
 COLD_RESPONSES["food"] = COLD_RESPONSES["chitchat"]
 COLD_RESPONSES["sleep"] = COLD_RESPONSES["advice"]
 
+EMPTY_MESSAGE_RESPONSES = [
+    "Speechless? I get that effect on people.",
+    "I'm an AI, not a mind reader.",
+    "Really? Nothing?",
+    "Did you forget how to type?",
+    "Words. Use them.",
+    "REACT:❓",
+    "REACT:😶:Use your words.",
+    "REACT:👻:Ghosting me to my face? Bold.",
+    "TIMEOUT:1m:Take a minute to find your words.",
+    "TIMEOUT:30s:Don't ping me without a purpose.",
+]
+
 def get_response(message_type="greeting"):
     """Get a random premade cold response for the given message type."""
     if message_type in COLD_RESPONSES:

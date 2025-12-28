@@ -10,7 +10,7 @@ import warnings
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 from utils.economy import EconomyManager
-from utils.premade_answers import COLD_RESPONSES
+from utils.premade_answers import COLD_RESPONSES, EMPTY_MESSAGE_RESPONSES
 from utils.database import db
 from utils.response_effects import process_response
 
@@ -710,15 +710,10 @@ class BotPersonality(commands.Cog):
         word_count = self.count_words(message_content)
         
         if word_count == 0:
-            empty_responses = [
-                "...",
-                "Say something.",
-                "Really? Nothing?",
-                "Empty message, empty soul.",
-                "Are you there?",
-            ]
-            logger.info(f"[AI] EMPTY MESSAGE: '{message_content}' → random")
-            return random.choice(empty_responses)
+            response = random.choice(EMPTY_MESSAGE_RESPONSES)
+            logger.info(f"[AI] EMPTY MESSAGE: '{message_content}' → {response[:50]}")
+            final_response = await process_response(response, None, user_query=None)
+            return final_response if final_response else random.choice(COLD_RESPONSES["random"])
         
         if word_count <= 2:
             keyword_cat = self.keyword_classify(message_content)
