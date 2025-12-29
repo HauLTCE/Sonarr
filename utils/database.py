@@ -305,6 +305,17 @@ class Database:
                 )
             ''')
             
+            # ========== MISGENDERING MEMORY SYSTEM ==========
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS misgendering_memory (
+                    user_id TEXT NOT NULL,
+                    guild_id TEXT NOT NULL,
+                    term_used TEXT NOT NULL,
+                    timestamp REAL NOT NULL,
+                    PRIMARY KEY (user_id, guild_id)
+                )
+            ''')
+            
             self.cursor.execute('''
                 CREATE TABLE IF NOT EXISTS work_activity (
                     date TEXT PRIMARY KEY,
@@ -318,14 +329,6 @@ class Database:
                     channel_id INTEGER NOT NULL
                 )
             ''')
-
-            # ========== MISGENDER RECORDS ==========
-            self.cursor.execute('''
-                CREATE TABLE IF NOT EXISTS misgender_records (
-                    user_id TEXT PRIMARY KEY,
-                    misgendered_at REAL NOT NULL
-                )
-            ''')
             
             self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_loans_status ON loans(status)')
             self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_loans_deadline ON loans(deadline_timestamp)')
@@ -336,64 +339,6 @@ class Database:
         except Exception as e:
             logger.error(f"[Database] Initialization error: {e}")
             raise
-
-    # ========== MISGENDER RECORDS API ==========
-    def record_misgender(self, user_id: str):
-        """Record a misgender event for a user (upserts with current timestamp)."""
-        try:
-            now = datetime.now(timezone.utc).timestamp()
-            self.cursor.execute(
-                'INSERT OR REPLACE INTO misgender_records (user_id, misgendered_at) VALUES (?, ?)',
-                (user_id, now)
-            )
-            self.connection.commit()
-            logger.info(f"[Misgender] Recorded for user {user_id} at {now}")
-        except Exception as e:
-            logger.error(f"[Misgender] record error: {e}")
-
-    def clear_misgender(self, user_id: str):
-        """Clear misgender record for a user (when they correctly address Sonarr)."""
-        try:
-            self.cursor.execute('DELETE FROM misgender_records WHERE user_id = ?', (user_id,))
-            self.connection.commit()
-            logger.info(f"[Misgender] Cleared for user {user_id}")
-        except Exception as e:
-            logger.error(f"[Misgender] clear error: {e}")
-
-    def has_active_misgender(self, user_id: str, within_seconds: int = 86400) -> bool:
-        """Check if a user has an active misgender record within the given TTL."""
-        try:
-            now = datetime.now(timezone.utc).timestamp()
-            self.cursor.execute('SELECT misgendered_at FROM misgender_records WHERE user_id = ?', (user_id,))
-            row = self.cursor.fetchone()
-            if not row:
-                return False
-            return (now - float(row[0])) < within_seconds
-        except Exception as e:
-            logger.error(f"[Misgender] has_active error: {e}")
-            return False
-
-    def get_active_misgenderers(self, within_seconds: int = 86400) -> list:
-        """Return list of (user_id, misgendered_at) within TTL."""
-        try:
-            now = datetime.now(timezone.utc).timestamp()
-            cutoff = now - within_seconds
-            self.cursor.execute('SELECT user_id, misgendered_at FROM misgender_records WHERE misgendered_at > ?', (cutoff,))
-            rows = self.cursor.fetchall()
-            return [(row[0], float(row[1])) for row in rows]
-        except Exception as e:
-            logger.error(f"[Misgender] get_active error: {e}")
-            return []
-
-    def cleanup_misgender_records(self, older_than_seconds: int = 86400):
-        """Delete misgender records older than TTL."""
-        try:
-            now = datetime.now(timezone.utc).timestamp()
-            cutoff = now - older_than_seconds
-            self.cursor.execute('DELETE FROM misgender_records WHERE misgendered_at <= ?', (cutoff,))
-            self.connection.commit()
-        except Exception as e:
-            logger.error(f"[Misgender] cleanup error: {e}")
     
     def get_user_economy(self, user_id: str):
         """Get economy data for a user."""
@@ -1251,6 +1196,47 @@ class Database:
         if self.connection:
             self.connection.close()
             logger.info("[Database] Connection closed")
+
+    # ========== MISGENDERING MEMORY METHODS ==========
+    
+    def record_misgendering(self, user_id: str, guild_id: str, term_used: str):
+        """Record when someone misgenders Sonarr."""
+        now = datetime.now(timezone.utc).timestamp()
+        self.cursor.execute('''
+            INSERT OR REPLACE INTO misgendering_memory (user_id, guild_id, term_used, timestamp)
+            VALUES (?, ?, ?, ?)
+        ''', (user_id, guild_id, term_used, now))
+        self.connection.commit()
+    
+    def get_misgendered_users(self, guild_id: str, hours_back: int = 24):
+        """Get list of users who misgendered Sonarr within the time limit."""
+        cutoff = datetime.now(timezone.utc).timestamp() - (hours_back * 3600)
+        self.cursor.execute('''
+            SELECT user_id, term_used, timestamp FROM misgendering_memory 
+            WHERE guild_id = ? AND timestamp > ?
+            ORDER BY timestamp DESC
+        ''', (guild_id, cutoff))
+        rows = self.cursor.fetchall()
+        return [{
+            "user_id": row[0],
+            "term_used": row[1], 
+            "timestamp": row[2]
+        } for row in rows]
+    
+    def clear_misgendering_memory(self, user_id: str, guild_id: str):
+        """Clear misgendering memory when user corrects themselves."""
+        self.cursor.execute('''
+            DELETE FROM misgendering_memory WHERE user_id = ? AND guild_id = ?
+        ''', (user_id, guild_id))
+        self.connection.commit()
+    
+    def cleanup_expired_misgendering(self, hours_back: int = 24):
+        """Remove misgendering memory older than specified hours."""
+        cutoff = datetime.now(timezone.utc).timestamp() - (hours_back * 3600)
+        self.cursor.execute('''
+            DELETE FROM misgendering_memory WHERE timestamp <= ?
+        ''', (cutoff,))
+        self.connection.commit()
 
     # ========== LOAN SHARK METHODS ==========
     

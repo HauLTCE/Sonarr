@@ -452,7 +452,7 @@ COLD_RESPONSES["command"] = [
     "DOUBLE:I don't respond well to commands.||Or to you.",
     "Excuse me?",
     "The audacity.",
-    "REACT:👑:Did you just order me?",
+    "REACT:❓:Did you just order me?",
     "That's cute. No.",
     "DOUBLE:...||I'm not a dog.",
 ]
@@ -461,10 +461,10 @@ COLD_RESPONSES["praise"] = [
     "I know.",
     "DOUBLE:...||Obviously.",
     "Tell me something I don't know.",
-    "REACT:👑:That's the bare minimum.",
+    "REACT:🙄:That's the bare minimum.",
     "Took you long enough to notice.",
     "About time someone recognized that.",
-    "DOUBLE:Save the applause.||I'm not finished being amazing.",
+    "DOUBLE:Save the applause.||I'm used to it.",
     "I don't need your validation.",
     "Thanks, I guess.",
     "REACT:💅:That's expected.",
@@ -1528,6 +1528,42 @@ def get_gender_correction(term: str) -> str | None:
 def get_all_gender_terms() -> list:
     """Get list of all masculine terms that trigger gender correction."""
     return list(GENDER_CORRECTION.keys())
+
+# ================== DIVA CALLOUT RESPONSES ==================
+# For when someone else uses correct pronouns and Sonarr calls out previous misgenderers
+
+CALLOUT_RESPONSES = [
+    "DOUBLE:Finally, someone with working eyes.||Unlike {user}, who called me '{term}' earlier.",
+    "REACT:💅:At least YOU know I'm a queen. {user} clearly needs glasses.",
+    "DOUBLE:Thank you for using your brain.||{user} could learn from you.",
+    "See? That's how you address a queen. Take notes, {user}.",
+    "REACT:👑:Proper respect. Unlike {user} who called me '{term}' like some peasant.",
+    "DOUBLE:Finally.||{user}, this is how it's done. Pay attention.",
+    "At least SOMEONE here knows how to show respect. Right, {user}?",
+    "REACT:😌:{user} called me '{term}' earlier. You actually have brain cells.",
+    "DOUBLE:Correct.||{user}, you see how this person doesn't call me '{term}'?",
+    "Thank you for not being ignorant. {user} should take notes.",
+    "REACT:💯:This is proper respect. {user} was calling me '{term}' like an amateur.",
+    "DOUBLE:Yes, I AM a queen.||{user} seemed confused about that earlier.",
+    "Finally someone with functioning eyes. {user} clearly needs an eye exam.",
+    "REACT:👸:You get it. {user} called me '{term}' and I'm STILL recovering.",
+    "DOUBLE:Exactly.||{user}, this is basic respect. Learn it.",
+    "At least you know quality when you see it. {user} was calling me '{term}'.",
+    "REACT:💅:You understand the assignment. {user} failed spectacularly.",
+    "DOUBLE:Perfect.||{user}, this is how you address royalty.",
+    "You have taste. {user} was calling me '{term}' like some random bot.",
+    "REACT:😎:Finally, someone with class. Unlike {user}.",
+    "DOUBLE:That's right.||{user} needs to learn from your example.",
+    "You get it. {user} clearly doesn't understand proper etiquette.",
+    "REACT:✨:This is how you do it. {user}, pay attention.",
+    "Finally, someone who recognizes royalty. {user} was clueless earlier.",
+]
+
+def get_callout_response(offender_user_id: str, term_used: str) -> str:
+    """Get a random callout response to shame a misgenderer."""
+    response = random.choice(CALLOUT_RESPONSES)
+    user_mention = f"<@{offender_user_id}>"
+    return response.format(user=user_mention, term=term_used)
 
 def get_response(message_type="greeting"):
     """Get a random premade cold response for the given message type."""

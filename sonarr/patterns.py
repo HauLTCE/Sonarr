@@ -159,36 +159,43 @@ def detect_misgendering(text: str) -> str | None:
     return None
 
 
-def detect_correct_gender_address(text: str) -> bool:
+def detect_correct_pronouns(text: str) -> bool:
     """
-    Detect if the user is correctly addressing Sonarr as female.
-    Heuristics:
-    - Must be a direct address to the bot (greeting/thanks patterns or target anchors)
-    - Contains feminine honorifics/terms for Sonarr (queen, ma'am, lady, miss)
-    We avoid generic 'she/her' to reduce third-party false positives.
+    Check if the user is using correct feminine pronouns to refer to Sonarr.
+    
+    Returns True if feminine pronouns are detected in bot-directed context.
     """
     text_lower = text.lower()
-
-    # Direct address (reuse heuristic similar to misgendering)
-    direct_address_patterns = [
-        r"^(hey|hi|hello|yo|sup|thanks|thank you|thx|ty|ok|okay|alright|aight|sure|yeah|yea|yes|no|nah|nope|wow|oh|lol|lmao|haha)\s*,?\s*",
-        r"(thanks|thank you|thx|ty|ok|okay|alright|aight|sure|yeah|yea|yes|no|nah|nope|wow|oh|lol|lmao|haha)\s*,?\s*$",
+    
+    # Feminine terms that refer to the bot
+    FEMININE_PATTERNS = [
+        r"\b(she|her|hers|herself)\b",  # Pronouns
+        r"\b(queen|girl|woman|lady|miss|ma'am|maam|ms)\b",  # Titles
+        r"\b(sis|sister|girly)\b",  # Casual
     ]
+    
+    # Check if message is directed at bot
     has_target = bool(re.search(TARGET_ANCHORS, text_lower))
-    is_direct_address = has_target or any(re.search(p, text_lower) for p in direct_address_patterns)
-
-    if not is_direct_address:
-        logger.info(f"[GenderCorrect] Skipped (not direct): '{text_lower[:60]}'")
-        return False
-
-    # Feminine terms that imply correct gender for Sonarr
-    feminine_terms = r"\b(queen|queenie|ma'am|maam|lady|miss|ms|madam|madame)\b"
-    if re.search(feminine_terms, text_lower):
-        # Exclude obvious third-party references like "my queen" about someone else
-        third_party_exclude = r"(my|your|his|her|their|the|a|that|this)\s+" + feminine_terms.replace(r"\\b", "")
-        if not re.search(third_party_exclude, text_lower):
-            logger.info(f"[GenderCorrect] DETECTED in '{text_lower[:60]}'")
-            return True
+    
+    # Direct address patterns
+    direct_address_patterns = [
+        r"^(hey|hi|hello|yo|sup|thanks|thank you|thx|ty)\s*,?\s*",
+        r"(thanks|thank you|thx|ty)\s*,?\s*$",
+    ]
+    
+    is_direct_address = any(re.search(p, text_lower) for p in direct_address_patterns)
+    
+    # Look for feminine pronouns in bot-directed context
+    if has_target or is_direct_address or len(text.split()) <= 5:
+        for pattern in FEMININE_PATTERNS:
+            if re.search(pattern, text_lower):
+                # Make sure it's not referring to someone else
+                third_party_pattern = r"(my|your|his|her|their|the|a|that|this)\s+" + pattern.replace(r"\b", "")
+                third_party_check = re.search(third_party_pattern, text_lower)
+                if not third_party_check:
+                    logger.info(f"[CorrectPronoun] DETECTED: feminine pronoun in '{text[:50]}'")
+                    return True
+    
     return False
 
 
