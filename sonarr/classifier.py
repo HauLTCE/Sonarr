@@ -99,6 +99,8 @@ class MessageClassifier:
         Returns:
             Tuple of (category, confidence) where confidence is 0-4
         """
+        logger.info(f"[Classify] Input: '{message[:100]}{'...' if len(message) > 100 else ''}'")
+        
         # 1. Try complex pattern matching first (highest priority)
         # pattern_match now returns (cat, conf, modifiers)
         pattern_result = pattern_match(message)
@@ -107,6 +109,7 @@ class MessageClassifier:
         if pattern_cat:
             # Store modifiers for potential use
             self._last_modifiers = pattern_result[2] if len(pattern_result) > 2 else {}
+            logger.info(f"[Classify] Pattern match: {pattern_cat} (conf={pattern_conf + 1}, mods={self._last_modifiers})")
             return (pattern_cat, pattern_conf + 1)  # Confidence 3-4
         
         # 2. Fall back to keyword classification
@@ -115,8 +118,10 @@ class MessageClassifier:
             # Dominant keyword (2+ matches) = confidence 2
             # Single keyword = confidence 1
             confidence = 2 if keyword_score >= 2 else 1
+            logger.info(f"[Classify] Keyword match: {keyword_cat} (conf={confidence}, score={keyword_score})")
             return (keyword_cat, confidence)
         
+        logger.info(f"[Classify] No match for: '{message[:50]}'")
         return (None, 0)
     
     def smart_classify_full(self, message: str) -> tuple:
