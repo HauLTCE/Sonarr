@@ -15,6 +15,7 @@ Supported prefixes:
 - RENAME:NewNick:message - Change user's nickname (Discord shows system message)
 - REACT:🤡:message - Add emoji reaction to user's message
 - REACT:🤡 - Add reaction without bot reply
+- DOUBLE:first message||second message - Send two messages with a delay
 - (Legacy: GOOGLE:message still supported for backwards compatibility)
 - (More can be added later: DM:, RECURSIVE:, etc.)
 """
@@ -39,6 +40,7 @@ class ResponseEffect:
     search_query: Optional[str] = None  # User's query to search
     rename_nickname: Optional[str] = None  # New nickname to set
     reactions: List[str] = field(default_factory=list)  # Emoji reactions to add
+    double_message: Optional[str] = None  # Second message to send after a delay
     # Future effects can be added here:
     # dm_message: str = None
     # recursive_category: str = None
@@ -159,11 +161,20 @@ def parse_response(response: str) -> ResponseEffect:
             effect.reactions.append(remaining.strip())
             remaining = ""
     
+    # Parse DOUBLE: prefix (send two messages)
+    if remaining.startswith("DOUBLE:"):
+        remaining = remaining[7:]
+        double_match = re.match(r'^(.+?)\|\|(.+)$', remaining, re.DOTALL)
+        
+        if double_match:
+            remaining = double_match.group(1).strip()
+            effect.double_message = double_match.group(2).strip()
+    
     effect.message = remaining
     return effect
 
 
-async def apply_effects(effect: ResponseEffect, message, user_query: str = None, logger_prefix: str = "[EFFECT]") -> str:
+async def apply_effects(effect: ResponseEffect, message, user_query: str = None, logger_prefix: str = "[EFFECT]") -> tuple[str, str | None]:
     """
     Apply all effects from a parsed response to a Discord message.
     
@@ -174,7 +185,7 @@ async def apply_effects(effect: ResponseEffect, message, user_query: str = None,
         logger_prefix: Prefix for log messages
     
     Returns:
-        The cleaned message text to send
+        Tuple of (main_message, followup_message). followup_message is None if no DOUBLE: effect.
     """
     import discord
     from utils.economy import EconomyManager
@@ -278,7 +289,9 @@ async def apply_effects(effect: ResponseEffect, message, user_query: str = None,
     # if effect.dm_message:
     #     await message.author.send(effect.dm_message)
     
-    return final_message if final_message else None
+    # Return main message and optional followup for DOUBLE: effect
+    main_msg = final_message if final_message else None
+    return (main_msg, effect.double_message)
 
 
 def format_duration(td: timedelta) -> str:
@@ -295,18 +308,56 @@ def format_duration(td: timedelta) -> str:
         return f"{total_seconds // 86400}d"
 
 
-async def process_response(response: str, message, user_query: str = None) -> str:
+async def process_response(response: str, message, user_query: str = None) -> tuple[str, str | None]:
     """
     One-liner to parse and apply effects from a response.
     
     Usage:
-        final_message = await process_response(response, message, user_query)
-        await message.reply(final_message)
+        main_msg, followup = await process_response(response, message, user_query)
+        await message.reply(main_msg)
+        if followup:
+            await asyncio.sleep(1.5)
+            await message.channel.send(followup)
     
     Args:
         response: Response string (may contain effect prefixes)
         message: Discord message object
         user_query: Original user query (for GOOGLE: effect)
+    
+    Returns:
+        Tuple of (main_message, followup_message). followup_message is None if no DOUBLE: effect.
     """
     effect = parse_response(response)
     return await apply_effects(effect, message, user_query, logger_prefix="[EFFECT]")
+
+
+async def send_response_with_effects(response: str, message, user_query: str = None, delay: float = 1.5) -> bool:
+    """
+    Process and send a response, automatically handling DOUBLE: effect.
+    
+    Usage:
+        await send_response_with_effects(response, message, user_query)
+    
+    Args:
+        response: Response string (may contain effect prefixes)
+        message: Discord message object
+        user_query: Original user query (for SEARCH: effects)
+        delay: Seconds to wait before sending followup (default 1.5s)
+    
+    Returns:
+        True if a message was sent, False otherwise
+    """
+    import asyncio
+    
+    main_msg, followup = await process_response(response, message, user_query)
+    
+    if main_msg is not None and main_msg.strip():
+        await message.reply(main_msg, mention_author=False)
+        
+        if followup:
+            await asyncio.sleep(delay)
+            await message.channel.send(followup)
+        
+        return True
+    
+    return False
