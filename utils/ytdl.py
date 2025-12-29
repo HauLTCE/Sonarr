@@ -26,12 +26,6 @@ ytdl_format_options = {
     'fragment_retries': 10,
 }
 
-# Enhanced FFmpeg options for better YouTube stream stability
-# - reconnect: Enable reconnection on connection drops
-# - reconnect_streamed: Reconnect even on streamed content  
-# - reconnect_delay_max: Max delay between reconnection attempts (5 seconds)
-# - reconnect_on_network_error: Reconnect on network errors (TLS resets)
-# - reconnect_on_http_error: Reconnect on HTTP errors
 ffmpeg_options = {
     'options': '-vn -loglevel warning',
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -reconnect_on_network_error 1 -reconnect_on_http_error 4xx,5xx'
