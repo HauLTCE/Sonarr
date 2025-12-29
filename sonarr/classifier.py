@@ -103,7 +103,9 @@ class MessageClassifier:
         
         # 1. Try complex pattern matching first (highest priority)
         # pattern_match now returns (cat, conf, modifiers)
+        logger.info(f"[Classify] Calling pattern_match...")
         pattern_result = pattern_match(message)
+        logger.info(f"[Classify] pattern_match returned: {pattern_result}")
         pattern_cat, pattern_conf = pattern_result[0], pattern_result[1]
         
         if pattern_cat:
