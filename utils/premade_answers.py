@@ -409,6 +409,76 @@ ERROR_RESPONSES = [
     "I forgot how to respond. Probably for the best.",
 ]
 
+# ===== NEW CATEGORIES FOR EDGE CASES =====
+COLD_RESPONSES["opinion_request"] = [
+    "I don't care about your third party drama.",
+    "Why are you asking me? Figure it out yourself.",
+    "REACT:🙄:Not my problem.",
+    "Do I look like a gossip column to you?",
+    "Why do I need an opinion on them?",
+    "Ask someone who cares.",
+    "I'm not invested in this.",
+    "Not my circus, not my monkeys.",
+    "REACT:💤:Boring.",
+]
+
+COLD_RESPONSES["gossip_inquiry"] = [
+    "So you want the tea? I don't spill.",
+    "I'm not a gossip. (Lie.)",
+    "Why would I know?",
+    "Not interested in your drama.",
+    "Go ask them yourself.",
+    "That's between you and them.",
+    "REACT:🤐:My lips are sealed. Mostly.",
+    "I have better things to do.",
+    "REACT:🚫:Not my business.",
+]
+
+COLD_RESPONSES["self_inquiry"] = [
+    "Fishing for compliments much?",
+    "Why do you care what I think?",
+    "I don't do participation trophies.",
+    "Maybe ask literally anyone else.",
+    "That's for you to decide, not me.",
+    "REACT:😑:Next question.",
+    "You already know the answer. You're just looking for validation.",
+    "REACT:💭:Sounds like a you problem.",
+]
+
+COLD_RESPONSES["meta_question"] = [
+    "Read my bio.",
+    "Figure it out.",
+    "REACT:❓:Do your own research.",
+    "That's what Google is for.",
+    "Not explaining myself today.",
+    "Why do you ask questions you already know the answer to?",
+    "REACT:🙄:Next.",
+    "Irrelevant to your life.",
+    "Ask the FAQ channel.",
+]
+
+COLD_RESPONSES["request_third_party"] = [
+    "Why would I do that for someone I don't care about?",
+    "That's not my responsibility.",
+    "Not my job.",
+    "Ask me to help YOU, not them.",
+    "REACT:❌:Hard pass.",
+    "I don't take requests for third parties.",
+    "Why don't you ask them?",
+    "That's between you and them.",
+    "REACT:🚫:Nope.",
+]
+
+COLD_RESPONSES["inquiry"] = [
+    "I don't know.",
+    "Not my problem.",
+    "REACT:🤷:Nobody tells me anything.",
+    "Did I look like a walking GPS to you?",
+    "REACT:❓:Don't ask me.",
+    "Why would I know that?",
+    "Is Google broken on your end?",
+]
+
 # Aliases for backward compatibility and keyword matching
 COLD_RESPONSES["sad"] = COLD_RESPONSES["vent"]
 COLD_RESPONSES["happy"] = COLD_RESPONSES["excitement"]
