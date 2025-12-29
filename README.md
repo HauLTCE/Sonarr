@@ -669,5 +669,5 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 ---
 
-**Last Updated**: December 28, 2025  
-**Version**: 3.2
+**Last Updated**: December 29, 2025  
+**Version**: 4.0
