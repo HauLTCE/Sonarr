@@ -675,8 +675,13 @@ def _pattern_match_single(text: str, modifiers: dict) -> tuple:
                     logger.debug(f"[Pattern] Sarcasm marker detected, affection → sarcasm")
                 
                 # === THIRD-PARTY PRIORITY OVERRIDE ===
-                if segment_modifiers["third_party"] and final_cat == "vent":
-                    final_cat = "gossip"
+                # If there's a third party and we matched affection/complaint, it's about someone else, not the bot
+                if segment_modifiers["third_party"]:
+                    if final_cat in ["affection", "complaint"]:
+                        final_cat = "chitchat"
+                        logger.debug(f"[Pattern] Third party detected in {result_cat}, converting to chitchat")
+                    elif final_cat == "vent":
+                        final_cat = "gossip"
                 
                 # === COLLECTIVE NOUN HANDLING ===
                 # "People say you're trash" / "Everyone knows you're dumb"
