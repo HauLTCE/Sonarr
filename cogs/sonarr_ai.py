@@ -20,7 +20,7 @@ from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 
 from utils.economy import EconomyManager
-from utils.premade_answers import COLD_RESPONSES, EMPTY_MESSAGE_RESPONSES, GENDER_CORRECTION, get_gender_correction
+from utils.premade_answers import COLD_RESPONSES, EMPTY_MESSAGE_RESPONSES, GENDER_CORRECTION, get_gender_correction, get_callout_response
 from utils.database import db
 from utils.response_effects import process_response, send_response_with_effects
 
@@ -221,6 +221,13 @@ class SonarrAI(commands.Cog):
         ]
         for uid in stale_mention_users:
             del self.user_mention_times[uid]
+        
+        # Clean up expired misgendering memory (24 hours)
+        try:
+            db.cleanup_expired_misgendering(hours_back=24)
+            logger.debug("[Memory] Misgendering memory cleanup complete")
+        except Exception as e:
+            logger.error(f"[Memory] Misgendering cleanup error: {e}")
         
         logger.info(f"[Memory] Cleanup: AI {ai_before}→{len(self.user_ai_calls)} (-{len(stale_ai_users)}), Mentions {mention_before}→{len(self.user_mention_times)} (-{len(stale_mention_users)})")
     
@@ -434,12 +441,6 @@ class SonarrAI(commands.Cog):
         """Smart classifier: pattern matching → keywords → cache → AI (with caching)."""
         
         word_count = self.classifier.count_words(message_content)
-
-        # Periodic cleanup of misgender records (TTL = 24h)
-        try:
-            db.cleanup_misgender_records(older_than_seconds=86400)
-        except Exception:
-            pass
         
         # Empty message
         if word_count == 0:
@@ -448,58 +449,53 @@ class SonarrAI(commands.Cog):
             return response
         
         # Check for misgendering FIRST (even for short messages)
-        from sonarr.patterns import detect_misgendering, detect_correct_gender_address
+        from sonarr.patterns import detect_misgendering, detect_correct_pronouns
         misgender_term = detect_misgendering(message_content)
         if misgender_term:
-            # Record misgender for the author
-            if user_id:
-                try:
-                    db.record_misgender(str(user_id))
-                except Exception as e:
-                    logger.error(f"[Misgender] record failed for {user_id}: {e}")
+            # Record the misgendering for potential callout later
+            try:
+                db.record_misgendering(user_id, str(guild_id), misgender_term)
+                logger.info(f"[MisgenderMemory] Recorded: {user_id} used '{misgender_term}' in guild {guild_id}")
+            except Exception as e:
+                logger.error(f"[MisgenderMemory] Error recording: {e}")
+            
             response = get_gender_correction(misgender_term)
             if response:
                 logger.info(f"[Classify] MISGENDERED ({word_count}w): '{message_content[:40]}' → {misgender_term}")
                 return response
-
-        # If correctly addressed as female, clear author's record and consider calling out others
-        callout_suffix = None
-        try:
-            if detect_correct_gender_address(message_content):
-                # If author previously misgendered, clear their record (self-correction)
-                if user_id and db.has_active_misgender(str(user_id)):
-                    db.clear_misgender(str(user_id))
-                # Consider calling out a recent misgenderer (not the author), 20% chance
-                active = db.get_active_misgenderers(within_seconds=86400)
-                # Sort by most recent
-                active.sort(key=lambda x: x[1], reverse=True)
-                mis_to_call = next(((uid, ts) for uid, ts in active if str(uid) != str(user_id)), None)
-                if mis_to_call and random.random() < 0.20:
-                    mis_uid = mis_to_call[0]
-                    # Compose a gentle-but-diva callout as a second message
-                    callout_suffix = f"||<@{mis_uid}> Learn the word: QUEEN."
-        except Exception as e:
-            logger.error(f"[GenderCorrect] handling failed: {e}")
+        
+        # Check for correct pronoun usage - potential callout opportunity
+        if detect_correct_pronouns(message_content):
+            # If this user previously misgendered, clear their memory (they corrected themselves)
+            try:
+                misgendered_users = db.get_misgendered_users(str(guild_id), hours_back=24)
+                user_in_memory = any(mu["user_id"] == user_id for mu in misgendered_users)
+                if user_in_memory:
+                    db.clear_misgendering_memory(user_id, str(guild_id))
+                    logger.info(f"[SelfCorrect] {user_id} used correct pronouns, cleared their misgendering memory")
+                elif random.random() < 0.20:
+                    # 20% chance to call out others who misgendered (excluding current user)
+                    available_targets = [mu for mu in misgendered_users if mu["user_id"] != user_id]
+                    
+                    if available_targets:
+                        # Pick the most recent misgenderer
+                        target = available_targets[0]
+                        callout_response = get_callout_response(target["user_id"], target["term_used"])
+                        logger.info(f"[Callout] {user_id} used correct pronouns, calling out {target['user_id']} for '{target['term_used']}'")
+                        return callout_response
+            except Exception as e:
+                logger.error(f"[CorrectPronoun] Error: {e}")
         
         # Very short messages - simple keyword matching
         if word_count <= 2:
             keyword_cat = self.classifier.keyword_classify(message_content)
             if keyword_cat:
                 logger.info(f"[Classify] KEYWORD ({word_count}w): '{message_content[:40]}' → {keyword_cat}")
-                base = random.choice(COLD_RESPONSES.get(keyword_cat, COLD_RESPONSES["random"]))
-                if callout_suffix and not str(base).startswith("DOUBLE:"):
-                    return "DOUBLE:" + base + callout_suffix
-                elif callout_suffix and str(base).startswith("DOUBLE:"):
-                    # Already double-effect; prefer original
-                    return base
-                return base
+                return random.choice(COLD_RESPONSES.get(keyword_cat, COLD_RESPONSES["random"]))
             else:
                 fallback_cat = random.choice(["random", "bored", "confusion"])
                 logger.info(f"[Classify] SHORT UNKNOWN ({word_count}w): '{message_content[:40]}' → {fallback_cat}")
-                base = random.choice(COLD_RESPONSES.get(fallback_cat, COLD_RESPONSES["random"]))
-                if callout_suffix and not str(base).startswith("DOUBLE:"):
-                    return "DOUBLE:" + base + callout_suffix
-                return base
+                return random.choice(COLD_RESPONSES.get(fallback_cat, COLD_RESPONSES["random"]))
         
         # Use smart classification for longer messages
         smart_cat, smart_conf = self.classifier.smart_classify(message_content)
@@ -521,10 +517,7 @@ class SonarrAI(commands.Cog):
                 logger.info(f"[Classify] PATTERN ({word_count}w, conf={smart_conf}): '{message_content[:40]}' → {smart_cat}")
             else:
                 logger.info(f"[Classify] KEYWORD ({word_count}w, conf={smart_conf}): '{message_content[:40]}' → {smart_cat}")
-            base = random.choice(COLD_RESPONSES.get(smart_cat, COLD_RESPONSES["random"]))
-            if callout_suffix and not str(base).startswith("DOUBLE:"):
-                return "DOUBLE:" + base + callout_suffix
-            return base
+            return random.choice(COLD_RESPONSES.get(smart_cat, COLD_RESPONSES["random"]))
         
         # Check cache
         msg_hash = self.classifier.hash_message(message_content)
@@ -540,20 +533,14 @@ class SonarrAI(commands.Cog):
         
         if cached_cat:
             logger.info(f"[Cache] HIT ({word_count}w): '{message_content[:40]}' → {cached_cat} [words: {content_words[:5]}]")
-            base = random.choice(COLD_RESPONSES.get(cached_cat, COLD_RESPONSES["random"]))
-            if callout_suffix and not str(base).startswith("DOUBLE:"):
-                return "DOUBLE:" + base + callout_suffix
-            return base
+            return random.choice(COLD_RESPONSES.get(cached_cat, COLD_RESPONSES["random"]))
         
         # Try fuzzy search
         try:
             fuzzy_cat = db.fuzzy_search_category(content_words)
             if fuzzy_cat:
                 logger.info(f"[Cache] FUZZY ({word_count}w): '{message_content[:40]}' → {fuzzy_cat} [words: {content_words[:5]}]")
-                base = random.choice(COLD_RESPONSES.get(fuzzy_cat, COLD_RESPONSES["random"]))
-                if callout_suffix and not str(base).startswith("DOUBLE:"):
-                    return "DOUBLE:" + base + callout_suffix
-                return base
+                return random.choice(COLD_RESPONSES.get(fuzzy_cat, COLD_RESPONSES["random"]))
         except Exception as e:
             logger.error(f"[Cache] Fuzzy error: {e}")
         
@@ -561,10 +548,7 @@ class SonarrAI(commands.Cog):
         logger.debug(f"[RateLimit] Checking for {user_id}")
         if user_id and not self.check_user_ai_limit(user_id):
             logger.warning(f"[RateLimit] USER BLOCKED: {user_id} ({word_count}w): '{message_content[:40]}'")
-            base = random.choice(self.rate_limit_responses)
-            if callout_suffix and not str(base).startswith("DOUBLE:"):
-                return "DOUBLE:" + base + callout_suffix
-            return base
+            return random.choice(self.rate_limit_responses)
         
         # AI availability check
         logger.debug(f"[Gemini] Checking availability: client={bool(self.genai_client)}, available={self.ai_available}")
