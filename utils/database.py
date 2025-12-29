@@ -1,12 +1,38 @@
 import sqlite3
 import json
 import logging
+import os
+import asyncio
 from pathlib import Path
 from datetime import datetime, timezone
+from functools import wraps
+from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger("bot")
 
 DB_PATH = Path("bot_data.db")
+
+# Check if we should use PostgreSQL
+USE_POSTGRES = os.getenv('HA_ENABLED', '').lower() in ('true', '1', 'yes') or os.getenv('DATABASE_URL')
+
+# Thread pool for running async code from sync context
+_executor = ThreadPoolExecutor(max_workers=4)
+
+
+def _run_async_in_thread(coro_func, *args, **kwargs):
+    """Run an async function in a separate thread with its own event loop."""
+    def run_in_new_loop():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            coro = coro_func(*args, **kwargs)
+            return loop.run_until_complete(coro)
+        finally:
+            loop.close()
+    
+    import concurrent.futures
+    future = _executor.submit(run_in_new_loop)
+    return future.result(timeout=30)
 
 class Database:
     """SQLite abstraction layer for economy and AI memory with prepared statements."""
@@ -1624,4 +1650,233 @@ class Database:
         row = self.cursor.fetchone()
         return row[0] if row else None
 
-db = Database()
+
+# ============================================================
+# PostgreSQL Wrapper for HA Mode
+# ============================================================
+
+class PostgresWrapper:
+    """
+    Synchronous wrapper around the async PostgresDatabase.
+    Allows existing sync code to work with PostgreSQL.
+    """
+    
+    def __init__(self, database_url: str):
+        self.database_url = database_url
+        self._pg_db = None
+        self._pg_loop = None
+        self._initialized = False
+        self._sqlite_fallback = None
+        self._init_error = None
+        self._init_lock = False
+        
+        # Try to initialize immediately (in a separate thread)
+        self._try_init()
+    
+    def _try_init(self):
+        """Try to initialize PostgreSQL connection."""
+        if self._initialized or self._init_error or self._init_lock:
+            return
+        
+        self._init_lock = True
+        
+        try:
+            # Initialize in a separate thread with its own event loop
+            def init_pg():
+                from database.postgres import PostgresDatabase
+                
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                pg_db = PostgresDatabase(self.database_url)
+                loop.run_until_complete(pg_db.connect())
+                
+                return pg_db, loop
+            
+            self._pg_db, self._pg_loop = _executor.submit(init_pg).result(timeout=30)
+            self._initialized = True
+            logger.info("[Database] PostgreSQL connection established (HA mode)")
+        except Exception as e:
+            self._init_error = str(e)
+            logger.error(f"[Database] PostgreSQL init failed: {e}, falling back to SQLite")
+            self._sqlite_fallback = Database()
+        finally:
+            self._init_lock = False
+    
+    def _run_sync(self, async_method, *args, **kwargs):
+        """Run async method synchronously using thread pool."""
+        if not self._initialized:
+            self._try_init()
+        
+        if self._pg_db is None:
+            raise RuntimeError("PostgreSQL not initialized, use fallback")
+        
+        def run_in_pg_loop():
+            return self._pg_loop.run_until_complete(async_method(*args, **kwargs))
+        
+        return _executor.submit(run_in_pg_loop).result(timeout=30)
+    
+    def _get_fallback(self):
+        """Get or create SQLite fallback."""
+        if self._sqlite_fallback is None:
+            self._sqlite_fallback = Database()
+        return self._sqlite_fallback
+    
+    # ========== ECONOMY METHODS ==========
+    
+    def get_user_economy(self, user_id: str) -> dict:
+        if self._pg_db:
+            return self._run_sync(self._pg_db.get_user_economy, str(user_id))
+        return self._get_fallback().get_user_economy(str(user_id))
+    
+    def set_user_economy(self, user_id: str, wallet: int, bank: int, donations: dict, 
+                        last_daily: str = None, daily_streak: int = 0):
+        if self._pg_db:
+            return self._run_sync(self._pg_db.set_user_economy,
+                str(user_id), wallet, bank, donations, last_daily, daily_streak
+            )
+        return self._get_fallback().set_user_economy(str(user_id), wallet, bank, donations, last_daily, daily_streak)
+    
+    def user_economy_exists(self, user_id: str) -> bool:
+        if self._pg_db:
+            data = self._run_sync(self._pg_db.get_user_economy, str(user_id))
+            return data.get("wallet", 0) != 0 or data.get("bank", 0) != 0
+        return self._get_fallback().user_economy_exists(str(user_id))
+    
+    def update_balance(self, user_id: str, wallet_delta: int = 0, bank_delta: int = 0):
+        if self._pg_db:
+            return self._run_sync(self._pg_db.update_balance, str(user_id), wallet_delta, bank_delta)
+        return self._get_fallback().update_balance(str(user_id), wallet_delta, bank_delta)
+    
+    def get_all_users_economy(self) -> dict:
+        if self._pg_db:
+            return self._run_sync(self._pg_db.get_all_users_economy)
+        return self._get_fallback().get_all_users_economy()
+    
+    # ========== INVENTORY METHODS ==========
+    
+    def get_inventory(self, user_id: str) -> dict:
+        if self._pg_db:
+            return self._run_sync(self._pg_db.get_inventory, str(user_id))
+        return self._get_fallback().get_inventory(str(user_id))
+    
+    def update_inventory(self, user_id: str, item_id: str, quantity_delta: int):
+        if self._pg_db:
+            return self._run_sync(self._pg_db.update_inventory, str(user_id), item_id, quantity_delta)
+        return self._get_fallback().update_inventory(str(user_id), item_id, quantity_delta)
+    
+    # ========== POKEMON METHODS ==========
+    
+    def get_owned_pokemon(self, owner_id: str) -> list:
+        if self._pg_db:
+            return self._run_sync(self._pg_db.get_owned_pokemon, str(owner_id))
+        return self._get_fallback().get_owned_pokemon(str(owner_id))
+    
+    def add_pokemon(self, pokemon_id: str, owner_id: str, species_id: str, rarity: str,
+                   level: int = 1, xp: int = 0, ivs: dict = None, trait: str = None,
+                   current_hp: int = 0, nickname: str = None, is_equipped: bool = False):
+        if self._pg_db:
+            return self._run_sync(self._pg_db.add_pokemon,
+                pokemon_id, str(owner_id), species_id, rarity, level, xp, ivs, trait, 
+                current_hp, nickname, is_equipped
+            )
+        return self._get_fallback().add_pokemon(
+            pokemon_id, str(owner_id), species_id, rarity, level, xp, ivs, trait, 
+            current_hp, nickname, is_equipped
+        )
+    
+    # ========== CACHE METHODS ==========
+    
+    def get_cached_category(self, msg_hash: str, guild_id: int = None) -> str | None:
+        if self._pg_db:
+            return self._run_sync(self._pg_db.get_cached_category, msg_hash, guild_id)
+        return self._get_fallback().get_cached_category(msg_hash, guild_id)
+    
+    def cache_category(self, msg_hash: str, category: str, guild_id=None, content_words: list = None):
+        if self._pg_db:
+            return self._run_sync(self._pg_db.cache_category, msg_hash, category, guild_id, content_words)
+        return self._get_fallback().cache_category(msg_hash, category, guild_id, content_words)
+    
+    # ========== MISGENDERING MEMORY ==========
+    
+    def record_misgendering(self, user_id: str, guild_id: str, term_used: str):
+        if self._pg_db:
+            return self._run_sync(self._pg_db.record_misgendering, str(user_id), str(guild_id), term_used)
+        return self._get_fallback().record_misgendering(str(user_id), str(guild_id), term_used)
+    
+    def get_misgendered_users(self, guild_id: str, hours_back: int = 24) -> list:
+        if self._pg_db:
+            return self._run_sync(self._pg_db.get_misgendered_users, str(guild_id), hours_back)
+        return self._get_fallback().get_misgendered_users(str(guild_id), hours_back)
+    
+    def clear_misgendering_memory(self, user_id: str, guild_id: str):
+        if self._pg_db:
+            return self._run_sync(self._pg_db.clear_misgendering_memory, str(user_id), str(guild_id))
+        return self._get_fallback().clear_misgendering_memory(str(user_id), str(guild_id))
+    
+    def cleanup_expired_misgendering(self, hours_back: int = 24):
+        if self._pg_db:
+            return self._run_sync(self._pg_db.cleanup_expired_misgendering, hours_back)
+        return self._get_fallback().cleanup_expired_misgendering(hours_back)
+    
+    # ========== LOAN METHODS ==========
+    
+    def get_loan(self, user_id: str):
+        if self._pg_db:
+            return self._run_sync(self._pg_db.get_loan, str(user_id))
+        return self._get_fallback().get_loan(str(user_id))
+    
+    # ========== STOCK METHODS ==========
+    
+    def get_all_stocks(self) -> list:
+        if self._pg_db:
+            return self._run_sync(self._pg_db.get_all_stocks)
+        return self._get_fallback().get_all_stocks()
+    
+    def get_portfolio(self, user_id: str) -> list:
+        if self._pg_db:
+            return self._run_sync(self._pg_db.get_portfolio, str(user_id))
+        return self._get_fallback().get_portfolio(str(user_id))
+    
+    # ========== FALLBACK TO SQLITE FOR UNIMPLEMENTED METHODS ==========
+    
+    def __getattr__(self, name):
+        """
+        For methods not yet implemented in PostgresWrapper,
+        fall back to a local SQLite database.
+        """
+        # Prevent recursion - check for internal attributes first
+        if name.startswith('_'):
+            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+        
+        # Initialize fallback if needed
+        if '_sqlite_fallback' not in self.__dict__:
+            object.__setattr__(self, '_sqlite_fallback', Database())
+            logger.warning(f"[Database] PostgreSQL fallback to SQLite initialized")
+        
+        attr = getattr(self._sqlite_fallback, name, None)
+        if attr is None:
+            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+        return attr
+
+
+# ============================================================
+# Create the appropriate database instance
+# ============================================================
+
+def _create_database():
+    """Create the appropriate database based on environment."""
+    if USE_POSTGRES:
+        database_url = os.getenv('DATABASE_URL')
+        if database_url:
+            logger.info("[Database] HA mode enabled - using PostgreSQL")
+            return PostgresWrapper(database_url)
+        else:
+            logger.warning("[Database] HA_ENABLED but no DATABASE_URL - falling back to SQLite")
+    
+    logger.info("[Database] Using SQLite backend")
+    return Database()
+
+
+# Global database instance
+db = _create_database()
