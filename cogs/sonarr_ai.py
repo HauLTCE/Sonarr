@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 from utils.economy import EconomyManager
 from utils.premade_answers import COLD_RESPONSES, EMPTY_MESSAGE_RESPONSES, GENDER_CORRECTION, get_gender_correction
 from utils.database import db
-from utils.response_effects import process_response
+from utils.response_effects import process_response, send_response_with_effects
 
 # Import from sonarr modules
 from sonarr import (
@@ -693,9 +693,7 @@ Reply with ONLY the category name, nothing else."""
             debt_response = await self.check_debt_enforcement(message)
             if debt_response:
                 try:
-                    final_response = await process_response(debt_response, message, user_query=None)
-                    if final_response is not None and final_response.strip():
-                        await message.reply(final_response, mention_author=False)
+                    await send_response_with_effects(debt_response, message, user_query=None)
                 except Exception as e:
                     logger.error(f"[DebtEnforcement] Error: {e}")
                 return
@@ -717,9 +715,7 @@ Reply with ONLY the category name, nothing else."""
         if self.time_manager.is_lunch_break():
             if is_bot_mentioned:
                 response = self.time_manager.get_grace_response()
-                final_response = await process_response(response, message, user_query=message.content)
-                if final_response and final_response.strip():
-                    await message.reply(final_response, mention_author=False)
+                await send_response_with_effects(response, message, user_query=message.content)
             return
         
         # Gossip trigger on user mentions
@@ -758,9 +754,8 @@ Reply with ONLY the category name, nothing else."""
             logger.warning(f"[SPAM] User {message.author} mentioned bot {len(self.user_mention_times[user_id])} times in 30s")
             response = random.choice(COLD_RESPONSES["spam"])
             try:
-                final_response = await process_response(response, message, user_query=None)
-                logger.info(f"[OnMessage] Spam response: '{final_response[:100]}'")
-                await message.reply(final_response, mention_author=False)
+                await send_response_with_effects(response, message, user_query=None)
+                logger.info(f"[OnMessage] Spam response triggered")
             except Exception as e:
                 logger.error(f"Error sending spam response: {e}")
             return
@@ -776,14 +771,9 @@ Reply with ONLY the category name, nothing else."""
             if random.random() < 0.70:
                 grace_response = self.time_manager.get_grace_response()
                 try:
-                    final_response = await process_response(
-                        grace_response, message, user_query=content_for_ai
-                    )
-                    if final_response and final_response.strip():
-                        grace_type = "Evening" if self.time_manager.is_evening_grace() else "Morning"
-                        logger.info(f"[{grace_type}Grace] Trigger: {message.author} said '{content_for_ai[:60]}'")
-                        logger.info(f"[{grace_type}Grace] Response: '{final_response[:100]}'")
-                        await message.reply(final_response, mention_author=False)
+                    grace_type = "Evening" if self.time_manager.is_evening_grace() else "Morning"
+                    logger.info(f"[{grace_type}Grace] Trigger: {message.author} said '{content_for_ai[:60]}'")
+                    if await send_response_with_effects(grace_response, message, user_query=content_for_ai):
                         return
                 except Exception as e:
                     logger.error(f"[GracePeriod] Error: {e}")
@@ -807,13 +797,19 @@ Reply with ONLY the category name, nothing else."""
         logger.debug(f"[OnMessage] Got response: '{response[:50] if response else 'None'}'")
         
         try:
-            final_response = await process_response(response, message, user_query=content_for_ai)
-            logger.debug(f"[OnMessage] Sending: '{final_response[:50] if final_response else 'None'}'")
+            main_msg, followup = await process_response(response, message, user_query=content_for_ai)
             
-            if final_response is not None and final_response.strip():
+            if main_msg is not None and main_msg.strip():
                 logger.info(f"[OnMessage] Trigger: {message.author} said '{content_for_ai[:60]}'")
-                logger.info(f"[OnMessage] Response: '{final_response[:100]}'")
-                await message.reply(final_response, mention_author=False)
+                logger.info(f"[OnMessage] Response: '{main_msg[:100]}'")
+                await message.reply(main_msg, mention_author=False)
+                
+                # DOUBLE: effect - send followup after delay
+                if followup:
+                    import asyncio
+                    await asyncio.sleep(1.5)
+                    await message.channel.send(followup)
+                    logger.info(f"[OnMessage] Followup: '{followup[:100]}'")
             else:
                 logger.debug("[OnMessage] Skipping reply (reaction-only or empty response)")
         except Exception as e:
