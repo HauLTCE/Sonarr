@@ -92,6 +92,28 @@ GOSSIP_LINES = [
     "Adding this to the {target} folder.",
 ]
 
+# Gossip engagement - when user talks negatively about a third party
+# Bot agrees/engages with the gossip instead of being cold
+GOSSIP_ENGAGEMENT = [
+    "Oh? Tell me more.",
+    "What did they do this time?",
+    "I knew it. I never liked them.",
+    "Spill the tea. I'm listening.",
+    "Finally, someone gets it.",
+    "Go on. I'm taking notes.",
+    "Between you and me, I agree.",
+    "That tracks. Continue.",
+    "*grabs popcorn* Keep going.",
+    "I've been saying this forever.",
+    "Oh I have OPINIONS. What happened?",
+    "Valid. So valid. Tell me everything.",
+    "See? This is why I trust you.",
+    "I had a feeling about them. What's the story?",
+    "Honestly? Same. But go ahead.",
+    "They had it coming. Details?",
+    "I'm not surprised. At all.",
+]
+
 # Status-based gossip lines
 GOSSIP_RICH = [
     "{target} has more money than sense. I should fix that.",
@@ -188,6 +210,15 @@ GOSSIP_POKEMON = [
     "I've traded with {target}. I always win.",
     "{target}'s shiny collection? I've seen better.",
     "Even {target}'s Pokemon look tired of them.",
+    "{target} spends more time with Pokemon than real people. It shows.",
+    "I'd rob {target}'s Pokemon but they're not worth anything.",
+    "{target}'s Charizard has seen better days. And trainers.",
+    "The rare candy addiction is real with {target}.",
+    "{target} uses a Magikarp unironically. That's all I need to say.",
+    "I've seen {target}'s IV stats. Tragic, really.",
+    "{target} grinding for shinies instead of money. Priorities.",
+    "Even Team Rocket wouldn't steal from {target}'s collection.",
+    "{target} treats Pokemon trading like the stock market. Both go badly.",
 ]
 
 GOSSIP_LOUDMOUTH = [
@@ -241,7 +272,6 @@ RATE_LIMIT_RESPONSES = [
     "My interest in you has expired.",
     "I'm taking a you-break.",
     "You've exceeded your welcome.",
-    "Try again in an hour. Maybe.",
 ]
 
 # ================== DEBT ENFORCEMENT ==================
@@ -268,6 +298,11 @@ DEBT_EARLY_RESPONSES = [
     "Hey, don't think I forgot about that **${debt:,}** you owe me. Pay up.",
     "You've got **${debt:,}** in debt and you're here chatting? Priorities, honey.",
     "Your debt of **${debt:,}** is overdue. Consider this a friendly reminder. 😊",
+    "Just a reminder: you still owe me **${debt:,}**. No rush... *yet*.",
+    "That **${debt:,}** loan isn't going to repay itself, sweetheart.",
+    "I'm being patient about your **${debt:,}** debt. For now.",
+    "Friendly neighborhood reminder that **${debt:,}** is still owed to ME.",
+    "**${debt:,}** overdue. I'm tracking it. Just so you know.",
 ]
 
 # Medium (3-7 days overdue) - Light punishment
@@ -275,8 +310,11 @@ DEBT_MEDIUM_RESPONSES = [
     "ROB:*wallet//10*:Where's my ${debt:,}? This is a down payment.",
     "RENAME:Debtor:You owe ${debt:,}. Pay your bills.",
     "You've been overdue for {days_overdue} days. **${debt:,}** isn't going to pay itself!",
-    "ROB:*wallet//5*:Consider this interest on your ${debt:,} debt.",
-]
+    "ROB:*wallet//5*:Consider this interest on your ${debt:,} debt.",    "ROB:*wallet//8*:Day {days} of ignoring your ${debt:,} debt. Not smart.",
+    "RENAME:Overdue:${debt:,} owed. This nickname is your reality check.",
+    "ROB:*wallet//7*:Late fees are accumulating. So am I. ${debt:,} owed.",
+    "RENAME:Late Payer:${debt:,} past due. Maybe this will motivate you.",
+    "You've had {days} days. **${debt:,}** is STILL waiting. I'm getting impatient.",]
 
 # Severe (7+ days overdue) - Heavy punishment
 DEBT_SEVERE_RESPONSES = [
@@ -284,7 +322,12 @@ DEBT_SEVERE_RESPONSES = [
     "TIMEOUT:30m:Think about my ${debt:,} while you're in timeout.",
     "RENAME:Deadbeat:You owe ${debt:,} and everyone should know.",
     "ROB:*wallet//20*:Collector's fee. You owe ${debt:,} and I'm DONE asking nicely.",
-]
+    "TIMEOUT:1h:${debt:,} overdue for {days} days. Enjoy the silence.",
+    "ROB:*wallet//18*:{days} days late on ${debt:,}. This is what happens.",
+    "RENAME:$$$ OWES ME $$$:${debt:,}. {days} days. Unacceptable.",
+    "TIMEOUT:45m:Reflect on your ${debt:,} debt during your break.",
+    "ROB:*wallet//25*:{days} days of disrespect. ${debt:,} STILL owed. Consequences.",
+    "RENAME:Financial Disaster:${debt:,} unpaid after {days} days. You earned this.",]
 
 # ================== AUTO-ROB REASONS ==================
 # Reasons shown when bot auto-robs from bank
@@ -294,6 +337,13 @@ AUTO_ROB_BANK_REASONS = [
     "Administrative withdrawal.",
     "Bank security tax.",
     "Your money is safer with me.",
+    "Account inactivity charge.",
+    "Vault inspection fee.",
+    "Protection money. You're welcome.",
+    "Service charge for... my services.",
+    "Early withdrawal penalty. For me, not you.",
+    "Bank restructuring funds.",
+    "Executive bonus payment.",
 ]
 
 # Reasons shown when bot auto-robs from wallet
@@ -303,6 +353,13 @@ AUTO_ROB_WALLET_REASONS = [
     "Consider it a voluntary donation.",
     "I needed it more than you.",
     "Transaction fee for existing.",
+    "Pocket change collection.",
+    "You weren't using it anyway.",
+    "Opportunity knocked. I answered.",
+    "This is what happens when you slack off.",
+    "Redistribution of wealth. To me.",
+    "Call it a spontaneous tax audit.",
+    "Your wallet looked heavy. I helped.",
 ]
 
 # ================== IDLE PING MESSAGES ==================
@@ -314,6 +371,11 @@ IDLE_PING_MESSAGES = [
     "{target_mention} I'm watching you.",
     "{target_mention} Say something interesting.",
     "{target_mention} You owe me entertainment.",
-    "Hey {target_mention}, amuse me.",
     "{target_mention} Don't think I forgot about you.",
+    "{target.mention} The silence is YOUR fault.",
+    "{target.mention} Start a conversation. Now.",
+    "{target.mention} I'm bored and it's your problem.",
+    "{target.mention} Do something worth my attention.",
+    "{target.mention} Make this server less boring.",
+    "{target.mention} I dare you to say something clever.",
 ]

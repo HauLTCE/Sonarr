@@ -12,11 +12,24 @@ from .patterns import (
     HELP_WORDS,
     QUESTION_WORDS,
     COMPLEX_PATTERNS,
+    # New exports for enhanced pattern matching
+    NEGATION_WORDS,
+    NEGATION_PATTERN,
+    INTENSIFIERS,
+    INTENSIFIER_PATTERN,
+    QUESTION_STARTERS,
+    pattern_match,
+    pattern_match_simple,
+    check_negation,
+    count_intensifiers,
+    is_question,
+    extract_third_party_subject,
 )
 from .classifier import MessageClassifier
 from .keywords import KEYWORD_MAP, STOPWORDS
 from .responses import (
     GOSSIP_LINES,
+    GOSSIP_ENGAGEMENT,
     GOSSIP_RICH,
     GOSSIP_POOR,
     GOSSIP_BANKRUPT,
@@ -31,20 +44,17 @@ from .responses import (
     ROB_REASONS,
     SLEEP_RESPONSES,
     DEBT_ENFORCEMENT_RESPONSES,
-    # NEW: Tiered debt enforcement
     DEBT_EARLY_RESPONSES,
     DEBT_MEDIUM_RESPONSES,
     DEBT_SEVERE_RESPONSES,
-    # NEW: Auto-rob reasons
     AUTO_ROB_BANK_REASONS,
     AUTO_ROB_WALLET_REASONS,
-    # NEW: Idle ping messages
     IDLE_PING_MESSAGES,
 )
 from .time_utils import TimeManager
 
 __all__ = [
-    # Patterns
+    # Patterns - Anchors
     "SELF_ANCHORS",
     "TARGET_ANCHORS", 
     "THIRD_PARTY_ANCHORS",
@@ -55,6 +65,18 @@ __all__ = [
     "HELP_WORDS",
     "QUESTION_WORDS",
     "COMPLEX_PATTERNS",
+    # Patterns - Enhanced matching
+    "NEGATION_WORDS",
+    "NEGATION_PATTERN",
+    "INTENSIFIERS",
+    "INTENSIFIER_PATTERN",
+    "QUESTION_STARTERS",
+    "pattern_match",
+    "pattern_match_simple",
+    "check_negation",
+    "count_intensifiers",
+    "is_question",
+    "extract_third_party_subject",
     # Classifier
     "MessageClassifier",
     # Keywords
@@ -62,6 +84,7 @@ __all__ = [
     "STOPWORDS",
     # Responses
     "GOSSIP_LINES",
+    "GOSSIP_ENGAGEMENT",
     "GOSSIP_RICH",
     "GOSSIP_POOR",
     "GOSSIP_BANKRUPT",
