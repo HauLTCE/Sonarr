@@ -159,6 +159,39 @@ def detect_misgendering(text: str) -> str | None:
     return None
 
 
+def detect_correct_gender_address(text: str) -> bool:
+    """
+    Detect if the user is correctly addressing Sonarr as female.
+    Heuristics:
+    - Must be a direct address to the bot (greeting/thanks patterns or target anchors)
+    - Contains feminine honorifics/terms for Sonarr (queen, ma'am, lady, miss)
+    We avoid generic 'she/her' to reduce third-party false positives.
+    """
+    text_lower = text.lower()
+
+    # Direct address (reuse heuristic similar to misgendering)
+    direct_address_patterns = [
+        r"^(hey|hi|hello|yo|sup|thanks|thank you|thx|ty|ok|okay|alright|aight|sure|yeah|yea|yes|no|nah|nope|wow|oh|lol|lmao|haha)\s*,?\s*",
+        r"(thanks|thank you|thx|ty|ok|okay|alright|aight|sure|yeah|yea|yes|no|nah|nope|wow|oh|lol|lmao|haha)\s*,?\s*$",
+    ]
+    has_target = bool(re.search(TARGET_ANCHORS, text_lower))
+    is_direct_address = has_target or any(re.search(p, text_lower) for p in direct_address_patterns)
+
+    if not is_direct_address:
+        logger.info(f"[GenderCorrect] Skipped (not direct): '{text_lower[:60]}'")
+        return False
+
+    # Feminine terms that imply correct gender for Sonarr
+    feminine_terms = r"\b(queen|queenie|ma'am|maam|lady|miss|ms|madam|madame)\b"
+    if re.search(feminine_terms, text_lower):
+        # Exclude obvious third-party references like "my queen" about someone else
+        third_party_exclude = r"(my|your|his|her|their|the|a|that|this)\s+" + feminine_terms.replace(r"\\b", "")
+        if not re.search(third_party_exclude, text_lower):
+            logger.info(f"[GenderCorrect] DETECTED in '{text_lower[:60]}'")
+            return True
+    return False
+
+
 # ================== BACKHANDED COMPLIMENT PATTERNS ==================
 # Patterns that look like compliments but are actually insults
 BACKHANDED_PATTERNS = [
