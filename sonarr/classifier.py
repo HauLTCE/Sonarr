@@ -9,7 +9,7 @@ import re
 import hashlib
 import logging
 
-from .patterns import pattern_match
+from .patterns import pattern_match, pattern_match_simple
 from .keywords import KEYWORD_MAP, STOPWORDS
 
 logger = logging.getLogger("bot")
@@ -89,7 +89,7 @@ class MessageClassifier:
         Smart classification combining pattern matching and keyword counting.
         
         Priority:
-        1. Complex patterns (highest priority) - confidence 3
+        1. Complex patterns (highest priority) - confidence 3+
         2. Dominant keywords (2+ matches) - confidence 2
         3. Single keyword match - confidence 1
         
@@ -97,12 +97,17 @@ class MessageClassifier:
             message: The message text to classify
             
         Returns:
-            Tuple of (category, confidence) where confidence is 0-3
+            Tuple of (category, confidence) where confidence is 0-4
         """
         # 1. Try complex pattern matching first (highest priority)
-        pattern_cat, pattern_conf = pattern_match(message)
+        # pattern_match now returns (cat, conf, modifiers)
+        pattern_result = pattern_match(message)
+        pattern_cat, pattern_conf = pattern_result[0], pattern_result[1]
+        
         if pattern_cat:
-            return (pattern_cat, pattern_conf + 1)  # Confidence 3
+            # Store modifiers for potential use
+            self._last_modifiers = pattern_result[2] if len(pattern_result) > 2 else {}
+            return (pattern_cat, pattern_conf + 1)  # Confidence 3-4
         
         # 2. Fall back to keyword classification
         keyword_cat, keyword_score = self.keyword_classify(message, return_score=True)
@@ -113,6 +118,29 @@ class MessageClassifier:
             return (keyword_cat, confidence)
         
         return (None, 0)
+    
+    def smart_classify_full(self, message: str) -> tuple:
+        """
+        Full classification with modifier details.
+        
+        Returns:
+            Tuple of (category, confidence, modifiers_dict)
+        """
+        # Try complex pattern matching first
+        pattern_result = pattern_match(message)
+        pattern_cat, pattern_conf = pattern_result[0], pattern_result[1]
+        modifiers = pattern_result[2] if len(pattern_result) > 2 else {}
+        
+        if pattern_cat:
+            return (pattern_cat, pattern_conf + 1, modifiers)
+        
+        # Fall back to keyword classification
+        keyword_cat, keyword_score = self.keyword_classify(message, return_score=True)
+        if keyword_cat:
+            confidence = 2 if keyword_score >= 2 else 1
+            return (keyword_cat, confidence, modifiers)
+        
+        return (None, 0, modifiers)
     
     def classify(self, message: str, min_confidence: int = 1) -> str | None:
         """
