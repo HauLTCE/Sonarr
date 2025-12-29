@@ -138,16 +138,23 @@ def detect_misgendering(text: str) -> str | None:
     
     is_direct_address = any(re.search(p, text_lower) for p in direct_address_patterns)
     
-    # Only check for misgendering if addressing the bot
-    if has_target or is_direct_address or len(text.split()) <= 5:
+    logger.info(f"[Misgender] Check: '{text_lower}' | has_target={has_target}, direct={is_direct_address}, words={len(text.split())}")
+    
+    # Only check for misgendering if it's DIRECTLY addressing the bot
+    # Don't trigger just because "you" appears - that could be asking about someone else
+    if is_direct_address or len(text.split()) <= 3:
         for term_category, pattern in MASCULINE_TERMS.items():
             if re.search(pattern, text_lower):
                 # Make sure it's not referring to a third party
                 # e.g., "my bro is cool" should NOT trigger
-                third_party_check = re.search(r"(my|your|his|her|their|the|a|that|this)\s+" + pattern.replace(r"\b", ""), text_lower)
+                third_party_pattern = r"(my|your|his|her|their|the|a|that|this)\s+" + pattern.replace(r"\b", "")
+                third_party_check = re.search(third_party_pattern, text_lower)
+                logger.info(f"[Misgender] Found '{term_category}', third_party_check={bool(third_party_check)}")
                 if not third_party_check:
-                    logger.debug(f"[Pattern] Misgendering detected: '{term_category}' in '{text[:50]}'")
+                    logger.info(f"[Misgender] DETECTED: '{term_category}' in '{text[:50]}'")
                     return term_category
+    else:
+        logger.info(f"[Misgender] Skipped: no target/direct/short msg")
     
     return None
 
@@ -463,6 +470,7 @@ def pattern_match(text: str) -> tuple:
         - confidence: 0 = no match, 2 = pattern match, 3 = pattern + intensifiers
         - modifiers: {"negated": bool, "is_question": bool, "third_party": str|None, "sarcasm_marker": bool, "has_conjunction": bool}
     """
+    logger.info(f"[Pattern] pattern_match called with: '{text[:50]}'")
     text_lower = text.lower()
     
     # Initialize modifiers

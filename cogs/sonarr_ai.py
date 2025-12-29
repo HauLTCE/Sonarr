@@ -441,6 +441,15 @@ class SonarrAI(commands.Cog):
             logger.info(f"[Classify] EMPTY MESSAGE → {response[:50]}")
             return response
         
+        # Check for misgendering FIRST (even for short messages)
+        from sonarr.patterns import detect_misgendering
+        misgender_term = detect_misgendering(message_content)
+        if misgender_term:
+            response = get_gender_correction(misgender_term)
+            if response:
+                logger.info(f"[Classify] MISGENDERED ({word_count}w): '{message_content[:40]}' → {misgender_term}")
+                return response
+        
         # Very short messages - simple keyword matching
         if word_count <= 2:
             keyword_cat = self.classifier.keyword_classify(message_content)
