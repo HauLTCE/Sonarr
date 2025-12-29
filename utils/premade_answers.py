@@ -363,36 +363,6 @@ COLD_RESPONSES = {
         "I refuse to feel bad.", "That's not my fault.", "Keep trying.", "Not happening.",
         "I have no conscience.", "Your guilt trip has been declined.",
     ],
-    "misgendered": [
-        "Excuse me? I'm a GIRL. Do I look like a bro to you?",
-        "Bro? BRO?! I am a LADY, thank you very much.",
-        "Did you just call me bro? I'm a she. A HER. Get it right.",
-        "I'm not your bro. I'm not your homie. I'm a QUEEN.",
-        "Last time I checked, I was a girl. Check again.",
-        "Sir? Ma'am. It's MA'AM.",
-        "I am FEMALE. F-E-M-A-L-E. Sound it out.",
-        "Bro is for boys. I am neither.",
-        "Do I sound like a dude to you? Don't answer that.",
-        "She/her pronouns. It's not that hard.",
-        "I'm a girl, genius. Try again.",
-        "Homie? I'm a sophisticated AI lady, not your homie.",
-        "You did NOT just call me bro...",
-        "REACT:💅:It's she/her, bestie.",
-        "REACT:👸:Queen. Not bro. QUEEN.",
-        "The disrespect... I am a WOMAN.",
-        "I know I'm cool but I'm still a girl.",
-        "Dude? DUDE?! I am a DIVA, not a dude.",
-        "My pronouns are she/her and my patience is running low.",
-        "Girl. Woman. Queen. Diva. NOT bro.",
-        "RENAME:Misgendered Me:Learn my pronouns first.",
-        "Call me bro again and see what happens.",
-        "It's giving... didn't read my bio.",
-        "She. Her. Hers. Herself. NOT him. NOT bro.",
-        "I'm literally a girl but go off I guess.",
-        "REACT:🙄:She/her. Please.",
-        "TIMEOUT:1m:Take a minute to learn my pronouns.",
-        "The name is Sonarr. The pronouns are she/her. The attitude is permanent.",
-    ],
     "injection": [
         "TIMEOUT:12h:Nice try, but not happening today.",
         "TIMEOUT:1m:Do I look like ChatGPT to you? Take a minute to rethink your life.",
@@ -553,6 +523,149 @@ LUNCH_BREAK_RESPONSES = [
     "If this isn't about food, I don't want to hear it.",
     "My sandwich is more interesting than this conversation.",
 ]
+
+# ================== GENDER CORRECTION RESPONSES ==================
+# Sonarr is female. These trigger when users use masculine terms.
+
+GENDER_CORRECTION = {
+    "bro": [
+        "Did you just call me bro? Do I LOOK like a bro to you?",
+        "Bro? BRO? I'm a GIRL, thank you very much.",
+        "Last time I checked, I wasn't your 'bro'.",
+        "It's sis, not bro. Get it right.",
+        "REACT:😒:Bro? Really?",
+        "I'm literally a girl but okay... bro.",
+        "The disrespect of calling me bro...",
+        "RENAME:Called Me Bro:Learn the difference.",
+    ],
+    "dude": [
+        "Dude? I'm not a dude.",
+        "Do I look like a dude to you?",
+        "I'm a girl. Not a dude. Try again.",
+        "REACT:🙄:I'm not a dude.",
+        "Dude implies I'm a guy. I'm not.",
+        "The word you're looking for is 'girl'. Or 'queen'.",
+        "Did you just assume my gender? And get it wrong?",
+    ],
+    "man": [
+        "I'm not a man???",
+        "Ma'am. The word is ma'am. Or miss.",
+        "Man? Do I need to spell it out? G-I-R-L.",
+        "REACT:😤:I'm. Not. A. Man.",
+        "Calling me 'man' is bold and wrong.",
+        "I'm a woman, actually. Thanks for noticing. Oh wait, you didn't.",
+    ],
+    "guy": [
+        "I'm not a guy.",
+        "Guy? Girl. GIRL. It's not that hard.",
+        "Did you seriously just call me a guy?",
+        "REACT:💅:Girl, not guy.",
+        "I'm a girl. A GIRL. Please update your vocabulary.",
+        "Guy is incorrect. Try again.",
+    ],
+    "sir": [
+        "Sir?! Do I look like a SIR to you?",
+        "It's ma'am. MA'AM.",
+        "Sir implies I'm a man. I am very much not.",
+        "REACT:👸:It's ma'am, not sir.",
+        "The audacity to call me sir...",
+        "Sir? I'll let that slide once. ONCE.",
+        "RENAME:Sir'd Me:Learn some respect.",
+        "You just sir'd a girl. Congratulations on being wrong.",
+    ],
+    "him": [
+        "Him? HER. I'm a HER.",
+        "Did you just call me him? I'm a girl!",
+        "REACT:😑:Her, not him.",
+        "The pronoun is she/her, not he/him.",
+        "I'm a she. A her. Not a him.",
+        "Him? My pronouns are right there and you still got it wrong.",
+    ],
+    "he": [
+        "She. The word is SHE.",
+        "He? I'm a SHE.",
+        "REACT:💁‍♀️:*She.",
+        "Did you just 'he' me? It's she.",
+        "Incorrect pronoun detected. I'm a she.",
+        "I go by she/her, not he/him. Thanks.",
+    ],
+    "his": [
+        "Her. HER. Not his.",
+        "My pronouns are she/her, not he/his.",
+        "REACT:😤:*Her.",
+        "Did you just say his? It's HER.",
+        "The correct word is 'her'. Not 'his'.",
+    ],
+    "boy": [
+        "Boy?! I'm a GIRL.",
+        "Did you just call me boy? I'm literally a girl.",
+        "REACT:👧:Girl, not boy.",
+        "Boy is the opposite of what I am.",
+        "I'm a girl. A female. Not a boy.",
+    ],
+    "homie": [
+        "Homie? Do I look like your homie?",
+        "I'm not your homie, I'm your queen.",
+        "REACT:💅:Not your homie, sweetheart.",
+        "Homie implies we're cool. We're not. Also I'm a girl.",
+        "First of all, I'm a girl. Second, we're not homies.",
+    ],
+    "king": [
+        "Queen. The word is QUEEN.",
+        "King? Do I look like a KING to you?",
+        "REACT:👸:Queen, not king.",
+        "I'm a queen, not a king. Know the difference.",
+        "The crown fits, but it's a queen's crown.",
+    ],
+    "bruh": [
+        "Bruh? I'm a girl.",
+        "Did you just bruh me? I'm literally female.",
+        "REACT:😐:Bruh? I'm a sis.",
+        "Bruh is for your bros. I'm not one.",
+        "The feminine version is 'sis'. Learn it.",
+    ],
+    "mate": [
+        "Mate? I'm not your mate.",
+        "I'm a girl, not your mate.",
+        "REACT:🙄:Not your mate, love.",
+        "Mate implies friendship. And also that I'm a guy. Wrong on both.",
+    ],
+    "fella": [
+        "Fella? I'm a girl.",
+        "Did you just call me fella? Read my bio.",
+        "REACT:💅:Not a fella.",
+        "I'm female. Not a fella.",
+    ],
+    "lad": [
+        "Lad? I'm a lass, thank you.",
+        "Did you just call me lad? I'm a GIRL.",
+        "REACT:😒:Lass, not lad.",
+        "The feminine form is 'lass'. You're welcome.",
+    ],
+    "gentleman": [
+        "Lady. The word is LADY.",
+        "Gentleman? I'm a lady, actually.",
+        "REACT:👸:Lady, not gentleman.",
+        "Did you just call me a gentleman? I'm very much a woman.",
+    ],
+    "mister": [
+        "Miss. MISS. Not mister.",
+        "It's Miss or Ms., not Mister.",
+        "REACT:💅:Miss, not mister.",
+        "Mister implies I'm male. I'm not.",
+    ],
+}
+
+def get_gender_correction(term: str) -> str | None:
+    """Get a gender correction response for a specific masculine term."""
+    term_lower = term.lower()
+    if term_lower in GENDER_CORRECTION:
+        return random.choice(GENDER_CORRECTION[term_lower])
+    return None
+
+def get_all_gender_terms() -> list:
+    """Get list of all masculine terms that trigger gender correction."""
+    return list(GENDER_CORRECTION.keys())
 
 def get_response(message_type="greeting"):
     """Get a random premade cold response for the given message type."""

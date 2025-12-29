@@ -95,6 +95,63 @@ CLAUSE_CONJUNCTIONS = [
 CLAUSE_SPLIT_PATTERN = r"\b(" + "|".join(CLAUSE_CONJUNCTIONS) + r")\b"
 
 
+# ================== GENDER MISGENDERING DETECTION ==================
+# Terms that incorrectly refer to Sonarr as male - she's female!
+MASCULINE_TERMS = {
+    "bro": r"\b(bro|broski|brotha|brother)\b",
+    "dude": r"\b(dude|duude|duuude)\b",
+    "man": r"\b(man|maan|maaan)\b",
+    "guy": r"\b(guy|guuy)\b",
+    "sir": r"\b(sir|sire)\b",
+    "him": r"\b(him)\b",
+    "he": r"\b(he|hes|he's)\b",
+    "his": r"\b(his)\b",
+    "boy": r"\b(boy|boi|boii|boiii)\b",
+    "homie": r"\b(homie|homies|homes)\b",
+    "king": r"\b(king)\b",
+    "bruh": r"\b(bruh|bruuh|bruuuh)\b",
+    "mate": r"\b(mate)\b",
+    "fella": r"\b(fella|fellas|fellow)\b",
+    "lad": r"\b(lad|lads|laddie)\b",
+    "gentleman": r"\b(gentleman|gentlemen)\b",
+    "mister": r"\b(mister|mr)\b",
+}
+
+
+def detect_misgendering(text: str) -> str | None:
+    """
+    Check if the user is using masculine terms to refer to Sonarr.
+    
+    Returns the category of masculine term used, or None if no misgendering detected.
+    Only triggers if the term is directed AT the bot (not about third parties).
+    """
+    text_lower = text.lower()
+    
+    # Check if message is directed at bot (contains target anchor or addressing bot)
+    has_target = bool(re.search(TARGET_ANCHORS, text_lower))
+    
+    # Also check for direct address patterns like "thanks bro" or "hey dude"
+    direct_address_patterns = [
+        r"^(hey|hi|hello|yo|sup|thanks|thank you|thx|ty|ok|okay|alright|aight|sure|yeah|yea|yes|no|nah|nope|wow|oh|lol|lmao|haha)\s*,?\s*",
+        r"(thanks|thank you|thx|ty|ok|okay|alright|aight|sure|yeah|yea|yes|no|nah|nope|wow|oh|lol|lmao|haha)\s*,?\s*$",
+    ]
+    
+    is_direct_address = any(re.search(p, text_lower) for p in direct_address_patterns)
+    
+    # Only check for misgendering if addressing the bot
+    if has_target or is_direct_address or len(text.split()) <= 5:
+        for term_category, pattern in MASCULINE_TERMS.items():
+            if re.search(pattern, text_lower):
+                # Make sure it's not referring to a third party
+                # e.g., "my bro is cool" should NOT trigger
+                third_party_check = re.search(r"(my|your|his|her|their|the|a|that|this)\s+" + pattern.replace(r"\b", ""), text_lower)
+                if not third_party_check:
+                    logger.debug(f"[Pattern] Misgendering detected: '{term_category}' in '{text[:50]}'")
+                    return term_category
+    
+    return None
+
+
 # ================== BACKHANDED COMPLIMENT PATTERNS ==================
 # Patterns that look like compliments but are actually insults
 BACKHANDED_PATTERNS = [
@@ -415,8 +472,17 @@ def pattern_match(text: str) -> tuple:
         "third_party": extract_third_party_subject(text),
         "intensifier_count": count_intensifiers(text),
         "sarcasm_marker": detect_sarcasm_marker(text),
-        "has_conjunction": False
+        "has_conjunction": False,
+        "misgendered": None
     }
+    
+    # === MISGENDERING CHECK (Highest Priority) ===
+    # Sonarr is female - detect masculine terms directed at her
+    misgender_term = detect_misgendering(text)
+    if misgender_term:
+        modifiers["misgendered"] = misgender_term
+        logger.debug(f"[Pattern] Misgendering detected: '{misgender_term}' in '{text[:50]}'")
+        return ("misgendered", 3, modifiers)
     
     # === BACKHANDED COMPLIMENT CHECK ===
     # "You're smarter than you look" is an insult disguised as a compliment

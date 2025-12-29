@@ -20,7 +20,7 @@ from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 
 from utils.economy import EconomyManager
-from utils.premade_answers import COLD_RESPONSES, EMPTY_MESSAGE_RESPONSES
+from utils.premade_answers import COLD_RESPONSES, EMPTY_MESSAGE_RESPONSES, GENDER_CORRECTION, get_gender_correction
 from utils.database import db
 from utils.response_effects import process_response
 
@@ -457,6 +457,17 @@ class SonarrAI(commands.Cog):
         logger.debug(f"[Classify] Smart classify: {smart_cat}={smart_conf}")
         
         if smart_cat and smart_conf >= 2:
+            # Special handling for misgendering - use specific term response
+            if smart_cat == "misgendered":
+                # Get the specific term from modifiers
+                modifiers = getattr(self.classifier, '_last_modifiers', {})
+                misgender_term = modifiers.get("misgendered")
+                if misgender_term:
+                    response = get_gender_correction(misgender_term)
+                    if response:
+                        logger.info(f"[Classify] MISGENDERED ({word_count}w): '{message_content[:40]}' → {misgender_term}")
+                        return response
+            
             if smart_conf >= 3:
                 logger.info(f"[Classify] PATTERN ({word_count}w, conf={smart_conf}): '{message_content[:40]}' → {smart_cat}")
             else:
