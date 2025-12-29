@@ -3,6 +3,38 @@ Response templates for the Sonarr bot.
 
 Contains all gossip lines, idle chat, rate limiting messages,
 and other pre-defined responses.
+
+================== SPECIAL SYNTAX DOCUMENTATION ==================
+
+Some response templates use special syntax that is processed by 
+utils/response_effects.py. DO NOT change the syntax format without
+updating the processor.
+
+COMMAND PREFIXES (must be at start of response):
+-------------------------------------------------
+ROB:*wallet//N*:message
+    Robs N% of user's wallet and sends message.
+    Example: "ROB:*wallet//10*:Pay up!" takes 10% of wallet
+
+RENAME:NewName:message  
+    Changes user's nickname to NewName and sends message.
+    Example: "RENAME:Debtor:You owe me." sets nick to "Debtor"
+
+TIMEOUT:duration:message
+    Times out user for duration and sends message.
+    Duration format: Nm (minutes), Nh (hours)
+    Example: "TIMEOUT:30m:Think about it." gives 30min timeout
+
+TEMPLATE VARIABLES:
+-------------------
+{target}        - Display name of mentioned user (gossip)
+{level}         - User's level (loudmouth gossip)
+{target.mention}- Discord mention format (idle pings)
+{debt}          - Loan amount owed (debt enforcement)
+{days_overdue}  - Days past deadline (debt enforcement)
+{minutes_left}  - Minutes until next period (grace responses)
+
+===============================================================
 """
 
 # ================== ROB REASONS ==================
@@ -213,6 +245,8 @@ RATE_LIMIT_RESPONSES = [
 ]
 
 # ================== DEBT ENFORCEMENT ==================
+# Note: These use special syntax - see documentation at top of file
+# {debt} and {days_overdue} are formatted at runtime
 DEBT_ENFORCEMENT_RESPONSES = [
     "ROB:*wallet//10*:Where's my money? I'm taking this as a down payment.",
     "RENAME:Debtor:Pay your bills.",
@@ -226,4 +260,60 @@ DEBT_ENFORCEMENT_RESPONSES = [
     "You've got **${debt:,}** in debt and you're here chatting? Priorities, honey.",
     "Oh look, it's my favorite debtor! Still owe me **${debt:,}** btw.",
     "Your debt of **${debt:,}** isn't going to pay itself. Get to work!",
+]
+
+# Tiered debt enforcement responses by severity
+# Early (< 3 days overdue) - Just reminders
+DEBT_EARLY_RESPONSES = [
+    "Hey, don't think I forgot about that **${debt:,}** you owe me. Pay up.",
+    "You've got **${debt:,}** in debt and you're here chatting? Priorities, honey.",
+    "Your debt of **${debt:,}** is overdue. Consider this a friendly reminder. 😊",
+]
+
+# Medium (3-7 days overdue) - Light punishment
+DEBT_MEDIUM_RESPONSES = [
+    "ROB:*wallet//10*:Where's my ${debt:,}? This is a down payment.",
+    "RENAME:Debtor:You owe ${debt:,}. Pay your bills.",
+    "You've been overdue for {days_overdue} days. **${debt:,}** isn't going to pay itself!",
+    "ROB:*wallet//5*:Consider this interest on your ${debt:,} debt.",
+]
+
+# Severe (7+ days overdue) - Heavy punishment
+DEBT_SEVERE_RESPONSES = [
+    "ROB:*wallet//15*:You've ignored me for {days_overdue} days. BAD move.",
+    "TIMEOUT:30m:Think about my ${debt:,} while you're in timeout.",
+    "RENAME:Deadbeat:You owe ${debt:,} and everyone should know.",
+    "ROB:*wallet//20*:Collector's fee. You owe ${debt:,} and I'm DONE asking nicely.",
+]
+
+# ================== AUTO-ROB REASONS ==================
+# Reasons shown when bot auto-robs from bank
+AUTO_ROB_BANK_REASONS = [
+    "Bank maintenance fee.",
+    "I own the bank. This is my cut.",
+    "Administrative withdrawal.",
+    "Bank security tax.",
+    "Your money is safer with me.",
+]
+
+# Reasons shown when bot auto-robs from wallet
+AUTO_ROB_WALLET_REASONS = [
+    "You left it unattended.",
+    "Finders keepers.",
+    "Consider it a voluntary donation.",
+    "I needed it more than you.",
+    "Transaction fee for existing.",
+]
+
+# ================== IDLE PING MESSAGES ==================
+# Used when bot pings a random online user during idle chat
+# Note: {target_mention} is replaced with the user's mention at runtime
+IDLE_PING_MESSAGES = [
+    "{target_mention} You're being awfully quiet.",
+    "{target_mention} What are you up to?",
+    "{target_mention} I'm watching you.",
+    "{target_mention} Say something interesting.",
+    "{target_mention} You owe me entertainment.",
+    "Hey {target_mention}, amuse me.",
+    "{target_mention} Don't think I forgot about you.",
 ]

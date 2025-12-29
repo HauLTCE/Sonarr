@@ -44,6 +44,15 @@ from sonarr import (
     RATE_LIMIT_RESPONSES,
     ROB_REASONS,
     DEBT_ENFORCEMENT_RESPONSES,
+    # Tiered debt enforcement
+    DEBT_EARLY_RESPONSES,
+    DEBT_MEDIUM_RESPONSES,
+    DEBT_SEVERE_RESPONSES,
+    # Auto-rob reasons
+    AUTO_ROB_BANK_REASONS,
+    AUTO_ROB_WALLET_REASONS,
+    # Idle ping messages
+    IDLE_PING_MESSAGES,
 )
 from sonarr.keywords import NEGATIVE_KEYWORDS
 
@@ -263,26 +272,14 @@ class SonarrAI(commands.Cog):
                     self.economy_manager.update_balance(target.id, -stolen, "bank")
                     self.economy_manager.update_balance(bot_id, stolen, "wallet")
                     location = "bank"
-                    reason = random.choice([
-                        "Bank maintenance fee.",
-                        "I own the bank. This is my cut.",
-                        "Administrative withdrawal.",
-                        "Bank security tax.",
-                        "Your money is safer with me.",
-                    ])
+                    reason = random.choice(AUTO_ROB_BANK_REASONS)
                 elif wallet > 0:
                     steal_percent = random.uniform(0.03, 0.10)
                     stolen = int(wallet * steal_percent)
                     self.economy_manager.update_balance(target.id, -stolen, "wallet")
                     self.economy_manager.update_balance(bot_id, stolen, "wallet")
                     location = "wallet"
-                    reason = random.choice([
-                        "You left it unattended.",
-                        "Finders keepers.",
-                        "Consider it a voluntary donation.",
-                        "I needed it more than you.",
-                        "Transaction fee for existing.",
-                    ])
+                    reason = random.choice(AUTO_ROB_WALLET_REASONS)
                 else:
                     return
                 
@@ -347,15 +344,7 @@ class SonarrAI(commands.Cog):
                 ]
                 if online_members:
                     target = random.choice(online_members)
-                    message = random.choice([
-                        f"{target.mention} You're being awfully quiet.",
-                        f"{target.mention} What are you up to?",
-                        f"{target.mention} I'm watching you.",
-                        f"{target.mention} Say something interesting.",
-                        f"{target.mention} You owe me entertainment.",
-                        f"Hey {target.mention}, amuse me.",
-                        f"{target.mention} Don't think I forgot about you.",
-                    ])
+                    message = random.choice(IDLE_PING_MESSAGES).format(target=target)
                     logger.info(f"[IdleChat] Pinging {target.display_name}")
                     await channel.send(message)
             else:
@@ -449,72 +438,72 @@ class SonarrAI(commands.Cog):
         # Empty message
         if word_count == 0:
             response = random.choice(EMPTY_MESSAGE_RESPONSES)
-            logger.info(f"[AI] EMPTY MESSAGE → {response[:50]}")
+            logger.info(f"[Classify] EMPTY MESSAGE → {response[:50]}")
             return response
         
         # Very short messages - simple keyword matching
         if word_count <= 2:
             keyword_cat = self.classifier.keyword_classify(message_content)
             if keyword_cat:
-                logger.info(f"[AI] KEYWORD ({word_count}w): '{message_content[:40]}' → {keyword_cat}")
+                logger.info(f"[Classify] KEYWORD ({word_count}w): '{message_content[:40]}' → {keyword_cat}")
                 return random.choice(COLD_RESPONSES.get(keyword_cat, COLD_RESPONSES["random"]))
             else:
                 fallback_cat = random.choice(["random", "bored", "confusion"])
-                logger.info(f"[AI] SHORT UNKNOWN ({word_count}w): '{message_content[:40]}' → {fallback_cat}")
+                logger.info(f"[Classify] SHORT UNKNOWN ({word_count}w): '{message_content[:40]}' → {fallback_cat}")
                 return random.choice(COLD_RESPONSES.get(fallback_cat, COLD_RESPONSES["random"]))
         
         # Use smart classification for longer messages
         smart_cat, smart_conf = self.classifier.smart_classify(message_content)
-        logger.debug(f"[AI] Smart classify: {smart_cat}={smart_conf}")
+        logger.debug(f"[Classify] Smart classify: {smart_cat}={smart_conf}")
         
         if smart_cat and smart_conf >= 2:
             if smart_conf >= 3:
-                logger.info(f"[AI] PATTERN MATCH ({word_count}w, conf={smart_conf}): '{message_content[:40]}' → {smart_cat}")
+                logger.info(f"[Classify] PATTERN ({word_count}w, conf={smart_conf}): '{message_content[:40]}' → {smart_cat}")
             else:
-                logger.info(f"[AI] DOMINANT KEYWORD ({word_count}w, conf={smart_conf}): '{message_content[:40]}' → {smart_cat}")
+                logger.info(f"[Classify] KEYWORD ({word_count}w, conf={smart_conf}): '{message_content[:40]}' → {smart_cat}")
             return random.choice(COLD_RESPONSES.get(smart_cat, COLD_RESPONSES["random"]))
         
         # Check cache
         msg_hash = self.classifier.hash_message(message_content)
         content_words = self.classifier.extract_content_words(message_content)
-        logger.debug(f"[AI] Hash: {msg_hash}, checking cache...")
+        logger.debug(f"[Cache] Hash: {msg_hash}, checking...")
         
         try:
             cached_cat = db.get_cached_category(msg_hash, guild_id)
-            logger.debug(f"[AI] Cache result: {cached_cat}")
+            logger.debug(f"[Cache] Result: {cached_cat}")
         except Exception as e:
-            logger.error(f"[AI] Cache error: {e}")
+            logger.error(f"[Cache] Error: {e}")
             cached_cat = None
         
         if cached_cat:
-            logger.info(f"[AI] CACHE hit ({word_count}w): '{message_content[:40]}' → {cached_cat} [words: {content_words[:5]}]")
+            logger.info(f"[Cache] HIT ({word_count}w): '{message_content[:40]}' → {cached_cat} [words: {content_words[:5]}]")
             return random.choice(COLD_RESPONSES.get(cached_cat, COLD_RESPONSES["random"]))
         
         # Try fuzzy search
         try:
             fuzzy_cat = db.fuzzy_search_category(content_words)
             if fuzzy_cat:
-                logger.info(f"[AI] FUZZY hit ({word_count}w): '{message_content[:40]}' → {fuzzy_cat} [words: {content_words[:5]}]")
+                logger.info(f"[Cache] FUZZY ({word_count}w): '{message_content[:40]}' → {fuzzy_cat} [words: {content_words[:5]}]")
                 return random.choice(COLD_RESPONSES.get(fuzzy_cat, COLD_RESPONSES["random"]))
         except Exception as e:
-            logger.error(f"[AI] Fuzzy search error: {e}")
+            logger.error(f"[Cache] Fuzzy error: {e}")
         
         # Rate limit check
-        logger.debug(f"[AI] Checking rate limit for {user_id}")
+        logger.debug(f"[RateLimit] Checking for {user_id}")
         if user_id and not self.check_user_ai_limit(user_id):
-            logger.warning(f"[AI] USER RATE LIMITED: {user_id} ({word_count}w): '{message_content[:40]}'")
+            logger.warning(f"[RateLimit] USER BLOCKED: {user_id} ({word_count}w): '{message_content[:40]}'")
             return random.choice(self.rate_limit_responses)
         
         # AI availability check
-        logger.debug(f"[AI] Checking API availability: client={bool(self.genai_client)}, available={self.ai_available}")
+        logger.debug(f"[Gemini] Checking availability: client={bool(self.genai_client)}, available={self.ai_available}")
         if not self.genai_client or not self.ai_available:
-            logger.warning(f"[AI] NO-API fallback ({word_count}w): '{message_content[:40]}' → random")
+            logger.warning(f"[Gemini] NO-API fallback ({word_count}w): '{message_content[:40]}' → random")
             return random.choice(COLD_RESPONSES["random"])
         
         if user_id:
             self.record_user_ai_call(user_id)
         
-        logger.info(f"[AI] API CALL ({word_count}w): '{message_content[:40]}' [words: {content_words[:5]}]")
+        logger.info(f"[Gemini] API CALL ({word_count}w): '{message_content[:40]}' [words: {content_words[:5]}]")
         
         # API call with retry logic
         total_keys = len(GEMINI_API_KEYS)
@@ -547,7 +536,7 @@ User Message:
 
 Reply with ONLY the category name, nothing else."""
 
-                logger.debug("[AI] Sending API request...")
+                logger.debug("[Gemini] Sending request...")
                 try:
                     response = await asyncio.wait_for(
                         self.genai_client.aio.models.generate_content(
@@ -557,10 +546,10 @@ Reply with ONLY the category name, nothing else."""
                         timeout=15.0
                     )
                 except asyncio.TimeoutError:
-                    logger.warning(f"[AI] API timeout after 15s for: '{message_content[:30]}'")
+                    logger.warning(f"[Gemini] Timeout after 15s for: '{message_content[:30]}'")
                     raise Exception("API timeout")
                 
-                logger.debug("[AI] Got API response")
+                logger.debug("[Gemini] Got response")
                 category = response.text.strip().lower().replace("category:", "").strip()
                 
                 final_cat = None
@@ -579,10 +568,10 @@ Reply with ONLY the category name, nothing else."""
                         final_cat = "confusion"
                     else:
                         final_cat = "random"
-                    logger.info(f"[AI] Fallback ({word_count}w): '{message_content[:30]}' → {final_cat}")
+                    logger.info(f"[Gemini] Fallback ({word_count}w): '{message_content[:30]}' → {final_cat}")
                 
                 db.cache_category(msg_hash, final_cat, guild_id, content_words=content_words)
-                logger.info(f"[AI] Classified & cached: '{message_content[:30]}' → {final_cat}")
+                logger.info(f"[Gemini] Classified: '{message_content[:30]}' → {final_cat}")
                 
                 self.ai_available = True
                 return random.choice(COLD_RESPONSES[final_cat])
@@ -608,7 +597,7 @@ Reply with ONLY the category name, nothing else."""
                 
                 if is_retryable:
                     attempts += 1
-                    logger.warning(f"[AI] {error_code} on key {self.current_key_index + 1}/{total_keys}, model: {self.current_model} ({attempts}/{max_attempts})")
+                    logger.warning(f"[Gemini] {error_code} on key {self.current_key_index + 1}/{total_keys}, model: {self.current_model} ({attempts}/{max_attempts})")
                     
                     self.current_model_index = (self.current_model_index + 1) % total_models
                     
@@ -616,16 +605,16 @@ Reply with ONLY the category name, nothing else."""
                         self.current_key_index = (self.current_key_index + 1) % total_keys
                         new_key = GEMINI_API_KEYS[self.current_key_index]
                         self.genai_client = genai.Client(api_key=new_key)
-                        logger.warning(f"[AI] Rotating to key {self.current_key_index + 1}/{total_keys}")
+                        logger.warning(f"[Gemini] Rotating to key {self.current_key_index + 1}/{total_keys}")
                     
                     self.current_model = self.models[self.current_model_index]
                     await asyncio.sleep(2)
                     continue
                 else:
-                    logger.error(f"[AI] Non-retryable error ({error_code}): {error_str[:150]}")
+                    logger.error(f"[Gemini] Non-retryable error ({error_code}): {error_str[:150]}")
                     return random.choice(COLD_RESPONSES["random"])
         
-        logger.critical(f"[AI] All {total_keys} keys and {total_models} models exhausted after {attempts} attempts")
+        logger.critical(f"[Gemini] All {total_keys} keys and {total_models} models exhausted after {attempts} attempts")
         self.ai_available = False
         self.ai_exhausted_time = datetime.now(timezone.utc)
         return "⚠️ AI quota exhausted on all keys. Try again later."
@@ -650,34 +639,23 @@ Reply with ONLY the category name, nothing else."""
         debt = loan["amount_owed"]
         
         if days_overdue < 3:
-            responses = [
-                f"Hey, don't think I forgot about that **${debt:,}** you owe me. Pay up.",
-                f"You've got **${debt:,}** in debt and you're here chatting? Priorities, honey.",
-                f"Your debt of **${debt:,}** is overdue. Consider this a friendly reminder. 😊",
-            ]
+            # Early stage: gentle reminders
+            response = random.choice(DEBT_EARLY_RESPONSES)
             db.increment_late_notice(user_id)
-            return random.choice(responses)
+            return response.format(debt=debt)
         
         elif days_overdue < 7:
-            responses = [
-                f"ROB:*wallet//10*:Where's my ${debt:,}? This is a down payment.",
-                f"RENAME:Debtor:You owe ${debt:,}. Pay your bills.",
-                f"You've been overdue for {int(days_overdue)} days. **${debt:,}** isn't going to pay itself!",
-                f"ROB:*wallet//5*:Consider this interest on your ${debt:,} debt.",
-            ]
+            # Medium stage: start taking action
+            response = random.choice(DEBT_MEDIUM_RESPONSES)
             db.increment_late_notice(user_id)
-            return random.choice(responses)
+            return response.format(debt=debt, days=int(days_overdue))
         
         else:
-            responses = [
-                f"ROB:*wallet//15*:You've ignored me for {int(days_overdue)} days. BAD move.",
-                f"TIMEOUT:30m:Think about my ${debt:,} while you're in timeout.",
-                f"RENAME:Deadbeat:You owe ${debt:,} and everyone should know.",
-                f"ROB:*wallet//20*:Collector's fee. You owe ${debt:,} and I'm DONE asking nicely.",
-            ]
+            # Severe stage: serious consequences
+            response = random.choice(DEBT_SEVERE_RESPONSES)
             db.increment_late_notice(user_id)
             logger.warning(f"[DebtEnforcement] Severe enforcement on {user_id}, {int(days_overdue)} days overdue, ${debt} owed")
-            return random.choice(responses)
+            return response.format(debt=debt, days=int(days_overdue))
 
     # ================== MESSAGE EVENT ==================
     
