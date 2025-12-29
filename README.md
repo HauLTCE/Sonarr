@@ -319,17 +319,64 @@ if price < base_price × 0.7:  # Undervalued
 
 ## 🎭 AI Personality
 
-### Classification Pipeline
+### Classification Pipeline (Priority Order)
 
-1. **Keyword Check** (≤2 words): Instant categorization
-2. **Dominant Keywords** (3+ words): 2+ category matches
-3. **Cache Lookup**: SQLite cache with smart hashing
-4. **Gemini API**: Full AI classification
-5. **Rate Limit**: 3 AI calls per user per hour
-6. **Key Rotation**: Cycles through 3 API keys
+```
+User Message (@Sonarr)
+    ↓
+1. EMPTY CHECK (0 words) → random response
+    ↓
+2. SHORT MESSAGE (≤2 words) → keyword_classify()
+    ↓
+3. SMART CLASSIFY (3+ words)
+    ├─ Pattern Matching (Subject-Action-Target) ← confidence 3-4
+    └─ Keyword Matching ← confidence 1-2
+    ↓
+4. CACHE LOOKUP (exact hash + fuzzy word match)
+    ↓
+5. RATE LIMIT CHECK (3 calls/user/hour)
+    ↓
+6. GEMINI API CALL → cache result
+    ↓
+7. FAILOVER: Key/Model rotation → Random fallback
+```
+
+### Pattern Matching Engine (`sonarr/patterns.py`)
+
+The pattern matcher uses **Subject-Action-Target anchoring** for context-aware classification:
+
+| Pattern Type | Example | Result |
+|--------------|---------|--------|
+| Self + hate + target | "I hate you" | insult |
+| Self + love + target | "I love you" | affection |
+| Target + insult | "You're stupid" | insult |
+| Third-party + anything | "He's dumb" | gossip |
+| Target + hate + self | "You hate me" | confusion |
+| Object + insult | "This is stupid" | insult |
+
+**Advanced Features:**
+
+| Feature | Example | Detection |
+|---------|---------|-----------|
+| **Clause Splitting** | "I like you, **but** you're annoying" | Prioritizes after-clause |
+| **Sarcasm Markers** | "**Oh wow**, you're SO smart" | Detects irony |
+| **Backhanded Compliments** | "You're **smarter than you look**" | Insult disguised as praise |
+| **Conditional Insults** | "**If you weren't** so dumb..." | Hidden insult |
+| **Conditional Threats** | "**If you keep this up**, I'm gonna hate you" | Future harm warning |
+| **Hedged Insults** | "**I think you might be** annoying" | Softened insult |
+| **Negation Handling** | "I **don't** hate you" | Flips category |
+| **Multi-Target** | "He sucks, **you suck**, everyone sucks" | Finds you-clause |
+| **Collective Nouns** | "**People say** you're trash" | Insult, not gossip |
+| **Gen-Z Slang** | "ur lowkey mid ngl" | Modern vocabulary |
+
+**Supported Vocabulary:**
+- Pronouns: `u`, `ur`, `bro`, `sis`, `dude`, `yall`
+- Intensifiers: `lowkey`, `highkey`, `deadass`, `fr`, `frfr`, `ngl`, `tbh`, `ong`, `no cap`
+- Insults: `mid`, `cringe`, `salty`, `toxic`, `sus`, `cap`, `L`, `ratio`, `npc`, `simp`
+- Praise: `based`, `goated`, `fire`, `lit`, `bussin`, `iconic`, `W`, `slay`, `valid`
 
 ### Response Categories (35+)
-greeting, thanks, goodbye, question, confusion, insult, affection, vent, excitement, complaint, joke, help, agreement, disagreement, bored, flirt, brag, flex, beg, chitchat, advice, compliment, request, apology, statement, sarcasm, threat, command, praise, spam, excuse, overshare, challenge, opinion, lie, guilt, random
+greeting, thanks, goodbye, question, confusion, insult, affection, vent, excitement, complaint, joke, help, agreement, disagreement, bored, flirt, brag, flex, beg, chitchat, advice, compliment, request, apology, statement, sarcasm, threat, command, praise, spam, excuse, overshare, challenge, opinion, lie, guilt, gossip, random
 
 ### Auto-Behaviors
 
@@ -417,6 +464,14 @@ bot/
 ├── pokemon_species.json    # Pokémon data
 ├── pokemon_moves.json      # Move database
 ├── pokemon_zones.json      # Hunt zones
+│
+├── sonarr/                 # AI Classification Module
+│   ├── __init__.py         # Module exports
+│   ├── classifier.py       # Smart classifier (pattern → keyword → cache → AI)
+│   ├── keywords.py         # Keyword maps & stopwords
+│   ├── patterns.py         # Pattern matching engine (600+ lines)
+│   ├── responses.py        # Cold responses & templates (380+ lines)
+│   └── time_utils.py       # Sleep/grace period management
 │
 ├── cogs/                   # Command modules (16 cogs)
 │   ├── admin.py            # Admin commands
@@ -615,4 +670,4 @@ MIT License - See [LICENSE](LICENSE) for details.
 ---
 
 **Last Updated**: December 28, 2025  
-**Version**: 3.1 (Stock Balancing + Gossip Overhaul + Hourly News)
+**Version**: 3.2

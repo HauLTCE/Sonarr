@@ -24,8 +24,14 @@ SELF_ANCHORS = r"\b(i|me|my|mine|myself|we|us|our|ours|im|i'm|ive|i've|id|i'd|il
 # Target Anchors - refers to the bot/listener  
 TARGET_ANCHORS = r"\b(you|u|ur|your|yours|yourself|yall|y'all|bot|sonar|sonarr)\b"
 
+# Object Anchors - refers to things/situations (this, that, it)
+OBJECT_ANCHORS = r"\b(this|that|it)\b"
+
 # Third-Party Anchors - refers to others
-THIRD_PARTY_ANCHORS = r"\b(he|him|his|she|her|hers|they|them|their|theirs|it|its|bro|sis|man|girl|dude|guy|guys|everyone|everybody|someone|somebody|anyone|anybody|people|that person|this person)\b"
+THIRD_PARTY_ANCHORS = r"\b(he|him|his|she|her|hers|they|them|their|theirs|bro|sis|man|girl|dude|guy|guys|everyone|everybody|someone|somebody|anyone|anybody|people|that person|this person)\b"
+
+# Implied Third-Party - possessive + person reference (my mom, my friend, etc.)
+IMPLIED_THIRD_PARTY = r"\b(my|your|his|her|their|our)\s+(mom|mother|dad|father|parent|parents|brother|sister|sibling|friend|friends|boss|teacher|coworker|colleague|neighbor|girlfriend|boyfriend|wife|husband|partner|ex|family|uncle|aunt|cousin|grandma|grandpa|grandmother|grandfather)\b"
 
 
 # ================== NEGATION WORDS ==================
@@ -46,7 +52,8 @@ INTENSIFIERS = [
     "really", "very", "so", "such", "extremely", "incredibly", "absolutely",
     "totally", "completely", "utterly", "freaking", "fucking", "damn",
     "super", "mega", "hella", "mad", "crazy", "insanely", "genuinely",
-    "seriously", "honestly", "truly", "literally", "actually"
+    "seriously", "honestly", "truly", "literally", "actually",
+    "lowkey", "highkey", "deadass", "fr", "frfr", "ngl", "tbh", "istg", "ong", "no cap"  # Gen-Z
 ]
 INTENSIFIER_PATTERN = r"\b(" + "|".join(INTENSIFIERS) + r")\b"
 
@@ -56,21 +63,90 @@ INTENSIFIER_PATTERN = r"\b(" + "|".join(INTENSIFIERS) + r")\b"
 QUESTION_STARTERS = [
     "what", "why", "how", "when", "where", "who", "which", "whose",
     "can", "could", "would", "will", "should", "do", "does", "did",
-    "is", "are", "was", "were", "have", "has", "had", "am"
+    "is", "are", "was", "were", "have", "has", "had", "am",
+    "y", "wut", "wat", "wht", "hw", "whr"  # Gen-Z abbreviations
 ]
 QUESTION_STARTER_PATTERN = r"^(" + "|".join(QUESTION_STARTERS) + r")\b"
+
+
+# ================== SARCASM MARKERS ==================
+# Phrases that indicate sarcasm/irony when followed by positive statements
+SARCASM_MARKERS = [
+    "oh wow", "oh great", "oh sure", "oh yeah", "oh really",
+    "yeah right", "sure thing", "suuure", "suuuure",
+    "wow", "gee", "gosh", "golly",
+    "thanks for nothing", "how wonderful", "how nice", "how lovely",
+    "what a surprise", "big surprise", "shocking", "shocker",
+    "as if", "like that's", "real nice", "real smart", "real helpful"
+]
+SARCASM_MARKER_PATTERN = r"^(" + "|".join([re.escape(m) for m in SARCASM_MARKERS]) + r")\b"
+
+# Sarcasm through negation - "you're not annoying at all" with "sure" or similar
+SARCASM_NEGATION_MARKERS = ["sure", "right", "of course", "obviously", "clearly", "definitely", "totally"]
+SARCASM_NEGATION_PATTERN = r"^(" + "|".join(SARCASM_NEGATION_MARKERS) + r")\b"
+
+
+# ================== CLAUSE CONJUNCTIONS ==================
+# Words that split sentences into clauses - the part AFTER these usually carries the true sentiment
+CLAUSE_CONJUNCTIONS = [
+    "but", "however", "yet", "although", "though", "still", "except",
+    "nevertheless", "nonetheless", "on the other hand", "that said"
+]
+CLAUSE_SPLIT_PATTERN = r"\b(" + "|".join(CLAUSE_CONJUNCTIONS) + r")\b"
+
+
+# ================== BACKHANDED COMPLIMENT PATTERNS ==================
+# Patterns that look like compliments but are actually insults
+BACKHANDED_PATTERNS = [
+    r"smarter than (?:you|u) look",
+    r"better than (?:i |I )?(?:expected|thought)",
+    r"not as (?:stupid|dumb|bad|ugly) as",
+    r"for (?:a|an) \w+",  # "smart for a..."
+    r"(?:almost|kinda|sorta|kind of|sort of) (?:smart|nice|good|cool)",
+    r"if (?:you|u) (?:were|was) nicer",  # "if you were nicer" = you're not nice
+    r"might (?:actually )?like (?:you|u) if",  # "might like you if" = don't like you now
+]
+BACKHANDED_PATTERN = r"(" + "|".join(BACKHANDED_PATTERNS) + r")"
+
+
+# ================== CONDITIONAL MARKERS ==================
+# "If" clauses that often contain hidden insults or threats
+CONDITIONAL_INSULT_PATTERNS = [
+    r"if (?:you|u) (?:weren't|werent|were not|wasn't|wasnt|was not) (?:so |such a?)?",  # "if you weren't so dumb"
+    r"would .+ if (?:you|u)",  # "would like you if you..."
+    r"if (?:you|u) (?:keep|kept|continue)",  # "if you keep this up"
+]
+
+# Conditional threats - future harm warnings
+CONDITIONAL_THREAT_PATTERNS = [
+    r"(?:gonna|going to|will|i'll|im gonna|i'm gonna) (?:hate|hurt|kill|beat|destroy)",
+    r"if (?:you|u) (?:keep|kept|continue|don't stop)",
+]
+
+# Hedged insult patterns - soft language that still insults
+HEDGED_INSULT_PATTERNS = [
+    r"(?:i think|i feel like|i believe|maybe|perhaps|probably|kinda|kind of|sorta|sort of) (?:you|u) (?:might |may |could )?(?:be )?",
+]
+
+# Complex conditional compliments - "If I said you were ugly, I would be lying"
+# The insult is negated by the conditional structure
+CONDITIONAL_NEGATION_PATTERNS = [
+    r"if (?:i|I) (?:said|called|thought) (?:you|u) (?:were|was|are) \w+.{0,20}(?:would be lying|wouldn't be true|would be wrong|be lying)",
+    r"(?:would be lying|wouldn't be true|would be wrong) if (?:i|I) (?:said|called|thought) (?:you|u)",
+    r"if (?:i|I) (?:said|called|thought) .{0,30}(?:would be lying|wouldn't be true|be lying)",
+]
 
 
 # ================== PATTERN KEYWORDS ==================
 # Keywords grouped by sentiment/action type for pattern matching
 
-NEGATIVE_ACTION_WORDS = r"\b(hate|hates|hating|hated|dislike|dislikes|despise|despises|loathe|loathes|detest|detests|cant stand|can't stand|sick of|tired of|annoyed by|annoyed with|mad at|angry at|angry with|pissed at|pissed off at|furious at|furious with)\b"
+NEGATIVE_ACTION_WORDS = r"\b(hate|hates|hating|hated|h8|dislike|dislikes|despise|despises|loathe|loathes|detest|detests|cant stand|can't stand|sick of|tired of|annoyed by|annoyed with|mad at|angry at|angry with|pissed at|pissed off at|furious at|furious with)\b"
 
-INSULT_WORDS = r"\b(stupid|dumb|idiot|moron|retard|retarded|loser|pathetic|useless|worthless|trash|garbage|terrible|awful|ugly|suck|sucks|sucked|worst|brainless|braindead|brain dead|moronic|idiotic|piece of shit|pos|dumbass|asshole|bastard|bitch|dick|crap|crappy|annoying|irritating|obnoxious|insufferable|unbearable|intolerable|lame|boring|basic|mean|weird|crazy|insane|dull|dense|slow|hopeless|incompetent|ridiculous|absurd|foolish|silly|naive|ignorant|rude|nasty|vile|disgusting|repulsive|gross|creepy|strange|odd|nuts|mental|psycho|delusional)\b"
+INSULT_WORDS = r"\b(stupid|stupider|dumb|dumber|idiot|moron|retard|retarded|loser|pathetic|useless|worthless|trash|garbage|terrible|awful|ugly|uglier|suck|sucks|sucked|worst|worse|brainless|braindead|brain dead|moronic|idiotic|piece of shit|pos|dumbass|asshole|bastard|bitch|dick|crap|crappy|annoying|irritating|obnoxious|insufferable|unbearable|intolerable|lame|lamer|boring|basic|mean|meaner|weird|weirder|crazy|crazier|insane|dull|dense|denser|slow|slower|hopeless|incompetent|ridiculous|absurd|foolish|silly|sillier|naive|ignorant|rude|ruder|nasty|nastier|vile|disgusting|repulsive|gross|grosser|creepy|creepier|strange|stranger|odd|odder|nuts|mental|psycho|delusional|mid|cringe|cringier|salty|saltier|toxic|sus|suspicious|cap|capping|extra|clown|L|ratio|invalid|npc|simp|karen|boomer|tryhard|sweaty|noob|bot)\b"
 
 THREAT_WORDS = r"\b(kill|hurt|beat|fight|destroy|murder|attack|punch|hit|slap|kick|stab|shoot|strangle|choke|die|dead|death)\b"
 
-AFFECTION_WORDS = r"\b(love|loves|loving|loved|like|likes|liked|adore|adores|adored|miss|misses|missed|missing|care about|cares about|appreciate|appreciates|cherish|cherishes|fond of|admire|admires|admired|admiring|respect|respects|respected|respecting|trust|trusts|trusted|trusting|enjoy|enjoys|enjoyed|enjoying|fancy|fancies|fancied)\b"
+AFFECTION_WORDS = r"\b(love|loves|loving|loved|like|likes|liked|adore|adores|adored|miss|misses|missed|missing|care about|cares about|appreciate|appreciates|cherish|cherishes|fond of|admire|admires|admired|admiring|respect|respects|respected|respecting|trust|trusts|trusted|trusting|enjoy|enjoys|enjoyed|enjoying|fancy|fancies|fancied|wonderful|amazing|awesome|great|greater|fantastic|incredible|brilliant|excellent|perfect|beautiful|lovely|cute|cuter|sweet|sweeter|cool|cooler|nice|nicer|kind|kinder|smart|smarter|clever|cleverer|intelligent|genius|talented|skilled|best|better|helpful|luv|luvs|based|goated|goat|fire|lit|slaps|slap|bussin|iconic|legend|legendary|valid|king|queen|slay|slaying|ate|real|elite|peak|W|dope|sick|tight|rad|pog|poggers|chad|gigachad)\b"
 
 HELP_WORDS = r"\b(help|helps|helping|helped|assist|assists|assisting|assisted|support|supports|save|saves|need|needs|needed)\b"
 
@@ -90,6 +166,13 @@ COMPLEX_PATTERNS = [
     # "You think I'm stupid" -> confusion
     ("confusion", "target", INSULT_WORDS, "self", "confusion"),
     
+    # === IMPLIED THIRD PARTY - CHECK BEFORE VENT ===
+    # "My mom is nice" / "My friend is stupid" - must check before "I am stupid" vent
+    ("gossip_implied", "implied_third", INSULT_WORDS, None, "gossip"),
+    ("gossip_implied", "implied_third", AFFECTION_WORDS, None, "gossip"),
+    ("gossip_implied", "implied_third", NEGATIVE_ACTION_WORDS, None, "gossip"),
+    ("gossip_implied", "implied_third", NEGATIVE_ACTION_WORDS, "self", "gossip"),  # "My teacher hates me"
+    
     # === VENT (Self-deprecation) ===
     # "I hate myself" / "I am stupid" -> vent
     ("vent", "self", NEGATIVE_ACTION_WORDS, "self", "vent"),
@@ -100,8 +183,21 @@ COMPLEX_PATTERNS = [
     # === GOSSIP (about third parties) - CHECK BEFORE GENERIC INSULTS ===
     # "I hate him" / "She's so stupid" -> gossip engagement
     ("gossip_third", "self", NEGATIVE_ACTION_WORDS, "third", "gossip"),
+    ("gossip_third", "self", AFFECTION_WORDS, "third", "gossip"),  # "I love her"
     ("gossip_third", "third", INSULT_WORDS, None, "gossip"),
     ("gossip_third", "third", NEGATIVE_ACTION_WORDS, None, "gossip"),
+    ("gossip_third", "third", AFFECTION_WORDS, None, "gossip"),  # "She is wonderful"
+    # "He doesn't like me" -> gossip (third party + action + self)
+    ("gossip_reverse", "third", NEGATIVE_ACTION_WORDS, "self", "gossip"),
+    ("gossip_reverse", "third", AFFECTION_WORDS, "self", "gossip"),
+    
+    # === OBJECT-FOCUSED (this/that/it) ===
+    # "This is stupid" / "That is amazing" -> directed at situation/object
+    ("object_insult", "object", INSULT_WORDS, None, "insult"),
+    ("object_affection", "object", AFFECTION_WORDS, None, "affection"),
+    # "I hate this" / "I love that" -> self + action + object
+    ("object_hate", "self", NEGATIVE_ACTION_WORDS, "object", "insult"),
+    ("object_love", "self", AFFECTION_WORDS, "object", "affection"),
     
     # === INSULTS (less specific - no target requirement for some) ===
     # "I hate you" / "We dislike you" -> insult
@@ -110,10 +206,16 @@ COMPLEX_PATTERNS = [
     ("insult", "target", INSULT_WORDS, None, "insult"),
     # "You suck" / "You're trash" -> insult
     ("insult", "target", NEGATIVE_ACTION_WORDS, None, "insult"),
+    # "lowkey hate u" / "hate u" -> implied self + hate + target
+    ("insult_implied", None, NEGATIVE_ACTION_WORDS, "target", "insult"),
     
     # === AFFECTION ===
     # "I love you" / "I like you" -> affection
     ("affection", "self", AFFECTION_WORDS, "target", "affection"),
+    # "You are smart" / "You're amazing" -> affection (compliment)
+    ("affection_compliment", "target", AFFECTION_WORDS, None, "affection"),
+    # "luv u" / "love ya" -> implied self + affection + target (no explicit subject)
+    ("affection_implied", None, AFFECTION_WORDS, "target", "affection"),
     # "I miss you" / "I care about you" -> affection
     
     # === DELUSION (Reverse affection claim) ===
@@ -147,6 +249,10 @@ def get_anchor_pattern(anchor_type: str) -> str | None:
         return TARGET_ANCHORS
     elif anchor_type == "third":
         return THIRD_PARTY_ANCHORS
+    elif anchor_type == "object":
+        return OBJECT_ANCHORS
+    elif anchor_type == "implied_third":
+        return IMPLIED_THIRD_PARTY
     elif anchor_type == "any":
         return f"({SELF_ANCHORS}|{TARGET_ANCHORS}|{THIRD_PARTY_ANCHORS})"
     return None
@@ -209,15 +315,72 @@ def is_question(text: str) -> bool:
     return False
 
 
+def detect_sarcasm_marker(text: str) -> bool:
+    """
+    Check if the text starts with a sarcasm marker.
+    
+    Examples: "Oh wow, you're SO smart" → sarcasm detected
+    """
+    text_lower = text.lower().strip()
+    
+    # Check for sarcasm marker at start
+    if re.match(SARCASM_MARKER_PATTERN, text_lower, re.IGNORECASE):
+        return True
+    
+    # Check for "yeah right" anywhere
+    if "yeah right" in text_lower or "as if" in text_lower:
+        return True
+    
+    return False
+
+
+def split_on_conjunction(text: str) -> tuple:
+    """
+    Split text on clause conjunctions (but, however, yet, etc.)
+    
+    Returns (before_clause, after_clause, conjunction_found)
+    If no conjunction found, returns (text, None, False)
+    
+    The clause AFTER the conjunction usually carries the true sentiment.
+    """
+    text_lower = text.lower()
+    
+    # Find the conjunction
+    match = re.search(CLAUSE_SPLIT_PATTERN, text_lower)
+    if match:
+        before = text[:match.start()].strip()
+        after = text[match.end():].strip()
+        conjunction = match.group(0)
+        return (before, after, conjunction)
+    
+    return (text, None, None)
+
+
+def has_target_in_clause(clause: str) -> bool:
+    """
+    Check if a clause contains a target anchor (you, u, ur, etc.)
+    """
+    if clause is None:
+        return False
+    return bool(re.search(TARGET_ANCHORS, clause.lower()))
+
+
 def extract_third_party_subject(text: str) -> str | None:
     """
     Extract the third-party subject from text for gossip tracking.
     
     Returns the matched pronoun/reference or None.
     """
+    # Check for direct third-party pronouns first
     match = re.search(THIRD_PARTY_ANCHORS, text.lower())
     if match:
         return match.group(0)
+    
+    # Check for implied third-party (my mom, my friend, etc.)
+    implied_match = re.search(IMPLIED_THIRD_PARTY, text.lower())
+    if implied_match:
+        return implied_match.group(0)
+    
     return None
 
 
@@ -226,9 +389,12 @@ def pattern_match(text: str) -> tuple:
     Context-aware pattern matching using Subject-Action-Target anchoring.
     
     Features:
+    - Clause splitting on "but/however" - prioritizes clause after conjunction
+    - Sarcasm marker detection ("Oh wow", "Yeah right", etc.)
     - Negation detection ("I don't hate you" → not an insult)
     - Intensifier scoring (confidence boost)
     - Question modifier detection
+    - Third-party priority override
     
     Returns (matched_category, confidence, modifiers) or (None, 0, {}) if no match.
     
@@ -238,15 +404,137 @@ def pattern_match(text: str) -> tuple:
     Returns:
         Tuple of (category, confidence, modifiers_dict)
         - confidence: 0 = no match, 2 = pattern match, 3 = pattern + intensifiers
-        - modifiers: {"negated": bool, "is_question": bool, "third_party": str|None}
+        - modifiers: {"negated": bool, "is_question": bool, "third_party": str|None, "sarcasm_marker": bool, "has_conjunction": bool}
     """
     text_lower = text.lower()
+    
+    # Initialize modifiers
     modifiers = {
         "negated": False,
         "is_question": is_question(text),
         "third_party": extract_third_party_subject(text),
-        "intensifier_count": count_intensifiers(text)
+        "intensifier_count": count_intensifiers(text),
+        "sarcasm_marker": detect_sarcasm_marker(text),
+        "has_conjunction": False
     }
+    
+    # === BACKHANDED COMPLIMENT CHECK ===
+    # "You're smarter than you look" is an insult disguised as a compliment
+    if re.search(BACKHANDED_PATTERN, text_lower):
+        logger.debug(f"[Pattern] Backhanded compliment detected: '{text[:50]}'")
+        return ("insult", 2, modifiers)
+    
+    # === CONDITIONAL NEGATION CHECK (Compliment via negation) ===
+    # "If I said you were ugly, I would be lying" = you're NOT ugly = affection
+    for pattern in CONDITIONAL_NEGATION_PATTERNS:
+        if re.search(pattern, text_lower):
+            logger.debug(f"[Pattern] Conditional negation detected (compliment): '{text[:50]}'")
+            return ("affection", 2, modifiers)
+    
+    # === CONDITIONAL THREAT CHECK ===
+    # "If you keep this up, I'm gonna hate you" = threat of future action
+    for pattern in CONDITIONAL_THREAT_PATTERNS:
+        if re.search(pattern, text_lower):
+            logger.debug(f"[Pattern] Conditional threat detected: '{text[:50]}'")
+            return ("threat", 2, modifiers)
+    
+    # === HEDGED INSULT CHECK ===
+    # "I think you might be annoying" = still an insult, just softened
+    for pattern in HEDGED_INSULT_PATTERNS:
+        if re.search(pattern, text_lower):
+            insult_match = re.search(INSULT_WORDS, text_lower)
+            if insult_match:
+                logger.debug(f"[Pattern] Hedged insult detected: '{text[:50]}'")
+                return ("insult", 2, modifiers)
+    
+    # === SARCASM VIA NEGATION CHECK ===
+    # "Sure, you're not annoying at all" - sarcasm marker + negation = sarcasm
+    if re.match(SARCASM_NEGATION_PATTERN, text_lower):
+        if re.search(NEGATION_PATTERN, text_lower):
+            logger.debug(f"[Pattern] Sarcasm negation marker detected: '{text[:50]}'")
+            return ("sarcasm", 3, modifiers)
+    
+    # === SARCASM MARKER CHECK ===
+    # If text starts with sarcasm marker, it's likely sarcasm regardless of content
+    if modifiers["sarcasm_marker"]:
+        # Check if there's a positive word after the marker - that confirms sarcasm
+        affection_match = re.search(AFFECTION_WORDS, text_lower)
+        if affection_match:
+            logger.debug(f"[Pattern] Sarcasm marker + affection word → sarcasm: '{text[:50]}'")
+            return ("sarcasm", 3, modifiers)
+        # Also check if there's an insult - sarcasm marker + insult = sarcasm
+        insult_match = re.search(INSULT_WORDS, text_lower)
+        if insult_match:
+            logger.debug(f"[Pattern] Sarcasm marker + insult → sarcasm: '{text[:50]}'")
+            return ("sarcasm", 3, modifiers)
+    
+    # === CONDITIONAL INSULT CHECK ===
+    # "If you weren't so dumb" / "I would like you if you weren't..."
+    for pattern in CONDITIONAL_INSULT_PATTERNS:
+        if re.search(pattern, text_lower):
+            # Check if there's an insult word in the text
+            insult_match = re.search(INSULT_WORDS, text_lower)
+            if insult_match:
+                logger.debug(f"[Pattern] Conditional insult detected: '{text[:50]}'")
+                return ("insult", 2, modifiers)
+    
+    # === CLAUSE SPLITTING ===
+    # Split on "but/however/yet" and prioritize the second clause
+    before_clause, after_clause, conjunction = split_on_conjunction(text)
+    
+    if after_clause:
+        modifiers["has_conjunction"] = True
+        logger.debug(f"[Pattern] Conjunction '{conjunction}' found, prioritizing after-clause")
+        
+        # Check if target (you/u) appears in the after-clause
+        # If so, the after-clause sentiment toward "you" is the true sentiment
+        if has_target_in_clause(after_clause):
+            # Process the after-clause first
+            after_result = _pattern_match_single(after_clause, modifiers)
+            if after_result[0] is not None:
+                logger.debug(f"[Pattern] After-clause matched: {after_result[0]}")
+                return after_result
+        
+        # If after-clause didn't match with target, still try it
+        after_result = _pattern_match_single(after_clause, modifiers)
+        if after_result[0] is not None:
+            return after_result
+    
+    # === MULTI-TARGET WITH COMMA SEPARATION ===
+    # "He sucks, you suck, everyone sucks" - multiple subjects with insults
+    # If "you" appears with an insult in any comma-separated clause, it's an insult to the target
+    if "," in text and has_target_in_clause(text):
+        # Split by comma and check each clause
+        comma_clauses = text.split(",")
+        for clause in comma_clauses:
+            clause = clause.strip()
+            if has_target_in_clause(clause):
+                # This clause has "you" in it - check for insult
+                insult_match = re.search(INSULT_WORDS, clause.lower())
+                negative_match = re.search(NEGATIVE_ACTION_WORDS, clause.lower())
+                if insult_match or negative_match:
+                    logger.debug(f"[Pattern] Multi-target: found you-insult in clause: '{clause}'")
+                    return ("insult", 2, modifiers)
+    
+    # === STANDARD PATTERN MATCHING ===
+    return _pattern_match_single(text, modifiers)
+
+
+def _pattern_match_single(text: str, modifiers: dict) -> tuple:
+    """
+    Internal function to match patterns on a single clause/text.
+    Used by pattern_match for clause-split processing.
+    """
+    text_lower = text.lower()
+    
+    # Update modifiers for this specific text segment
+    segment_modifiers = modifiers.copy()
+    segment_modifiers["intensifier_count"] = count_intensifiers(text)
+    
+    # Check for third party in this segment
+    segment_third_party = extract_third_party_subject(text)
+    if segment_third_party:
+        segment_modifiers["third_party"] = segment_third_party
     
     for pattern_name, source, keywords, target, result_cat in COMPLEX_PATTERNS:
         regex_parts = []
@@ -260,7 +548,6 @@ def pattern_match(text: str) -> tuple:
             regex_parts.append(f"({source_pattern})")
         
         # Filler: allow contractions (you're, I'm) and up to 10 words between parts
-        # Pattern: optional contraction suffix + optional words + flexible spacing
         filler = r"(?:['`]?\w*\s+\S*){0,10}?\s*"
         
         if regex_parts:
@@ -283,45 +570,61 @@ def pattern_match(text: str) -> tuple:
                 # === NEGATION CHECK ===
                 if check_negation(text_lower, keyword_start):
                     logger.debug(f"[Pattern] '{pattern_name}' NEGATED in: '{text[:50]}'")
-                    modifiers["negated"] = True
+                    segment_modifiers["negated"] = True
                     
                     # Flip the category for negated statements
                     if result_cat == "insult":
-                        # "I don't hate you" -> could be neutral or even affection
-                        return ("random", 1, modifiers)
+                        return ("random", 1, segment_modifiers)
                     elif result_cat == "affection":
-                        # "I don't love you" -> cold/rejection
-                        return ("insult", 1, modifiers)
+                        return ("random", 1, segment_modifiers)
                     elif result_cat == "threat":
-                        # "I won't hurt you" -> reassurance
-                        return ("random", 1, modifiers)
-                    # Other categories: just return with lower confidence
+                        return ("random", 1, segment_modifiers)
+                    elif result_cat == "gossip":
+                        return ("gossip", 1, segment_modifiers)
                     continue
                 
                 # === CALCULATE CONFIDENCE ===
                 base_confidence = 2
                 
-                # Boost confidence for intensifiers
-                if modifiers["intensifier_count"] > 0:
+                if segment_modifiers["intensifier_count"] > 0:
                     base_confidence = 3
-                    logger.debug(f"[Pattern] Intensifiers detected ({modifiers['intensifier_count']}), boosted confidence")
                 
                 # === QUESTION MODIFIER ===
-                # "Why are you so stupid?" is both insult AND question
                 final_cat = result_cat
-                if modifiers["is_question"] and result_cat in ["insult", "threat"]:
-                    # Sarcastic/rhetorical insult question
+                if segment_modifiers["is_question"] and result_cat in ["insult", "threat"]:
                     final_cat = "sarcasm"
-                    logger.debug(f"[Pattern] Question + {result_cat} → sarcasm")
                 
-                logger.debug(f"[Pattern] Matched '{pattern_name}' → {final_cat} (conf={base_confidence}): '{text[:50]}'")
-                return (final_cat, base_confidence, modifiers)
+                # === SARCASM MARKER OVERRIDE ===
+                # If sarcasm marker detected and we got affection, flip to sarcasm
+                if segment_modifiers.get("sarcasm_marker") and result_cat == "affection":
+                    final_cat = "sarcasm"
+                    logger.debug(f"[Pattern] Sarcasm marker detected, affection → sarcasm")
+                
+                # === THIRD-PARTY PRIORITY OVERRIDE ===
+                if segment_modifiers["third_party"] and final_cat == "vent":
+                    final_cat = "gossip"
+                
+                # === COLLECTIVE NOUN HANDLING ===
+                # "People say you're trash" / "Everyone knows you're dumb"
+                # If third party is collective (people, everyone) AND target is present, it's an insult not gossip
+                collective_nouns = ["people", "everyone", "everybody", "someone", "somebody", "anyone", "anybody"]
+                if segment_modifiers["third_party"] in collective_nouns:
+                    if has_target_in_clause(text) and final_cat == "gossip":
+                        # Check if the keyword (insult) is closer to target than to third party
+                        target_match = re.search(TARGET_ANCHORS, text_lower)
+                        if target_match and match.start("keyword") > target_match.start():
+                            # Keyword comes after target - it's about the target
+                            final_cat = "insult"
+                            logger.debug(f"[Pattern] Collective noun + target → insult")
+                
+                logger.debug(f"[Pattern] Matched '{pattern_name}' → {final_cat} (conf={base_confidence})")
+                return (final_cat, base_confidence, segment_modifiers)
                 
         except re.error as e:
             logger.error(f"[Pattern] Regex error for {pattern_name}: {e}")
             continue
     
-    return (None, 0, modifiers)
+    return (None, 0, segment_modifiers)
 
 
 def pattern_match_simple(text: str) -> tuple:
