@@ -39,6 +39,23 @@ GEMINI_API_KEYS = [k for k in GEMINI_API_KEYS if k]
 
 logger = logging.getLogger("bot")
 
+# ================== PRONOUN ANCHORS ==================
+# Self Anchors - refers to the speaker
+SELF_ANCHORS = r"\b(i|me|my|mine|myself|we|us|our|ours|im|i'm|ive|i've|id|i'd|ill|i'll)\b"
+# Target Anchors - refers to the bot/listener  
+TARGET_ANCHORS = r"\b(you|u|ur|your|yours|yourself|yall|y'all|bot|sonar|sonarr)\b"
+# Third-Party Anchors - refers to others
+THIRD_PARTY_ANCHORS = r"\b(he|him|his|she|her|hers|they|them|their|theirs|it|its|bro|sis|man|girl|dude|guy|guys|everyone|everybody|someone|somebody|anyone|anybody|people|that person|this person)\b"
+
+# ================== PATTERN KEYWORDS ==================
+# Keywords grouped by sentiment/action type for pattern matching
+NEGATIVE_ACTION_WORDS = r"\b(hate|hates|hating|hated|dislike|dislikes|despise|despises|loathe|loathes|detest|detests|cant stand|can't stand|sick of|tired of|annoyed by|annoyed with|mad at|angry at|angry with|pissed at|pissed off at|furious at|furious with)\b"
+INSULT_WORDS = r"\b(stupid|dumb|idiot|moron|retard|retarded|loser|pathetic|useless|worthless|trash|garbage|terrible|awful|ugly|suck|sucks|sucked|worst|brainless|braindead|brain dead|moronic|idiotic|piece of shit|pos|dumbass|asshole|bastard|bitch|dick|crap|crappy)\b"
+THREAT_WORDS = r"\b(kill|hurt|beat|fight|destroy|murder|attack|punch|hit|slap|kick|stab|shoot|strangle|choke|die|dead|death)\b"
+AFFECTION_WORDS = r"\b(love|loves|loving|loved|like|likes|liked|adore|adores|adored|miss|misses|missed|missing|care about|cares about|appreciate|appreciates|cherish|cherishes|fond of)\b"
+HELP_WORDS = r"\b(help|helps|helping|helped|assist|assists|assisting|assisted|support|supports|save|saves|need|needs|needed)\b"
+QUESTION_WORDS = r"\b(what|why|how|when|where|who|which|can|could|would|will|should|do|does|did|is|are|was|were|have|has|had)\b"
+
 class BotPersonality(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -730,6 +747,150 @@ class BotPersonality(commands.Cog):
                 return best
         return (None, 0) if return_score else None
     
+    # ================== CONTEXT-AWARE PATTERN MATCHING ==================
+    # Complex patterns with Subject-Action-Target structure
+    # Format: (category, source_anchor, keywords, target_anchor, result_category)
+    # source/target can be: "self", "target", "third", "any", or None
+    COMPLEX_PATTERNS = [
+        # === INSULTS ===
+        # "I hate you" / "We dislike you" -> insult
+        ("insult", "self", NEGATIVE_ACTION_WORDS, "target", "insult"),
+        # "You are stupid" / "You're an idiot" -> insult
+        ("insult", "target", INSULT_WORDS, None, "insult"),
+        # "You suck" / "You're trash" -> insult
+        ("insult", "target", NEGATIVE_ACTION_WORDS, None, "insult"),
+        
+        # === VENT (Self-deprecation) ===
+        # "I hate myself" / "I am stupid" -> vent
+        ("vent", "self", NEGATIVE_ACTION_WORDS, "self", "vent"),
+        ("vent", "self", INSULT_WORDS, None, "vent"),  # "I'm stupid"
+        # "I want to die" / "I hate my life" -> vent
+        ("vent", "self", THREAT_WORDS, "self", "vent"),
+        
+        # === CONFUSION/DENIAL (Reverse accusation) ===
+        # "You hate me" / "The bot hates me" -> confusion (not an insult TO the user)
+        ("confusion", "target", NEGATIVE_ACTION_WORDS, "self", "confusion"),
+        # "You think I'm stupid" -> confusion
+        ("confusion", "target", INSULT_WORDS, "self", "confusion"),
+        
+        # === AFFECTION ===
+        # "I love you" / "I like you" -> affection
+        ("affection", "self", AFFECTION_WORDS, "target", "affection"),
+        # "I miss you" / "I care about you" -> affection
+        
+        # === DELUSION (Reverse affection claim) ===
+        # "You love me" / "You like me" -> sarcasm (bot doesn't love them)
+        ("sarcasm", "target", AFFECTION_WORDS, "self", "sarcasm"),
+        
+        # === THREAT ===
+        # "I will kill you" / "I'm gonna hurt you" -> threat
+        ("threat", "self", THREAT_WORDS, "target", "threat"),
+        # "I want you dead" -> threat
+        
+        # === REQUEST/HELP ===
+        # "Can you help me" / "Will you assist me" -> help
+        ("help", "target", HELP_WORDS, "self", "help"),
+        # "Help me" / "I need help" -> help
+        ("help", "self", HELP_WORDS, None, "help"),
+        
+        # === QUESTION (directed at bot) ===
+        # "What do you think" / "How do you feel" -> question
+        ("question", "target", QUESTION_WORDS, None, "question"),
+        
+        # === GOSSIP (about third parties) ===
+        # "I hate him" / "She's so stupid" -> not directed at bot
+        ("gossip_third", "self", NEGATIVE_ACTION_WORDS, "third", "random"),
+        ("gossip_third", "third", INSULT_WORDS, None, "random"),
+    ]
+    
+    def pattern_match(self, text: str) -> tuple:
+        """
+        Context-aware pattern matching using Subject-Action-Target anchoring.
+        Returns (matched_category, confidence) or (None, 0) if no match.
+        
+        Checks for the structural relationship between pronouns and keywords,
+        not just keyword presence.
+        """
+        text_lower = text.lower()
+        
+        # Check each complex pattern in priority order
+        for pattern_name, source, keywords, target, result_cat in self.COMPLEX_PATTERNS:
+            # Build the regex dynamically based on source and target
+            regex_parts = []
+            
+            # Determine source anchor
+            if source == "self":
+                source_pattern = SELF_ANCHORS
+            elif source == "target":
+                source_pattern = TARGET_ANCHORS
+            elif source == "third":
+                source_pattern = THIRD_PARTY_ANCHORS
+            elif source == "any":
+                source_pattern = f"({SELF_ANCHORS}|{TARGET_ANCHORS}|{THIRD_PARTY_ANCHORS})"
+            else:
+                source_pattern = None
+            
+            # Determine target anchor
+            if target == "self":
+                target_pattern = SELF_ANCHORS
+            elif target == "target":
+                target_pattern = TARGET_ANCHORS
+            elif target == "third":
+                target_pattern = THIRD_PARTY_ANCHORS
+            elif target == "any":
+                target_pattern = f"({SELF_ANCHORS}|{TARGET_ANCHORS}|{THIRD_PARTY_ANCHORS})"
+            else:
+                target_pattern = None
+            
+            # Build regex: [Source] ... [Keyword] ... [Target]
+            if source_pattern:
+                regex_parts.append(f"({source_pattern})")
+            
+            # Allow filler words between parts (non-greedy, max ~10 words)
+            filler = r"(?:\s+\S+){0,10}?\s+"
+            
+            if regex_parts:
+                regex_parts.append(filler)
+            
+            regex_parts.append(f"({keywords})")
+            
+            if target_pattern:
+                regex_parts.append(filler)
+                regex_parts.append(f"({target_pattern})")
+            
+            full_regex = "".join(regex_parts)
+            
+            try:
+                if re.search(full_regex, text_lower, re.IGNORECASE):
+                    logger.debug(f"[Pattern] Matched '{pattern_name}' → {result_cat}: '{text[:50]}'")
+                    return (result_cat, 2)  # Higher confidence than simple keyword
+            except re.error as e:
+                logger.error(f"[Pattern] Regex error for {pattern_name}: {e}")
+                continue
+        
+        return (None, 0)
+    
+    def smart_classify(self, message: str) -> tuple:
+        """
+        Smart classification combining pattern matching and keyword counting.
+        Priority: 1) Complex patterns, 2) Dominant keywords, 3) Single keyword match.
+        Returns (category, confidence) where confidence is 0-3.
+        """
+        # 1. Try complex pattern matching first (highest priority)
+        pattern_cat, pattern_conf = self.pattern_match(message)
+        if pattern_cat:
+            return (pattern_cat, pattern_conf + 1)  # Confidence 3
+        
+        # 2. Fall back to keyword classification
+        keyword_cat, keyword_score = self.keyword_classify(message, return_score=True)
+        if keyword_cat:
+            # Dominant keyword (2+ matches) = confidence 2
+            # Single keyword = confidence 1
+            confidence = 2 if keyword_score >= 2 else 1
+            return (keyword_cat, confidence)
+        
+        return (None, 0)
+
     def check_user_ai_limit(self, user_id: str) -> bool:
         """Check if user has exceeded AI rate limit (3 calls per hour). Returns True if allowed."""
         now = datetime.now(timezone.utc).timestamp()
@@ -753,7 +914,7 @@ class BotPersonality(commands.Cog):
         self.user_ai_calls[user_id].append(now)
 
     async def classify_and_respond_with_ai(self, message_content, user_id: str = None, guild_id: int = None, reply_context: str = None):
-        """Smart classifier: keywords → dominant keyword → cache → AI (with caching)"""
+        """Smart classifier: pattern matching → keywords → cache → AI (with caching)"""
         
         word_count = self.count_words(message_content)
         
@@ -762,6 +923,7 @@ class BotPersonality(commands.Cog):
             logger.info(f"[AI] EMPTY MESSAGE → {response[:50]}")
             return response  # Return raw response, effects processed in on_message
         
+        # For very short messages (1-2 words), use simple keyword matching
         if word_count <= 2:
             keyword_cat = self.keyword_classify(message_content)
             if keyword_cat:
@@ -772,11 +934,17 @@ class BotPersonality(commands.Cog):
                 logger.info(f"[AI] SHORT UNKNOWN ({word_count}w): '{message_content[:40]}' → {fallback_cat}")
                 return random.choice(COLD_RESPONSES.get(fallback_cat, COLD_RESPONSES["random"]))
         
-        keyword_cat, keyword_score = self.keyword_classify(message_content, return_score=True)
-        logger.debug(f"[AI] Keyword check: {keyword_cat}={keyword_score}")
-        if keyword_cat and keyword_score >= 2:
-            logger.info(f"[AI] DOMINANT KEYWORD ({word_count}w, {keyword_score} matches): '{message_content[:40]}' → {keyword_cat}")
-            return random.choice(COLD_RESPONSES.get(keyword_cat, COLD_RESPONSES["random"]))
+        # Use smart classification (pattern matching + keywords) for longer messages
+        smart_cat, smart_conf = self.smart_classify(message_content)
+        logger.debug(f"[AI] Smart classify: {smart_cat}={smart_conf}")
+        
+        # High confidence (pattern match or dominant keywords) - respond immediately
+        if smart_cat and smart_conf >= 2:
+            if smart_conf >= 3:
+                logger.info(f"[AI] PATTERN MATCH ({word_count}w, conf={smart_conf}): '{message_content[:40]}' → {smart_cat}")
+            else:
+                logger.info(f"[AI] DOMINANT KEYWORD ({word_count}w, conf={smart_conf}): '{message_content[:40]}' → {smart_cat}")
+            return random.choice(COLD_RESPONSES.get(smart_cat, COLD_RESPONSES["random"]))
         
         msg_hash = self.hash_message(message_content)
         content_words = self.extract_content_words(message_content)
