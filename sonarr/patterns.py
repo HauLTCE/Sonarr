@@ -512,6 +512,53 @@ def pattern_match(text: str) -> tuple:
             logger.debug(f"[Pattern] Conditional threat detected: '{text[:50]}'")
             return ("threat", 2, modifiers)
     
+    # === META-QUESTION CHECK (Questions about the bot itself) ===
+    # "what are you?" / "do you work here?" / "are you a bot?"
+    meta_patterns = [
+        r"^(what|who|are)\s+(you|is)",
+        r"(what|who|how)\s+.*\s+you",
+        r"do you work",
+        r"are you.*bot",
+    ]
+    if modifiers["is_question"]:
+        for pattern in meta_patterns:
+            if re.search(pattern, text_lower):
+                logger.debug(f"[Pattern] Meta-question detected (about bot): '{text[:50]}'")
+                return ("meta_question", 2, modifiers)
+    
+    # === SELF-INQUIRY CHECK ===
+    # "am I cool?" / "do I look good?" - asking bot to judge the user
+    self_inquiry_patterns = [
+        r"^(am i|do i|can i).*\b(cool|good|smart|nice|awesome|bad|ugly|stupid|annoying|funny)\b",
+        r"how do i look",
+        r"do i.*good",
+        r"am i.*enough",
+    ]
+    if modifiers["is_question"] and re.search(r"\bmy\b|\bi\b|me\b", text_lower):
+        for pattern in self_inquiry_patterns:
+            if re.search(pattern, text_lower):
+                logger.debug(f"[Pattern] Self-inquiry detected (asking bot to judge user): '{text[:50]}'")
+                return ("self_inquiry", 2, modifiers)
+    
+    # === GENERAL INQUIRY CHECK ===
+    # "do you know where X is?" / "can you tell me about Y?"
+    # Questions that aren't obviously affection/complaint but are asking for info
+    if modifiers["is_question"]:
+        inquiry_markers = [
+            r"do you know",
+            r"have you (seen|heard)",
+            r"where (is|are)",
+            r"who (is|are)",
+            r"when",
+            r"how.*(?<!love|like|hate|think)",  # exclude opinion questions
+        ]
+        for pattern in inquiry_markers:
+            if re.search(pattern, text_lower):
+                # Make sure it's not a complex pattern that we'll catch later
+                if not re.search(AFFECTION_WORDS, text_lower) and not re.search(INSULT_WORDS, text_lower):
+                    logger.debug(f"[Pattern] General inquiry detected: '{text[:50]}'")
+                    return ("inquiry", 1, modifiers)
+    
     # === HEDGED INSULT CHECK ===
     # "I think you might be annoying" = still an insult, just softened
     for pattern in HEDGED_INSULT_PATTERNS:
@@ -678,10 +725,20 @@ def _pattern_match_single(text: str, modifiers: dict) -> tuple:
                 # If there's a third party and we matched affection/complaint, it's about someone else, not the bot
                 if segment_modifiers["third_party"]:
                     if final_cat in ["affection", "complaint"]:
-                        final_cat = "chitchat"
-                        logger.debug(f"[Pattern] Third party detected in {result_cat}, converting to chitchat")
+                        # Question about third party opinion: "do you like him?" -> opinion_request
+                        if segment_modifiers["is_question"]:
+                            final_cat = "opinion_request"
+                            logger.debug(f"[Pattern] Third party + question + {result_cat} → opinion_request")
+                        else:
+                            # Statement about third party: "I love him" -> gossip
+                            final_cat = "gossip"
+                            logger.debug(f"[Pattern] Third party + statement + {result_cat} → gossip")
                     elif final_cat == "vent":
                         final_cat = "gossip"
+                    elif final_cat == "help" or final_cat == "request":
+                        # "can you help him?" -> request_third_party
+                        final_cat = "request_third_party"
+                        logger.debug(f"[Pattern] Third party + request → request_third_party")
                 
                 # === COLLECTIVE NOUN HANDLING ===
                 # "People say you're trash" / "Everyone knows you're dumb"
