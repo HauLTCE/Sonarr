@@ -434,6 +434,12 @@ class SonarrAI(commands.Cog):
         """Smart classifier: pattern matching → keywords → cache → AI (with caching)."""
         
         word_count = self.classifier.count_words(message_content)
+
+        # Periodic cleanup of misgender records (TTL = 24h)
+        try:
+            db.cleanup_misgender_records(older_than_seconds=86400)
+        except Exception:
+            pass
         
         # Empty message
         if word_count == 0:
@@ -442,24 +448,58 @@ class SonarrAI(commands.Cog):
             return response
         
         # Check for misgendering FIRST (even for short messages)
-        from sonarr.patterns import detect_misgendering
+        from sonarr.patterns import detect_misgendering, detect_correct_gender_address
         misgender_term = detect_misgendering(message_content)
         if misgender_term:
+            # Record misgender for the author
+            if user_id:
+                try:
+                    db.record_misgender(str(user_id))
+                except Exception as e:
+                    logger.error(f"[Misgender] record failed for {user_id}: {e}")
             response = get_gender_correction(misgender_term)
             if response:
                 logger.info(f"[Classify] MISGENDERED ({word_count}w): '{message_content[:40]}' → {misgender_term}")
                 return response
+
+        # If correctly addressed as female, clear author's record and consider calling out others
+        callout_suffix = None
+        try:
+            if detect_correct_gender_address(message_content):
+                # If author previously misgendered, clear their record (self-correction)
+                if user_id and db.has_active_misgender(str(user_id)):
+                    db.clear_misgender(str(user_id))
+                # Consider calling out a recent misgenderer (not the author), 20% chance
+                active = db.get_active_misgenderers(within_seconds=86400)
+                # Sort by most recent
+                active.sort(key=lambda x: x[1], reverse=True)
+                mis_to_call = next(((uid, ts) for uid, ts in active if str(uid) != str(user_id)), None)
+                if mis_to_call and random.random() < 0.20:
+                    mis_uid = mis_to_call[0]
+                    # Compose a gentle-but-diva callout as a second message
+                    callout_suffix = f"||<@{mis_uid}> Learn the word: QUEEN."
+        except Exception as e:
+            logger.error(f"[GenderCorrect] handling failed: {e}")
         
         # Very short messages - simple keyword matching
         if word_count <= 2:
             keyword_cat = self.classifier.keyword_classify(message_content)
             if keyword_cat:
                 logger.info(f"[Classify] KEYWORD ({word_count}w): '{message_content[:40]}' → {keyword_cat}")
-                return random.choice(COLD_RESPONSES.get(keyword_cat, COLD_RESPONSES["random"]))
+                base = random.choice(COLD_RESPONSES.get(keyword_cat, COLD_RESPONSES["random"]))
+                if callout_suffix and not str(base).startswith("DOUBLE:"):
+                    return "DOUBLE:" + base + callout_suffix
+                elif callout_suffix and str(base).startswith("DOUBLE:"):
+                    # Already double-effect; prefer original
+                    return base
+                return base
             else:
                 fallback_cat = random.choice(["random", "bored", "confusion"])
                 logger.info(f"[Classify] SHORT UNKNOWN ({word_count}w): '{message_content[:40]}' → {fallback_cat}")
-                return random.choice(COLD_RESPONSES.get(fallback_cat, COLD_RESPONSES["random"]))
+                base = random.choice(COLD_RESPONSES.get(fallback_cat, COLD_RESPONSES["random"]))
+                if callout_suffix and not str(base).startswith("DOUBLE:"):
+                    return "DOUBLE:" + base + callout_suffix
+                return base
         
         # Use smart classification for longer messages
         smart_cat, smart_conf = self.classifier.smart_classify(message_content)
@@ -481,7 +521,10 @@ class SonarrAI(commands.Cog):
                 logger.info(f"[Classify] PATTERN ({word_count}w, conf={smart_conf}): '{message_content[:40]}' → {smart_cat}")
             else:
                 logger.info(f"[Classify] KEYWORD ({word_count}w, conf={smart_conf}): '{message_content[:40]}' → {smart_cat}")
-            return random.choice(COLD_RESPONSES.get(smart_cat, COLD_RESPONSES["random"]))
+            base = random.choice(COLD_RESPONSES.get(smart_cat, COLD_RESPONSES["random"]))
+            if callout_suffix and not str(base).startswith("DOUBLE:"):
+                return "DOUBLE:" + base + callout_suffix
+            return base
         
         # Check cache
         msg_hash = self.classifier.hash_message(message_content)
@@ -497,14 +540,20 @@ class SonarrAI(commands.Cog):
         
         if cached_cat:
             logger.info(f"[Cache] HIT ({word_count}w): '{message_content[:40]}' → {cached_cat} [words: {content_words[:5]}]")
-            return random.choice(COLD_RESPONSES.get(cached_cat, COLD_RESPONSES["random"]))
+            base = random.choice(COLD_RESPONSES.get(cached_cat, COLD_RESPONSES["random"]))
+            if callout_suffix and not str(base).startswith("DOUBLE:"):
+                return "DOUBLE:" + base + callout_suffix
+            return base
         
         # Try fuzzy search
         try:
             fuzzy_cat = db.fuzzy_search_category(content_words)
             if fuzzy_cat:
                 logger.info(f"[Cache] FUZZY ({word_count}w): '{message_content[:40]}' → {fuzzy_cat} [words: {content_words[:5]}]")
-                return random.choice(COLD_RESPONSES.get(fuzzy_cat, COLD_RESPONSES["random"]))
+                base = random.choice(COLD_RESPONSES.get(fuzzy_cat, COLD_RESPONSES["random"]))
+                if callout_suffix and not str(base).startswith("DOUBLE:"):
+                    return "DOUBLE:" + base + callout_suffix
+                return base
         except Exception as e:
             logger.error(f"[Cache] Fuzzy error: {e}")
         
@@ -512,7 +561,10 @@ class SonarrAI(commands.Cog):
         logger.debug(f"[RateLimit] Checking for {user_id}")
         if user_id and not self.check_user_ai_limit(user_id):
             logger.warning(f"[RateLimit] USER BLOCKED: {user_id} ({word_count}w): '{message_content[:40]}'")
-            return random.choice(self.rate_limit_responses)
+            base = random.choice(self.rate_limit_responses)
+            if callout_suffix and not str(base).startswith("DOUBLE:"):
+                return "DOUBLE:" + base + callout_suffix
+            return base
         
         # AI availability check
         logger.debug(f"[Gemini] Checking availability: client={bool(self.genai_client)}, available={self.ai_available}")
