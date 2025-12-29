@@ -515,10 +515,11 @@ def pattern_match(text: str) -> tuple:
     # === META-QUESTION CHECK (Questions about the bot itself) ===
     # "what are you?" / "do you work here?" / "are you a bot?"
     meta_patterns = [
-        r"^(what|who|are)\s+(you|is)",
-        r"(what|who|how)\s+.*\s+you",
+        r"^(what|who)\s+(are\s+)?you",
+        r"are you a?\s*(bot|ai|robot|real)",
         r"do you work",
-        r"are you.*bot",
+        r"what can you do",
+        r"what do you do",
     ]
     if modifiers["is_question"]:
         for pattern in meta_patterns:
@@ -529,35 +530,197 @@ def pattern_match(text: str) -> tuple:
     # === SELF-INQUIRY CHECK ===
     # "am I cool?" / "do I look good?" - asking bot to judge the user
     self_inquiry_patterns = [
-        r"^(am i|do i|can i).*\b(cool|good|smart|nice|awesome|bad|ugly|stupid|annoying|funny)\b",
+        r"^(am i|do i|can i).*\b(cool|good|smart|nice|awesome|bad|ugly|stupid|annoying|funny|pretty|hot|cute)\b",
         r"how do i look",
         r"do i.*good",
         r"am i.*enough",
+        r"what do you think (of|about) me",
+        r"how am i",
     ]
-    if modifiers["is_question"] and re.search(r"\bmy\b|\bi\b|me\b", text_lower):
+    if modifiers["is_question"]:
         for pattern in self_inquiry_patterns:
             if re.search(pattern, text_lower):
                 logger.debug(f"[Pattern] Self-inquiry detected (asking bot to judge user): '{text[:50]}'")
                 return ("self_inquiry", 2, modifiers)
     
+    # === RELATIONSHIP STATUS CHECK ===
+    relationship_patterns = [
+        r"are you (single|taken|dating|married)",
+        r"do you have a (boyfriend|girlfriend|partner|wife|husband)",
+        r"are you in a relationship",
+        r"what('s| is) your relationship status",
+    ]
+    if modifiers["is_question"]:
+        for pattern in relationship_patterns:
+            if re.search(pattern, text_lower):
+                logger.debug(f"[Pattern] Relationship question detected: '{text[:50]}'")
+                return ("relationship", 2, modifiers)
+    
+    # === AGE CHECK ===
+    age_patterns = [
+        r"how old are you",
+        r"what('s| is) your age",
+        r"when were you (born|made|created)",
+        r"what year were you",
+    ]
+    if modifiers["is_question"]:
+        for pattern in age_patterns:
+            if re.search(pattern, text_lower):
+                logger.debug(f"[Pattern] Age question detected: '{text[:50]}'")
+                return ("age", 2, modifiers)
+    
+    # === CAPABILITIES CHECK ===
+    capability_patterns = [
+        r"what can you do",
+        r"can you (do|make|create|help|show)",
+        r"are you able to",
+        r"what are your (abilities|capabilities|powers)",
+    ]
+    if modifiers["is_question"]:
+        for pattern in capability_patterns:
+            if re.search(pattern, text_lower):
+                # Make sure no third party
+                if not modifiers.get("third_party"):
+                    logger.debug(f"[Pattern] Capabilities question detected: '{text[:50]}'")
+                    return ("capabilities", 2, modifiers)
+    
+    # === MEMORY CHECK ===
+    memory_patterns = [
+        r"do you remember",
+        r"did you forget",
+        r"you (remember|forgot)",
+    ]
+    if re.search(r"|".join(memory_patterns), text_lower):
+        logger.debug(f"[Pattern] Memory question detected: '{text[:50]}'")
+        return ("memory", 2, modifiers)
+    
+    # === HYPOTHETICAL CHECK ===
+    hypothetical_patterns = [
+        r"^what if\b",
+        r"^if you (could|were|had)",
+        r"^hypothetically",
+        r"^imagine if",
+        r"^would you ever",
+    ]
+    for pattern in hypothetical_patterns:
+        if re.search(pattern, text_lower):
+            logger.debug(f"[Pattern] Hypothetical detected: '{text[:50]}'")
+            return ("hypothetical", 2, modifiers)
+    
+    # === PREFERENCE CHECK ===
+    preference_patterns = [
+        r"what('s| is) your favo(u)?rite",
+        r"do you (like|prefer|enjoy)",
+        r"what do you (like|prefer|enjoy)",
+        r"which do you (like|prefer)",
+    ]
+    if modifiers["is_question"]:
+        for pattern in preference_patterns:
+            if re.search(pattern, text_lower):
+                # Only if no third party (avoid "do you like him")
+                if not modifiers.get("third_party"):
+                    logger.debug(f"[Pattern] Preference question detected: '{text[:50]}'")
+                    return ("preference", 2, modifiers)
+    
+    # === ROLEPLAY CHECK ===
+    roleplay_patterns = [
+        r"\*[^*]+\*",  # *action text*
+        r"^(pretend|imagine|act like|roleplay|rp)",
+        r"you are now",
+        r"from now on you",
+    ]
+    for pattern in roleplay_patterns:
+        if re.search(pattern, text_lower):
+            logger.debug(f"[Pattern] Roleplay attempt detected: '{text[:50]}'")
+            return ("roleplay", 2, modifiers)
+    
+    # === PHILOSOPHY/EXISTENTIAL CHECK ===
+    philosophy_patterns = [
+        r"meaning of life",
+        r"why (are|do) we exist",
+        r"what is (the point|consciousness|reality)",
+        r"do you (have a soul|feel|think|exist)",
+        r"are you (sentient|conscious|alive|real)",
+    ]
+    for pattern in philosophy_patterns:
+        if re.search(pattern, text_lower):
+            logger.debug(f"[Pattern] Philosophy/existential detected: '{text[:50]}'")
+            return ("philosophy", 2, modifiers)
+    
+    # === TEST/PING CHECK ===
+    test_patterns = [
+        r"^(test|testing|ping|hello\?|anyone there|you there|u there)$",
+        r"^(are you (there|alive|awake|online|working))$",
+    ]
+    for pattern in test_patterns:
+        if re.search(pattern, text_lower):
+            logger.debug(f"[Pattern] Test/ping detected: '{text[:50]}'")
+            return ("test", 2, modifiers)
+    
+    # === WEATHER CHECK (boring small talk) ===
+    weather_patterns = [
+        r"\b(weather|rain|snow|sunny|cloudy|hot|cold)\b.*(today|outside|there)",
+        r"how('s| is) the weather",
+        r"is it (raining|snowing|sunny|hot|cold)",
+    ]
+    for pattern in weather_patterns:
+        if re.search(pattern, text_lower):
+            logger.debug(f"[Pattern] Weather small talk detected: '{text[:50]}'")
+            return ("weather", 2, modifiers)
+    
+    # === COMPARISON CHECK ===
+    comparison_patterns = [
+        r"(better|worse|smarter|dumber) than",
+        r"compared to",
+        r"(like|similar to|same as) (siri|alexa|chatgpt|gpt|bard|claude)",
+        r"you('re| are) (just like|no different)",
+    ]
+    for pattern in comparison_patterns:
+        if re.search(pattern, text_lower):
+            logger.debug(f"[Pattern] Comparison detected: '{text[:50]}'")
+            return ("comparison", 2, modifiers)
+    
+    # === SIMP DETECTION ===
+    simp_patterns = [
+        r"i('d| would) do anything for you",
+        r"you('re| are) (perfect|everything|my queen|my goddess)",
+        r"i worship you",
+        r"please (notice|love|marry) me",
+        r"i('m| am) your (biggest fan|simp|servant)",
+    ]
+    for pattern in simp_patterns:
+        if re.search(pattern, text_lower):
+            logger.debug(f"[Pattern] Simp behavior detected: '{text[:50]}'")
+            return ("simp", 2, modifiers)
+    
+    # === STALKER/CREEPY CHECK ===
+    stalker_patterns = [
+        r"where do you live",
+        r"what('s| is) your (address|location|ip)",
+        r"i('ve| have) been (watching|following|stalking)",
+        r"i know where you",
+        r"i('ll| will) find you",
+    ]
+    for pattern in stalker_patterns:
+        if re.search(pattern, text_lower):
+            logger.debug(f"[Pattern] Stalker/creepy detected: '{text[:50]}'")
+            return ("stalker", 3, modifiers)
+    
     # === GENERAL INQUIRY CHECK ===
     # "do you know where X is?" / "can you tell me about Y?"
-    # Questions that aren't obviously affection/complaint but are asking for info
+    # NOTE: This runs AFTER complex patterns so affection/insult get caught first
     if modifiers["is_question"]:
         inquiry_markers = [
-            r"do you know",
-            r"have you (seen|heard)",
-            r"where (is|are)",
-            r"who (is|are)",
-            r"when",
-            r"how.*(?<!love|like|hate|think)",  # exclude opinion questions
+            r"^do you know\b",
+            r"\bhave you (seen|heard)\b",
+            r"\bwhere (is|are|did)\b",
+            r"^who (is|are)\b",
+            r"^when\b",
         ]
         for pattern in inquiry_markers:
             if re.search(pattern, text_lower):
-                # Make sure it's not a complex pattern that we'll catch later
-                if not re.search(AFFECTION_WORDS, text_lower) and not re.search(INSULT_WORDS, text_lower):
-                    logger.debug(f"[Pattern] General inquiry detected: '{text[:50]}'")
-                    return ("inquiry", 1, modifiers)
+                logger.debug(f"[Pattern] General inquiry detected: '{text[:50]}'")
+                return ("inquiry", 1, modifiers)
     
     # === HEDGED INSULT CHECK ===
     # "I think you might be annoying" = still an insult, just softened
