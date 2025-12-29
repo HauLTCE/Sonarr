@@ -66,11 +66,11 @@ QUESTION_STARTER_PATTERN = r"^(" + "|".join(QUESTION_STARTERS) + r")\b"
 
 NEGATIVE_ACTION_WORDS = r"\b(hate|hates|hating|hated|dislike|dislikes|despise|despises|loathe|loathes|detest|detests|cant stand|can't stand|sick of|tired of|annoyed by|annoyed with|mad at|angry at|angry with|pissed at|pissed off at|furious at|furious with)\b"
 
-INSULT_WORDS = r"\b(stupid|dumb|idiot|moron|retard|retarded|loser|pathetic|useless|worthless|trash|garbage|terrible|awful|ugly|suck|sucks|sucked|worst|brainless|braindead|brain dead|moronic|idiotic|piece of shit|pos|dumbass|asshole|bastard|bitch|dick|crap|crappy|annoying|irritating|obnoxious|insufferable|unbearable|intolerable|lame|boring|basic)\b"
+INSULT_WORDS = r"\b(stupid|dumb|idiot|moron|retard|retarded|loser|pathetic|useless|worthless|trash|garbage|terrible|awful|ugly|suck|sucks|sucked|worst|brainless|braindead|brain dead|moronic|idiotic|piece of shit|pos|dumbass|asshole|bastard|bitch|dick|crap|crappy|annoying|irritating|obnoxious|insufferable|unbearable|intolerable|lame|boring|basic|mean|weird|crazy|insane|dull|dense|slow|hopeless|incompetent|ridiculous|absurd|foolish|silly|naive|ignorant|rude|nasty|vile|disgusting|repulsive|gross|creepy|strange|odd|nuts|mental|psycho|delusional)\b"
 
 THREAT_WORDS = r"\b(kill|hurt|beat|fight|destroy|murder|attack|punch|hit|slap|kick|stab|shoot|strangle|choke|die|dead|death)\b"
 
-AFFECTION_WORDS = r"\b(love|loves|loving|loved|like|likes|liked|adore|adores|adored|miss|misses|missed|missing|care about|cares about|appreciate|appreciates|cherish|cherishes|fond of)\b"
+AFFECTION_WORDS = r"\b(love|loves|loving|loved|like|likes|liked|adore|adores|adored|miss|misses|missed|missing|care about|cares about|appreciate|appreciates|cherish|cherishes|fond of|admire|admires|admired|admiring|respect|respects|respected|respecting|trust|trusts|trusted|trusting|enjoy|enjoys|enjoyed|enjoying|fancy|fancies|fancied)\b"
 
 HELP_WORDS = r"\b(help|helps|helping|helped|assist|assists|assisting|assisted|support|supports|save|saves|need|needs|needed)\b"
 
@@ -83,13 +83,12 @@ QUESTION_WORDS = r"\b(what|why|how|when|where|who|which|can|could|would|will|sho
 # source/target can be: "self", "target", "third", "any", or None
 
 COMPLEX_PATTERNS = [
-    # === INSULTS ===
-    # "I hate you" / "We dislike you" -> insult
-    ("insult", "self", NEGATIVE_ACTION_WORDS, "target", "insult"),
-    # "You are stupid" / "You're an idiot" -> insult
-    ("insult", "target", INSULT_WORDS, None, "insult"),
-    # "You suck" / "You're trash" -> insult
-    ("insult", "target", NEGATIVE_ACTION_WORDS, None, "insult"),
+    # === CONFUSION/DENIAL (Reverse accusation) - CHECK FIRST ===
+    # These are more specific (have both source AND target) so check before simpler patterns
+    # "You hate me" / "The bot hates me" -> confusion (not an insult TO the user)
+    ("confusion", "target", NEGATIVE_ACTION_WORDS, "self", "confusion"),
+    # "You think I'm stupid" -> confusion
+    ("confusion", "target", INSULT_WORDS, "self", "confusion"),
     
     # === VENT (Self-deprecation) ===
     # "I hate myself" / "I am stupid" -> vent
@@ -98,11 +97,19 @@ COMPLEX_PATTERNS = [
     # "I want to die" / "I hate my life" -> vent
     ("vent", "self", THREAT_WORDS, "self", "vent"),
     
-    # === CONFUSION/DENIAL (Reverse accusation) ===
-    # "You hate me" / "The bot hates me" -> confusion (not an insult TO the user)
-    ("confusion", "target", NEGATIVE_ACTION_WORDS, "self", "confusion"),
-    # "You think I'm stupid" -> confusion
-    ("confusion", "target", INSULT_WORDS, "self", "confusion"),
+    # === GOSSIP (about third parties) - CHECK BEFORE GENERIC INSULTS ===
+    # "I hate him" / "She's so stupid" -> gossip engagement
+    ("gossip_third", "self", NEGATIVE_ACTION_WORDS, "third", "gossip"),
+    ("gossip_third", "third", INSULT_WORDS, None, "gossip"),
+    ("gossip_third", "third", NEGATIVE_ACTION_WORDS, None, "gossip"),
+    
+    # === INSULTS (less specific - no target requirement for some) ===
+    # "I hate you" / "We dislike you" -> insult
+    ("insult", "self", NEGATIVE_ACTION_WORDS, "target", "insult"),
+    # "You are stupid" / "You're an idiot" -> insult
+    ("insult", "target", INSULT_WORDS, None, "insult"),
+    # "You suck" / "You're trash" -> insult
+    ("insult", "target", NEGATIVE_ACTION_WORDS, None, "insult"),
     
     # === AFFECTION ===
     # "I love you" / "I like you" -> affection
@@ -124,15 +131,9 @@ COMPLEX_PATTERNS = [
     # "Help me" / "I need help" -> help
     ("help", "self", HELP_WORDS, None, "help"),
     
-    # === QUESTION (directed at bot) ===
+    # === QUESTION (directed at bot) - LOWEST PRIORITY ===
     # "What do you think" / "How do you feel" -> question
     ("question", "target", QUESTION_WORDS, None, "question"),
-    
-    # === GOSSIP (about third parties) ===
-    # "I hate him" / "She's so stupid" -> gossip engagement
-    ("gossip_third", "self", NEGATIVE_ACTION_WORDS, "third", "gossip"),
-    ("gossip_third", "third", INSULT_WORDS, None, "gossip"),
-    ("gossip_third", "third", NEGATIVE_ACTION_WORDS, None, "gossip"),
 ]
 
 
@@ -258,8 +259,9 @@ def pattern_match(text: str) -> tuple:
         if source_pattern:
             regex_parts.append(f"({source_pattern})")
         
-        # Filler: allow up to 10 words between parts (non-greedy)
-        filler = r"(?:\s+\S+){0,10}?\s+"
+        # Filler: allow contractions (you're, I'm) and up to 10 words between parts
+        # Pattern: optional contraction suffix + optional words + flexible spacing
+        filler = r"(?:['`]?\w*\s+\S*){0,10}?\s*"
         
         if regex_parts:
             regex_parts.append(filler)
