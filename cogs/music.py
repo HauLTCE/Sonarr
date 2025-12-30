@@ -192,14 +192,28 @@ class Music(commands.Cog):
             await self.process_next_song(ctx)
 
     async def disconnect_timer(self, ctx):
+        """Disconnect the bot after 5 minutes of inactivity."""
+        guild = ctx.guild
+        channel = ctx.channel
         await asyncio.sleep(300)
-        if ctx.voice_client and ctx.voice_client.is_connected() and not ctx.voice_client.is_playing() and len(self.music_queue) == 0:
-            self.music_queue.clear()
-            self.loop_mode = 'off'
-            self.current_track = None
-            await ctx.voice_client.disconnect()
-            await ctx.send("🛑 Stopped and disconnected due to inactivity.", delete_after=30)
-            await self.update_status()
+        
+        # Use guild.voice_client instead of ctx.voice_client (more reliable)
+        voice_client = guild.voice_client if guild else None
+        
+        if voice_client and voice_client.is_connected():
+            # Check if still inactive (not playing and queue empty)
+            if not voice_client.is_playing() and len(self.music_queue) == 0:
+                self.music_queue.clear()
+                self.loop_mode = 'off'
+                self.loop_playlist_backup = []
+                self.current_track = None
+                await voice_client.disconnect()
+                try:
+                    await channel.send("🛑 Stopped and disconnected due to inactivity.", delete_after=30)
+                except Exception:
+                    pass
+                await self.update_status()
+                logger.info(f"[Music] Disconnected from {guild.name} due to inactivity")
 
     @commands.command()
     @is_music_channel()
@@ -491,6 +505,119 @@ class Music(commands.Cog):
             return
         msg = "📂 **Saved Playlists:**\n" + "\n".join(f"- {name}" for name in self.saved_playlists)
         await ctx.send(msg)
+
+    @commands.command()
+    @is_music_channel()
+    async def playlist_add(self, ctx, name: str, *, query: str):
+        """Add a song to a specific saved playlist by name."""
+        if name not in self.saved_playlists:
+            await ctx.send(f"❌ Playlist **{name}** not found. Use `!playlist_list` to see available playlists.")
+            return
+        
+        async with ctx.typing():
+            try:
+                info = await YTDLSource.get_info(query, loop=self.bot.loop)
+                
+                if isinstance(info, list):
+                    # Multiple songs from a playlist URL
+                    added_count = 0
+                    for entry in info[:50]:  # Limit to 50 songs
+                        if entry and entry.get('url'):
+                            title = entry.get('title', 'Unknown')
+                            url = entry.get('url')
+                            self.saved_playlists[name].append((title, url))
+                            added_count += 1
+                    
+                    if self._save_playlists_atomic():
+                        await ctx.send(f"✅ Added **{added_count}** songs to playlist **{name}**.")
+                    else:
+                        await ctx.send(f"❌ Failed to save playlist **{name}**.")
+                else:
+                    title = info['title']
+                    url = info['url']
+                    self.saved_playlists[name].append((title, url))
+                    
+                    if self._save_playlists_atomic():
+                        await ctx.send(f"✅ Added **{title}** to playlist **{name}** (Position {len(self.saved_playlists[name])}).")
+                    else:
+                        await ctx.send(f"❌ Failed to save playlist **{name}**.")
+            except Exception as e:
+                await ctx.send(f"❌ Could not find/add song: {e}")
+
+    @commands.command()
+    @is_music_channel()
+    async def playlist_remove(self, ctx, name: str, index: int):
+        """Remove a song from a saved playlist by index (1-based)."""
+        if name not in self.saved_playlists:
+            await ctx.send(f"❌ Playlist **{name}** not found.")
+            return
+        
+        playlist = self.saved_playlists[name]
+        if not playlist:
+            await ctx.send(f"❌ Playlist **{name}** is empty.")
+            return
+        
+        if index < 1 or index > len(playlist):
+            await ctx.send(f"❌ Invalid index. Playlist **{name}** has {len(playlist)} songs (use 1-{len(playlist)}).")
+            return
+        
+        removed = playlist.pop(index - 1)
+        removed_title = removed[0] if isinstance(removed, (tuple, list)) else removed
+        
+        if self._save_playlists_atomic():
+            await ctx.send(f"🗑️ Removed **{removed_title}** from playlist **{name}**.")
+        else:
+            await ctx.send(f"❌ Failed to save playlist **{name}**.")
+
+    @commands.command()
+    @is_music_channel()
+    async def playlist_view(self, ctx, name: str):
+        """View all songs in a saved playlist."""
+        if name not in self.saved_playlists:
+            await ctx.send(f"❌ Playlist **{name}** not found.")
+            return
+        
+        playlist = self.saved_playlists[name]
+        if not playlist:
+            await ctx.send(f"📂 Playlist **{name}** is empty.")
+            return
+        
+        # Paginate if playlist is long
+        items_per_page = 10
+        total_pages = (len(playlist) - 1) // items_per_page + 1
+        
+        desc = ""
+        for i, item in enumerate(playlist[:items_per_page], start=1):
+            title = item[0] if isinstance(item, (tuple, list)) else item
+            url = item[1] if isinstance(item, (tuple, list)) and len(item) > 1 else None
+            if url:
+                desc += f"`{i}.` [{title}]({url})\n"
+            else:
+                desc += f"`{i}.` {title}\n"
+        
+        embed = discord.Embed(
+            title=f"📂 Playlist: {name} ({len(playlist)} songs)",
+            description=desc,
+            color=0x00ff00
+        )
+        if total_pages > 1:
+            embed.set_footer(text=f"Page 1/{total_pages} - Showing first {items_per_page} songs")
+        await ctx.send(embed=embed)
+
+    @commands.command()
+    @is_music_channel()
+    async def playlist_delete(self, ctx, name: str):
+        """Delete a saved playlist entirely."""
+        if name not in self.saved_playlists:
+            await ctx.send(f"❌ Playlist **{name}** not found.")
+            return
+        
+        del self.saved_playlists[name]
+        
+        if self._save_playlists_atomic():
+            await ctx.send(f"🗑️ Playlist **{name}** deleted.")
+        else:
+            await ctx.send(f"❌ Failed to delete playlist **{name}**.")
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):

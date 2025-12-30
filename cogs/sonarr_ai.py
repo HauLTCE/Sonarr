@@ -56,6 +56,12 @@ from sonarr import (
 )
 from sonarr.keywords import NEGATIVE_KEYWORDS
 
+# Classification logger for debugging data
+from utils.classification_logger import (
+    log_classify, log_misgender, log_ai_call, 
+    log_trigger, log_response, log_pattern, log_error
+)
+
 warnings.filterwarnings("ignore", message=".*google.generativeai.*")
 
 try:
@@ -249,13 +255,15 @@ class SonarrAI(commands.Cog):
             
             guild = self.bot.guilds[0]
             bot_id = str(self.bot.user.id)
-            
+
+            loop = asyncio.get_running_loop()
             potential_targets = []
             for member in guild.members:
                 if member.bot:
                     continue
-                wallet = self.economy_manager.get_balance(member.id, "wallet")
-                bank = self.economy_manager.get_balance(member.id, "bank")
+                wallet = await loop.run_in_executor(None, self.economy_manager.get_balance, member.id, "wallet")
+                bank = await loop.run_in_executor(None, self.economy_manager.get_balance, member.id, "bank")
+                
                 total = wallet + bank
                 if total > 100:
                     potential_targets.append((member, wallet, bank, total))
@@ -429,137 +437,117 @@ class SonarrAI(commands.Cog):
             self.user_ai_calls[user_id] = []
         self.user_ai_calls[user_id].append(now)
 
-    # ================== AI CLASSIFICATION ==================
+    # ================== AI CLASSIFICATION (PARALLEL PROCESSING) ==================
     
-    async def classify_and_respond_with_ai(
-        self, 
-        message_content: str, 
-        user_id: str = None, 
-        guild_id: int = None, 
-        reply_context: str = None
-    ) -> str:
-        """Smart classifier: pattern matching → keywords → cache → AI (with caching)."""
-        
-        word_count = self.classifier.count_words(message_content)
-        
-        # Empty message
-        if word_count == 0:
-            response = random.choice(EMPTY_MESSAGE_RESPONSES)
-            logger.info(f"[Classify] EMPTY MESSAGE → {response[:50]}")
-            return response
-        
-        # Check for misgendering FIRST (even for short messages)
-        from sonarr.patterns import detect_misgendering, detect_correct_pronouns
-        misgender_term = detect_misgendering(message_content)
-        if misgender_term:
-            # Record the misgendering for potential callout later
-            try:
-                db.record_misgendering(user_id, str(guild_id), misgender_term)
-                logger.info(f"[MisgenderMemory] Recorded: {user_id} used '{misgender_term}' in guild {guild_id}")
-            except Exception as e:
-                logger.error(f"[MisgenderMemory] Error recording: {e}")
-            
-            response = get_gender_correction(misgender_term)
-            if response:
-                logger.info(f"[Classify] MISGENDERED ({word_count}w): '{message_content[:40]}' → {misgender_term}")
-                return response
-        
-        # Check for correct pronoun usage - potential callout opportunity
-        if detect_correct_pronouns(message_content):
-            # If this user previously misgendered, clear their memory (they corrected themselves)
-            try:
-                misgendered_users = db.get_misgendered_users(str(guild_id), hours_back=24)
-                user_in_memory = any(mu["user_id"] == user_id for mu in misgendered_users)
-                if user_in_memory:
-                    db.clear_misgendering_memory(user_id, str(guild_id))
-                    logger.info(f"[SelfCorrect] {user_id} used correct pronouns, cleared their misgendering memory")
-                elif random.random() < 0.20:
-                    # 20% chance to call out others who misgendered (excluding current user)
-                    available_targets = [mu for mu in misgendered_users if mu["user_id"] != user_id]
-                    
-                    if available_targets:
-                        # Pick the most recent misgenderer
-                        target = available_targets[0]
-                        callout_response = get_callout_response(target["user_id"], target["term_used"])
-                        logger.info(f"[Callout] {user_id} used correct pronouns, calling out {target['user_id']} for '{target['term_used']}'")
-                        return callout_response
-            except Exception as e:
-                logger.error(f"[CorrectPronoun] Error: {e}")
-        
-        # Very short messages - simple keyword matching
-        if word_count <= 2:
-            keyword_cat = self.classifier.keyword_classify(message_content)
-            if keyword_cat:
-                logger.info(f"[Classify] KEYWORD ({word_count}w): '{message_content[:40]}' → {keyword_cat}")
-                return random.choice(COLD_RESPONSES.get(keyword_cat, COLD_RESPONSES["random"]))
-            else:
-                fallback_cat = random.choice(["random", "bored", "confusion"])
-                logger.info(f"[Classify] SHORT UNKNOWN ({word_count}w): '{message_content[:40]}' → {fallback_cat}")
-                return random.choice(COLD_RESPONSES.get(fallback_cat, COLD_RESPONSES["random"]))
-        
-        # Use smart classification for longer messages
-        smart_cat, smart_conf = self.classifier.smart_classify(message_content)
-        logger.debug(f"[Classify] Smart classify: {smart_cat}={smart_conf}")
-        
-        if smart_cat and smart_conf >= 2:
-            # Special handling for misgendering - use specific term response
-            if smart_cat == "misgendered":
-                # Get the specific term from modifiers
-                modifiers = getattr(self.classifier, '_last_modifiers', {})
-                misgender_term = modifiers.get("misgendered")
-                if misgender_term:
-                    response = get_gender_correction(misgender_term)
-                    if response:
-                        logger.info(f"[Classify] MISGENDERED ({word_count}w): '{message_content[:40]}' → {misgender_term}")
-                        return response
-            
-            if smart_conf >= 3:
-                logger.info(f"[Classify] PATTERN ({word_count}w, conf={smart_conf}): '{message_content[:40]}' → {smart_cat}")
-            else:
-                logger.info(f"[Classify] KEYWORD ({word_count}w, conf={smart_conf}): '{message_content[:40]}' → {smart_cat}")
-            return random.choice(COLD_RESPONSES.get(smart_cat, COLD_RESPONSES["random"]))
-        
-        # Check cache
-        msg_hash = self.classifier.hash_message(message_content)
-        content_words = self.classifier.extract_content_words(message_content)
-        logger.debug(f"[Cache] Hash: {msg_hash}, checking...")
-        
+    async def _classify_pattern(self, message_content: str, word_count: int) -> dict:
+        """Pattern matching classification (runs in thread pool to avoid blocking)."""
         try:
-            cached_cat = db.get_cached_category(msg_hash, guild_id)
-            logger.debug(f"[Cache] Result: {cached_cat}")
+            # Run CPU-bound regex/pattern matching in executor to not block event loop
+            loop = asyncio.get_running_loop()
+            smart_cat, smart_conf = await loop.run_in_executor(
+                None,  # Use default ThreadPoolExecutor
+                self.classifier.smart_classify,
+                message_content
+            )
+            modifiers = getattr(self.classifier, '_last_modifiers', {})
+            return {
+                "source": "pattern",
+                "category": smart_cat,
+                "confidence": smart_conf,
+                "modifiers": modifiers,
+                "word_count": word_count
+            }
         except Exception as e:
-            logger.error(f"[Cache] Error: {e}")
-            cached_cat = None
-        
-        if cached_cat:
-            logger.info(f"[Cache] HIT ({word_count}w): '{message_content[:40]}' → {cached_cat} [words: {content_words[:5]}]")
-            return random.choice(COLD_RESPONSES.get(cached_cat, COLD_RESPONSES["random"]))
-        
-        # Try fuzzy search
+            logger.error(f"[Parallel] Pattern error: {e}")
+            return {"source": "pattern", "category": None, "confidence": 0, "modifiers": {}}
+    
+    async def _classify_cache(self, message_content: str, guild_id: int) -> dict:
+        """Cache lookup classification (runs in thread pool for blocking DB calls)."""
         try:
-            fuzzy_cat = db.fuzzy_search_category(content_words)
+            loop = asyncio.get_running_loop()
+            
+            # Run blocking DB operations in executor
+            msg_hash = await loop.run_in_executor(
+                None, self.classifier.hash_message, message_content
+            )
+            content_words = await loop.run_in_executor(
+                None, self.classifier.extract_content_words, message_content
+            )
+            
+            # DB call - blocking, must use executor
+            cached_cat = await loop.run_in_executor(
+                None, db.get_cached_category, msg_hash, guild_id
+            )
+            
+            if cached_cat:
+                return {
+                    "source": "cache",
+                    "category": cached_cat,
+                    "confidence": 5,  # High confidence for exact cache hit
+                    "hash": msg_hash,
+                    "words": content_words
+                }
+            
+            # Try fuzzy search - also blocking DB call
+            fuzzy_cat = await loop.run_in_executor(
+                None, db.fuzzy_search_category, content_words
+            )
             if fuzzy_cat:
-                logger.info(f"[Cache] FUZZY ({word_count}w): '{message_content[:40]}' → {fuzzy_cat} [words: {content_words[:5]}]")
-                return random.choice(COLD_RESPONSES.get(fuzzy_cat, COLD_RESPONSES["random"]))
+                return {
+                    "source": "fuzzy",
+                    "category": fuzzy_cat,
+                    "confidence": 3,  # Medium confidence for fuzzy match
+                    "hash": msg_hash,
+                    "words": content_words
+                }
+            
+            return {"source": "cache", "category": None, "confidence": 0, "hash": msg_hash, "words": content_words}
         except Exception as e:
-            logger.error(f"[Cache] Fuzzy error: {e}")
-        
-        # Rate limit check
-        logger.debug(f"[RateLimit] Checking for {user_id}")
+            logger.error(f"[Parallel] Cache error: {e}")
+            return {"source": "cache", "category": None, "confidence": 0}
+    
+    async def _classify_pronouns(self, message_content: str, user_id: str, guild_id: int) -> dict:
+        """Check for pronoun usage patterns (runs in thread pool for blocking operations)."""
+        try:
+            from sonarr.patterns import detect_correct_pronouns
+            
+            loop = asyncio.get_running_loop()
+            
+            # CPU-bound regex check - run in executor
+            correct_pronouns = await loop.run_in_executor(
+                None, detect_correct_pronouns, message_content
+            )
+            
+            if correct_pronouns:
+                # Blocking DB call - run in executor
+                misgendered_users = await loop.run_in_executor(
+                    None, db.get_misgendered_users, str(guild_id), 24  # hours_back=24
+                )
+                user_in_memory = any(mu["user_id"] == user_id for mu in misgendered_users)
+                available_targets = [mu for mu in misgendered_users if mu["user_id"] != user_id]
+                
+                return {
+                    "source": "pronouns",
+                    "correct_usage": True,
+                    "user_in_memory": user_in_memory,
+                    "callout_targets": available_targets
+                }
+            return {"source": "pronouns", "correct_usage": False}
+        except Exception as e:
+            logger.error(f"[Parallel] Pronoun check error: {e}")
+            return {"source": "pronouns", "correct_usage": False}
+    
+    async def _classify_ai(self, message_content: str, user_id: str, guild_id: int, reply_context: str, word_count: int) -> dict:
+        """AI classification (runs conditionally, not always)."""
+        # Rate limit check first
         if user_id and not self.check_user_ai_limit(user_id):
-            logger.warning(f"[RateLimit] USER BLOCKED: {user_id} ({word_count}w): '{message_content[:40]}'")
-            return random.choice(self.rate_limit_responses)
+            return {"source": "ai", "category": None, "rate_limited": True}
         
-        # AI availability check
-        logger.debug(f"[Gemini] Checking availability: client={bool(self.genai_client)}, available={self.ai_available}")
         if not self.genai_client or not self.ai_available:
-            logger.warning(f"[Gemini] NO-API fallback ({word_count}w): '{message_content[:40]}' → random")
-            return random.choice(COLD_RESPONSES["random"])
+            return {"source": "ai", "category": None, "unavailable": True}
         
         if user_id:
             self.record_user_ai_call(user_id)
-        
-        logger.info(f"[Gemini] API CALL ({word_count}w): '{message_content[:40]}' [words: {content_words[:5]}]")
         
         # API call with retry logic
         total_keys = len(GEMINI_API_KEYS)
@@ -592,20 +580,14 @@ User Message:
 
 Reply with ONLY the category name, nothing else."""
 
-                logger.debug("[Gemini] Sending request...")
-                try:
-                    response = await asyncio.wait_for(
-                        self.genai_client.aio.models.generate_content(
-                            model=self.current_model,
-                            contents=prompt
-                        ),
-                        timeout=15.0
-                    )
-                except asyncio.TimeoutError:
-                    logger.warning(f"[Gemini] Timeout after 15s for: '{message_content[:30]}'")
-                    raise Exception("API timeout")
+                response = await asyncio.wait_for(
+                    self.genai_client.aio.models.generate_content(
+                        model=self.current_model,
+                        contents=prompt
+                    ),
+                    timeout=15.0
+                )
                 
-                logger.debug("[Gemini] Got response")
                 category = response.text.strip().lower().replace("category:", "").strip()
                 
                 final_cat = None
@@ -624,64 +606,248 @@ Reply with ONLY the category name, nothing else."""
                         final_cat = "confusion"
                     else:
                         final_cat = "random"
-                    logger.info(f"[Gemini] Fallback ({word_count}w): '{message_content[:30]}' → {final_cat}")
-                
-                db.cache_category(msg_hash, final_cat, guild_id, content_words=content_words)
-                logger.info(f"[Gemini] Classified: '{message_content[:30]}' → {final_cat}")
                 
                 self.ai_available = True
-                return random.choice(COLD_RESPONSES[final_cat])
+                return {
+                    "source": "ai",
+                    "category": final_cat,
+                    "confidence": 4,  # AI gets reasonable confidence
+                    "model": self.current_model
+                }
                     
             except Exception as e:
                 error_str = str(e)
-                error_type = type(e).__name__
-                
-                if "429" in error_str or "Resource has been exhausted" in error_str:
-                    error_code = "429-RateLimit"
-                elif "quota" in error_str.lower():
-                    error_code = "QuotaExceeded"
-                elif "403" in error_str:
-                    error_code = "403-Forbidden"
-                elif "404" in error_str:
-                    error_code = "404-NotFound"
-                elif "401" in error_str:
-                    error_code = "401-Unauthorized"
-                else:
-                    error_code = error_type
-                
-                is_retryable = any(x in error_str for x in ["429", "quota", "rate", "403", "Resource has been exhausted"])
+                is_retryable = any(x in error_str for x in ["429", "quota", "rate", "403", "Resource has been exhausted", "timeout"])
                 
                 if is_retryable:
                     attempts += 1
-                    logger.warning(f"[Gemini] {error_code} on key {self.current_key_index + 1}/{total_keys}, model: {self.current_model} ({attempts}/{max_attempts})")
-                    
                     self.current_model_index = (self.current_model_index + 1) % total_models
                     
                     if self.current_model_index == 0:
                         self.current_key_index = (self.current_key_index + 1) % total_keys
                         new_key = GEMINI_API_KEYS[self.current_key_index]
                         self.genai_client = genai.Client(api_key=new_key)
-                        logger.warning(f"[Gemini] Rotating to key {self.current_key_index + 1}/{total_keys}")
                     
                     self.current_model = self.models[self.current_model_index]
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(1)
                     continue
                 else:
-                    logger.error(f"[Gemini] Non-retryable error ({error_code}): {error_str[:150]}")
-                    return random.choice(COLD_RESPONSES["random"])
+                    return {"source": "ai", "category": None, "error": str(e)}
         
-        logger.critical(f"[Gemini] All {total_keys} keys and {total_models} models exhausted after {attempts} attempts")
         self.ai_available = False
-        self.ai_exhausted_time = datetime.now(timezone.utc)
-        return "⚠️ AI quota exhausted on all keys. Try again later."
+        return {"source": "ai", "category": None, "exhausted": True}
+
+    async def _decide_final_category(
+        self, 
+        pattern_result: dict, 
+        cache_result: dict, 
+        pronoun_result: dict,
+        ai_result: dict,
+        word_count: int,
+        user_id: str,
+        guild_id: int
+    ) -> tuple:
+        """
+        Decision function: combine all parallel results to pick the best category.
+        
+        Returns: (category, source, response_override)
+        response_override is used for special cases like misgendering callouts
+        """
+        loop = asyncio.get_running_loop()
+        
+        # Priority 1: Pronoun self-correction (clear memory)
+        if pronoun_result.get("correct_usage") and pronoun_result.get("user_in_memory"):
+            try:
+                # Blocking DB call - run in executor
+                await loop.run_in_executor(
+                    None, db.clear_misgendering_memory, user_id, str(guild_id)
+                )
+                logger.info(f"[Decision] {user_id} used correct pronouns, cleared misgendering memory")
+            except Exception:
+                pass
+        
+        # Priority 2: Pronoun callout (20% chance if someone else misgendered)
+        if pronoun_result.get("correct_usage"):
+            targets = pronoun_result.get("callout_targets", [])
+            if targets and random.random() < 0.20:
+                target = targets[0]
+                callout = get_callout_response(target["user_id"], target["term_used"])
+                logger.info(f"[Decision] Callout triggered for {target['user_id']}")
+                return (None, "callout", callout)
+        
+        # Priority 3: High-confidence cache hit (exact match)
+        if cache_result.get("category") and cache_result.get("confidence", 0) >= 5:
+            logger.info(f"[Decision] Cache HIT: {cache_result['category']}")
+            return (cache_result["category"], "cache", None)
+        
+        # Priority 4: Pattern match with misgendering (special handling)
+        if pattern_result.get("category") == "misgendered":
+            modifiers = pattern_result.get("modifiers", {})
+            misgender_term = modifiers.get("misgendered")
+            if misgender_term:
+                response = get_gender_correction(misgender_term)
+                if response:
+                    log_misgender(
+                        "", misgender_term, user_id=user_id, 
+                        guild_id=str(guild_id) if guild_id else None,
+                        third_party=modifiers.get("third_party") is not None
+                    )
+                    return (None, "misgendered", response)
+        
+        # Determine minimum confidence based on word count
+        if word_count <= 10:
+            min_confidence = 2
+        elif word_count <= 25:
+            min_confidence = 3
+        else:
+            min_confidence = 4
+        
+        # Priority 5: Pattern match with sufficient confidence
+        if pattern_result.get("category") and pattern_result.get("confidence", 0) >= min_confidence:
+            logger.info(f"[Decision] Pattern: {pattern_result['category']} (conf={pattern_result['confidence']})")
+            return (pattern_result["category"], "pattern", None)
+        
+        # Priority 6: Fuzzy cache match
+        if cache_result.get("source") == "fuzzy" and cache_result.get("category"):
+            logger.info(f"[Decision] Fuzzy: {cache_result['category']}")
+            return (cache_result["category"], "fuzzy", None)
+        
+        # Priority 7: AI result (if available)
+        if ai_result.get("category"):
+            # Cache the AI result for future - blocking DB call, run in executor
+            try:
+                msg_hash = cache_result.get("hash")
+                content_words = cache_result.get("words", [])
+                if msg_hash:
+                    await loop.run_in_executor(
+                        None, 
+                        lambda: db.cache_category(msg_hash, ai_result["category"], guild_id, content_words=content_words)
+                    )
+            except Exception:
+                pass
+            logger.info(f"[Decision] AI: {ai_result['category']}")
+            return (ai_result["category"], "ai", None)
+        
+        # Priority 8: Low-confidence pattern (for short messages only)
+        if word_count <= 2 and pattern_result.get("category"):
+            return (pattern_result["category"], "pattern_low", None)
+        
+        # Fallback
+        if ai_result.get("rate_limited"):
+            return ("rate_limited", "rate_limited", None)
+        
+        fallback = random.choice(["random", "bored", "confusion"])
+        logger.info(f"[Decision] Fallback: {fallback}")
+        return (fallback, "fallback", None)
+
+    async def classify_and_respond_with_ai(
+        self, 
+        message_content: str, 
+        user_id: str = None, 
+        guild_id: int = None, 
+        reply_context: str = None
+    ) -> str:
+        """
+        PARALLEL classifier: runs pattern, cache, and AI checks concurrently,
+        then uses a decision function to pick the best result.
+        """
+        loop = asyncio.get_running_loop()
+        
+        # Run blocking text processing in executor
+        word_count = await loop.run_in_executor(
+            None, self.classifier.count_words, message_content
+        )
+        
+        # Empty message - handle immediately
+        if word_count == 0:
+            response = random.choice(EMPTY_MESSAGE_RESPONSES)
+            logger.info(f"[Classify] EMPTY MESSAGE → {response[:50]}")
+            log_classify(message_content, "empty", "empty", user_id=user_id, guild_id=str(guild_id) if guild_id else None, word_count=0)
+            return response
+        
+        # Very short messages (1-2 words) - quick keyword check, skip AI
+        if word_count <= 2:
+            # Run blocking keyword classification in executor
+            keyword_cat = await loop.run_in_executor(
+                None, self.classifier.keyword_classify, message_content
+            )
+            if keyword_cat:
+                logger.info(f"[Classify] KEYWORD ({word_count}w): '{message_content[:40]}' → {keyword_cat}")
+                log_classify(message_content, keyword_cat, "keyword", user_id=user_id, guild_id=str(guild_id) if guild_id else None, word_count=word_count)
+                return random.choice(COLD_RESPONSES.get(keyword_cat, COLD_RESPONSES["random"]))
+            else:
+                fallback_cat = random.choice(["random", "bored", "confusion"])
+                logger.info(f"[Classify] SHORT UNKNOWN ({word_count}w): '{message_content[:40]}' → {fallback_cat}")
+                log_classify(message_content, fallback_cat, "fallback", user_id=user_id, guild_id=str(guild_id) if guild_id else None, word_count=word_count)
+                return random.choice(COLD_RESPONSES.get(fallback_cat, COLD_RESPONSES["random"]))
+        
+        # ========== PARALLEL PROCESSING ==========
+        # Run pattern, cache, and pronoun checks in parallel
+        # AI runs conditionally based on whether we need it
+        
+        logger.debug(f"[Parallel] Starting parallel classification for: '{message_content[:40]}'")
+        
+        # First wave: quick local checks (pattern, cache, pronouns)
+        pattern_task = asyncio.create_task(self._classify_pattern(message_content, word_count))
+        cache_task = asyncio.create_task(self._classify_cache(message_content, guild_id))
+        pronoun_task = asyncio.create_task(self._classify_pronouns(message_content, user_id, guild_id))
+        
+        pattern_result, cache_result, pronoun_result = await asyncio.gather(
+            pattern_task, cache_task, pronoun_task
+        )
+        
+        logger.debug(f"[Parallel] Pattern: {pattern_result.get('category')}, Cache: {cache_result.get('category')}, Pronoun: {pronoun_result.get('correct_usage')}")
+        
+        # Determine if we need AI
+        # Skip AI if we have a high-confidence local result
+        need_ai = True
+        
+        if cache_result.get("confidence", 0) >= 5:  # Exact cache hit
+            need_ai = False
+        elif pattern_result.get("category") == "misgendered":  # Misgendering always wins
+            need_ai = False
+        elif pattern_result.get("confidence", 0) >= 3:  # Strong pattern match
+            need_ai = False
+        
+        # Run AI if needed
+        ai_result = {"source": "ai", "category": None}
+        if need_ai:
+            logger.debug("[Parallel] Running AI classification...")
+            ai_result = await self._classify_ai(message_content, user_id, guild_id, reply_context, word_count)
+        
+        # ========== DECISION ==========
+        category, source, response_override = await self._decide_final_category(
+            pattern_result, cache_result, pronoun_result, ai_result,
+            word_count, user_id, guild_id
+        )
+        
+        # Special case: direct response override (misgendering, callouts)
+        if response_override:
+            return response_override
+        
+        # Special case: rate limited
+        if category == "rate_limited":
+            return random.choice(self.rate_limit_responses)
+        
+        # Log the classification
+        log_classify(
+            message_content, category, source,
+            confidence=pattern_result.get("confidence", 0) if source == "pattern" else None,
+            user_id=user_id, guild_id=str(guild_id) if guild_id else None, word_count=word_count
+        )
+        
+        logger.info(f"[Classify] FINAL ({word_count}w, source={source}): '{message_content[:40]}' → {category}")
+        return random.choice(COLD_RESPONSES.get(category, COLD_RESPONSES["random"]))
 
     # ================== DEBT ENFORCEMENT ==================
     
     async def check_debt_enforcement(self, message) -> str | None:
         """Check if user has overdue debt and return an enforcement response."""
         user_id = str(message.author.id)
+        loop = asyncio.get_running_loop()
+
+        loan = await loop.run_in_executor(None, db.get_loan, user_id)
         
-        loan = db.get_loan(user_id)
         if not loan or loan.get("status") != "active":
             return None
         
@@ -697,19 +863,19 @@ Reply with ONLY the category name, nothing else."""
         if days_overdue < 3:
             # Early stage: gentle reminders
             response = random.choice(DEBT_EARLY_RESPONSES)
-            db.increment_late_notice(user_id)
+            await loop.run_in_executor(None, db.increment_late_notice, user_id)
             return response.format(debt=debt)
         
         elif days_overdue < 7:
             # Medium stage: start taking action
             response = random.choice(DEBT_MEDIUM_RESPONSES)
-            db.increment_late_notice(user_id)
+            await loop.run_in_executor(None, db.increment_late_notice, user_id)
             return response.format(debt=debt, days=int(days_overdue))
         
         else:
             # Severe stage: serious consequences
             response = random.choice(DEBT_SEVERE_RESPONSES)
-            db.increment_late_notice(user_id)
+            await loop.run_in_executor(None, db.increment_late_notice, user_id)
             logger.warning(f"[DebtEnforcement] Severe enforcement on {user_id}, {int(days_overdue)} days overdue, ${debt} owed")
             return response.format(debt=debt, days=int(days_overdue))
 
@@ -767,8 +933,13 @@ Reply with ONLY the category name, nothing else."""
         mentioned_users = [u for u in message.mentions if u != self.bot.user and not u.bot]
         if mentioned_users and random.random() < 0.10:
             target = random.choice(mentioned_users)
-            gossip_template = self.get_status_gossip(str(target.id))
-            gossip = gossip_template.format(target=target.display_name)
+
+            loop = asyncio.get_running_loop()
+            gossip = await loop.run_in_executor(
+                None, 
+                lambda: self.get_status_gossip(str(target.id)).format(target=target.display_name)
+            )
+            
             logger.info(f"[Gossip] Trigger: {message.author} mentioned {target.display_name}")
             logger.info(f"[Gossip] Response: '{gossip}'")
             await message.channel.send(gossip)
@@ -811,17 +982,25 @@ Reply with ONLY the category name, nothing else."""
             f"<@!{self.bot.user.id}>", ""
         ).strip()
         
-        # ========== GRACE PERIODS ==========
-        if self.time_manager.is_evening_grace() or self.time_manager.is_morning_grace():
-            if random.random() < 0.70:
+        # ========== GRACE PERIODS (GRADUAL CHANCE, BLOCKS UNLESS CURSE) ==========
+        # Check if user's message contains inappropriate words - bypass grace if so
+        content_lower = content_for_ai.lower()
+        has_curse = any(word in content_lower for word in NEGATIVE_KEYWORDS)
+        
+        if (self.time_manager.is_evening_grace() or self.time_manager.is_morning_grace()) and not has_curse:
+            # Use gradual chance based on time
+            if self.time_manager.should_trigger_grace():
                 grace_response = self.time_manager.get_grace_response()
                 try:
                     grace_type = "Evening" if self.time_manager.is_evening_grace() else "Morning"
-                    logger.info(f"[{grace_type}Grace] Trigger: {message.author} said '{content_for_ai[:60]}'")
-                    if await send_response_with_effects(grace_response, message, user_query=content_for_ai):
-                        return
+                    chance = self.time_manager.get_grace_chance()
+                    logger.info(f"[{grace_type}Grace] Triggered at {chance:.0%} chance: {message.author} said '{content_for_ai[:60]}'")
+                    await send_response_with_effects(grace_response, message, user_query=content_for_ai)
+                    return  # Block further processing
                 except Exception as e:
                     logger.error(f"[GracePeriod] Error: {e}")
+        elif has_curse and (self.time_manager.is_evening_grace() or self.time_manager.is_morning_grace()):
+            logger.info(f"[Grace] Bypassed due to curse words in: '{content_for_ai[:60]}'")
         
         # Get reply context
         reply_context = None
@@ -847,6 +1026,22 @@ Reply with ONLY the category name, nothing else."""
             if main_msg is not None and main_msg.strip():
                 logger.info(f"[OnMessage] Trigger: {message.author} said '{content_for_ai[:60]}'")
                 logger.info(f"[OnMessage] Response: '{main_msg[:100]}'")
+                
+                # Log trigger and response to classification log
+                log_trigger(
+                    content_for_ai, 
+                    str(message.author), 
+                    str(message.author.id), 
+                    guild_id=str(guild_id_int) if guild_id_int else None,
+                    channel_id=str(message.channel.id)
+                )
+                log_response(
+                    content_for_ai, 
+                    main_msg, 
+                    user_id=str(message.author.id),
+                    guild_id=str(guild_id_int) if guild_id_int else None
+                )
+                
                 await message.reply(main_msg, mention_author=False)
                 
                 # DOUBLE: effect - send followup after delay
@@ -859,6 +1054,7 @@ Reply with ONLY the category name, nothing else."""
                 logger.debug("[OnMessage] Skipping reply (reaction-only or empty response)")
         except Exception as e:
             logger.error(f"Error sending message: {e}")
+            log_error(content_for_ai, str(e), context="on_message", user_id=str(message.author.id))
 
 
 async def setup(bot):
