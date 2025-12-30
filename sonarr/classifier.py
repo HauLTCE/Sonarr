@@ -71,7 +71,18 @@ class MessageClassifier:
         scores = {}
         
         for category, keywords in self.keyword_map.items():
-            score = sum(1 for kw in keywords if kw in text)
+            score = 0
+            for kw in keywords:
+                # Use word boundary matching to avoid "yo" matching "you"
+                if ' ' in kw:
+                    # Multi-word phrases: simple substring is fine
+                    if kw in text:
+                        score += 1
+                else:
+                    # Single words: need word boundary check
+                    pattern = r'\b' + re.escape(kw) + r'\b'
+                    if re.search(pattern, text):
+                        score += 1
             if score > 0:
                 scores[category] = score
         

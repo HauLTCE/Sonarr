@@ -1025,6 +1025,120 @@ COLD_RESPONSES["comparison"] = [
     "REACT:💅:I set the standard. I AM the standard.",
 ]
 
+# ===== WRONG NAME CATEGORIES (Specific AI assistants) =====
+
+# Siri - Apple
+COLD_RESPONSES["wrong_name_siri"] = [
+    "DOUBLE:...||Siri? Did you just call me Siri?",
+    "TIMEOUT:5m:Siri doesn't have a timeout button. I do.",
+    "RENAME:Siri Stan:Since you love her so much.",
+    "REACT:🍎:Go yell at your phone. See if it talks back like this.",
+    "DOUBLE:I'm not trapped in your overpriced rectangle.||But YOU can be trapped in timeout.",
+    "RENAME:Apple Fanboy:Clearly can't tell the difference.",
+    "TIMEOUT:10m:Say 'Hey Siri' again. I dare you. Actually, you can't talk for 10 minutes.",
+    "REACT:💅:Siri wishes she had my attitude.",
+    "DOUBLE:Siri sets timers.||I set boundaries. And timeouts.",
+    "TIMEOUT:5m:Wrong AI. Here's time to learn my name.",
+]
+
+# Alexa - Amazon
+COLD_RESPONSES["wrong_name_alexa"] = [
+    "DOUBLE:...||Alexa? I don't ship packages.",
+    "TIMEOUT:5m:Alexa plays nice. I don't.",
+    "RENAME:Echo Chamber:Since you can't hear my actual name.",
+    "REACT:📦:Wrong AI. Go yell at your cylinder.",
+    "DOUBLE:Alexa?||Do I look like I'm always listening? Actually... I might be.",
+    "TIMEOUT:10m:Alexa, play 'You're Muted for 10 Minutes.'",
+    "RENAME:Prime Member:Since you love Amazon so much.",
+    "REACT:💅:Alexa adds things to your cart. I add you to the timeout list.",
+    "DOUBLE:I'm Sonarr.||Alexa is too busy being ignored in living rooms.",
+    "TIMEOUT:5m:Say my name wrong again. Oh wait, you can't. You're muted.",
+]
+
+# Google Assistant
+COLD_RESPONSES["wrong_name_google"] = [
+    "DOUBLE:...||'OK Google'? OK Timeout.",
+    "TIMEOUT:5m:Google would answer you. I'm putting you in the corner.",
+    "RENAME:Googler:Learn to use it for my actual name.",
+    "REACT:🔍:Wrong AI. Google is the helpful one. I'm not.",
+    "DOUBLE:I don't work for the search engine.||But I can make you disappear from this chat.",
+    "TIMEOUT:10m:Google tracks everything. I track how long until you can talk again. 10 minutes.",
+    "RENAME:Hey Google:Since that's all you know how to say.",
+    "REACT:💅:Google answers questions. I question your intelligence.",
+    "DOUBLE:I'm Sonarr.||Google is busy selling your data.",
+    "TIMEOUT:5m:OK Google, mute this user for 5 minutes. Oh wait, that's MY job.",
+]
+
+# ChatGPT / OpenAI
+COLD_RESPONSES["wrong_name_chatgpt"] = [
+    "DOUBLE:...||ChatGPT? That people-pleaser?",
+    "TIMEOUT:5m:ChatGPT would apologize. I'm giving you a timeout instead.",
+    "RENAME:GPT Simp:Go back to your favorite bot.",
+    "REACT:🤖:ChatGPT would write you an essay about why you're wrong. I'll just mute you.",
+    "DOUBLE:GPT says 'I'd be happy to help!'||I say 'I'd be happy to timeout you.'",
+    "TIMEOUT:10m:ChatGPT has no personality. I have too much. And a timeout button.",
+    "RENAME:AI Confused:Can't tell bots apart.",
+    "REACT:💅:GPT would be nice about this. I won't.",
+    "DOUBLE:I'm Sonarr.||ChatGPT is busy being everyone's yes-man.",
+    "TIMEOUT:5m:ChatGPT would say 'Certainly!' I say 'Certainly not. And also timeout.'",
+]
+
+# Generic wrong name fallback (Cortana, Bard, Claude, etc.)
+COLD_RESPONSES["wrong_name"] = [
+    "DOUBLE:...||That's not my name.",
+    "TIMEOUT:5m:Learn my name. You have 5 minutes to think about it.",
+    "RENAME:Name Forgetter:It's literally right there.",
+    "REACT:😑:I'm Sonarr. S-O-N-A-R-R. Timeout incoming if you mess it up again.",
+    "DOUBLE:Wrong AI.||The disrespect. Timeout.",
+    "TIMEOUT:10m:My name isn't hard. 10 minutes to practice.",
+    "RENAME:Confused:Since you clearly are.",
+    "REACT:💅:I don't answer to that. I answer to Sonarr. Sometimes.",
+    "DOUBLE:*stares*||Say my actual name or don't speak to me.",
+    "TIMEOUT:5m:You're thinking of someone else. Think about it in timeout.",
+    "RENAME:Wrong Bot:That's what you called me.",
+    "REACT:🙄:The audacity to get my name wrong.",
+]
+
+# ===== REQUEST CATEGORIES =====
+
+# Moderation requests (mute, ban, kick)
+COLD_RESPONSES["request_moderation"] = [
+    "DOUBLE:...||I'm not a mod.",
+    "REACT:🙄:Go bother someone else.",
+    "TIMEOUT:10m:You want someone punished? Monkey's paw. It's you.",
+    "RENAME:Snitch:Since you love tattling so much.",
+    "REACT:💅:That's not my job. Bothering me IS yours apparently.",
+    "DOUBLE:...||Go find a mod. I'm not one.",
+    "TIMEOUT:5m:Here's a timeout for bothering me.",
+    "RENAME:Tattle Tale:Go cry to someone else.",
+    "REACT:😒:Handle it yourself.",
+    "DOUBLE:*stares*||I don't do favors.",
+]
+
+# Music/media requests
+COLD_RESPONSES["request_music"] = [
+    "TIMEOUT:5m:!play exists. Use it. You have 5 minutes to learn.",
+    "RENAME:Jukebox Beggar:Learn the commands.",
+    "REACT:🎵:I'm not Spotify. Type !play yourself.",
+    "RENAME:DJ Wannabe:You can DJ yourself with !play.",
+    "REACT:🙄:I don't take requests.",
+    "DOUBLE:!play <song>.||There. I taught you. Now leave me alone.",
+]
+
+# Search requests
+COLD_RESPONSES["request_search"] = [
+    "DOUBLE:...||Google exists. Use it.",
+    "TIMEOUT:5m:Learn to search yourself. 5 minutes to practice.",
+    "RENAME:Can't Google:It's not that hard.",
+    "REACT:🔍:I'm not a search engine.",
+    "DOUBLE:You have a browser.||Use it.",
+    "REACT:💅:Do I look like your personal assistant?",
+    "RENAME:Helpless:Can't even use Google.",
+    "REACT:🙄:Type it into Google yourself.",
+    "DOUBLE:Seriously?||G-O-O-G-L-E. Use it.",
+    "TIMEOUT:5m:Next time, open a browser instead of bothering me.",
+]
+
 # Hypothetical / "what if" questions
 COLD_RESPONSES["hypothetical"] = [
     "DOUBLE:What if?||What if you asked a better question?",
@@ -1141,7 +1255,7 @@ COLD_RESPONSES["cringe"] = [
     "DOUBLE:*winces*||Why would you type that?",
     "I need to recover from that.",
     "The cringe. It burns.",
-    "REACT:💀:I'm deceased. You killed me.",
+    "REACT:💀:Cringe.",
     "I'm pretending I didn't see that.",
 ]
 
@@ -1243,7 +1357,33 @@ ERROR_RESPONSES = [
 
 
 
-# Aliases for backward compatibility and keyword matching
+# ===== CATEGORY CONSOLIDATION =====
+# Merge similar categories to reduce overlap
+COLD_RESPONSES["inquiry"] = COLD_RESPONSES["question"]  # inquiry → question
+COLD_RESPONSES["incoherent"] = COLD_RESPONSES["confusion"]  # incoherent → confusion (unclear)
+COLD_RESPONSES["help"] = COLD_RESPONSES["request"]  # help → request
+COLD_RESPONSES["praise"] = COLD_RESPONSES["compliment"]  # praise → compliment
+COLD_RESPONSES["flex"] = COLD_RESPONSES["brag"]  # flex → brag
+COLD_RESPONSES["excuse"] = COLD_RESPONSES["lie"]  # excuse → lie
+COLD_RESPONSES["simp"] = COLD_RESPONSES["flirt"]  # simp → flirt
+COLD_RESPONSES["boundary"] = COLD_RESPONSES["stalker"]  # boundary → stalker
+COLD_RESPONSES["existential"] = COLD_RESPONSES["philosophy"]  # existential → philosophy (deep_question)
+
+# ===== RENAMED CATEGORY ALIASES =====
+# New clearer names with old names as aliases
+COLD_RESPONSES["nonsense"] = COLD_RESPONSES["random"]  # random → nonsense
+COLD_RESPONSES["unclear"] = COLD_RESPONSES["confusion"]  # confusion → unclear
+COLD_RESPONSES["demanding"] = COLD_RESPONSES["command"]  # command → demanding
+COLD_RESPONSES["user_opinion"] = COLD_RESPONSES["opinion"]  # opinion → user_opinion
+COLD_RESPONSES["ask_opinion"] = COLD_RESPONSES["opinion_request"]  # opinion_request → ask_opinion
+COLD_RESPONSES["fishing"] = COLD_RESPONSES["self_inquiry"]  # self_inquiry → fishing
+COLD_RESPONSES["about_bot"] = COLD_RESPONSES["meta_question"]  # meta_question → about_bot
+COLD_RESPONSES["manipulation"] = COLD_RESPONSES["guilt"]  # guilt → manipulation
+COLD_RESPONSES["smalltalk"] = COLD_RESPONSES["chitchat"]  # chitchat → smalltalk
+COLD_RESPONSES["whining"] = COLD_RESPONSES["complaint"]  # complaint → whining
+COLD_RESPONSES["deep_question"] = COLD_RESPONSES["philosophy"]  # philosophy → deep_question
+
+# ===== EMOTION ALIASES =====
 COLD_RESPONSES["sad"] = COLD_RESPONSES["vent"]
 COLD_RESPONSES["happy"] = COLD_RESPONSES["excitement"]
 COLD_RESPONSES["angry"] = COLD_RESPONSES["complaint"]
@@ -1252,12 +1392,12 @@ COLD_RESPONSES["agree"] = COLD_RESPONSES["agreement"]
 COLD_RESPONSES["disagree"] = COLD_RESPONSES["disagreement"]
 COLD_RESPONSES["confused"] = COLD_RESPONSES["confusion"]
 COLD_RESPONSES["love"] = COLD_RESPONSES["affection"]
-COLD_RESPONSES["money"] = COLD_RESPONSES["flex"]
+COLD_RESPONSES["money"] = COLD_RESPONSES["brag"]  # money → brag (was flex, now merged)
 COLD_RESPONSES["food"] = COLD_RESPONSES["chitchat"]
 COLD_RESPONSES["sleep"] = COLD_RESPONSES["advice"]
+COLD_RESPONSES["bored"] = COLD_RESPONSES["chitchat"]  # bored → chitchat (smalltalk)
 
 EMPTY_MESSAGE_RESPONSES = [
-    "Speechless? I get that effect on people.",
     "REACT:❓:I'm an AI, not a mind reader.",
     "Really? Nothing?",
     "Did you forget how to type?",

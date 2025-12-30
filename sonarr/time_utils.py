@@ -55,13 +55,72 @@ class TimeManager:
     
     @classmethod
     def is_evening_grace(cls) -> bool:
-        """Check if bot is in evening grace period (9PM - 10PM in UTC+7)."""
-        return cls.get_hour() == cls.EVENING_GRACE
+        """Check if bot is in evening grace period (9:30PM - 10PM in UTC+7)."""
+        hour = cls.get_hour()
+        minute = cls.get_minute()
+        # Evening grace: 9:30 PM to 10:00 PM
+        return hour == cls.EVENING_GRACE and minute >= 30
     
     @classmethod
     def is_morning_grace(cls) -> bool:
         """Check if bot is in morning grace period (6AM - 7AM in UTC+7)."""
         return cls.get_hour() == cls.MORNING_GRACE
+    
+    @classmethod
+    def get_grace_chance(cls) -> float:
+        """
+        Get the current grace trigger chance based on time.
+        
+        Morning (6AM - 7AM):
+        - 6:00-6:30: 70% chance
+        - 6:30-6:45: Gradually decrease from 70% to 10%
+        - 6:45-7:00: 10% chance
+        
+        Evening (9:30PM - 10PM):
+        - 9:30-10:00: Gradually increase from 10% to 60%
+        
+        Returns:
+            Float between 0.0 and 1.0 representing the chance
+        """
+        hour = cls.get_hour()
+        minute = cls.get_minute()
+        
+        # Morning grace period (6AM - 7AM)
+        if hour == cls.MORNING_GRACE:
+            if minute < 30:
+                # 6:00 - 6:30: constant 70%
+                return 0.70
+            elif minute < 45:
+                # 6:30 - 6:45: gradually decrease from 70% to 10%
+                # 15 minutes to go from 0.70 to 0.10 (decrease of 0.60)
+                progress = (minute - 30) / 15  # 0.0 to 1.0
+                return 0.70 - (0.60 * progress)  # 0.70 -> 0.10
+            else:
+                # 6:45 - 7:00: constant 10%
+                return 0.10
+        
+        # Evening grace period (9:30PM - 10PM)
+        if hour == cls.EVENING_GRACE and minute >= 30:
+            # 9:30 - 10:00: gradually increase from 10% to 60%
+            # 30 minutes to go from 0.10 to 0.60 (increase of 0.50)
+            progress = (minute - 30) / 30  # 0.0 to 1.0
+            return 0.10 + (0.50 * progress)  # 0.10 -> 0.60
+        
+        # Not in grace period
+        return 0.0
+    
+    @classmethod
+    def should_trigger_grace(cls) -> bool:
+        """
+        Roll the dice to see if grace should trigger based on current time.
+        
+        Returns:
+            True if grace should trigger, False otherwise
+        """
+        chance = cls.get_grace_chance()
+        if chance <= 0:
+            return False
+        return random.random() < chance
     
     @classmethod
     def is_restricted_time(cls) -> bool:
