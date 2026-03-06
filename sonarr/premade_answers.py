@@ -605,6 +605,41 @@ ESCALATED_RESPONSES["threat"] = (
     "DELETE:Cute threat. Denied.",
 )
 
+ESCALATED_RESPONSES["complaint"] = (
+    "TIMEOUT:5m:Your whining is giving me a headache. 5 minutes of silence.",
+    "DELETE:Nobody cares about your complaints. Deleted.",
+    "STICKER:🎻🙄🗑️:Take your complaints elsewhere.",
+    "DOUBLE:Are you done crying?||Because I stopped listening.",
+)
+
+ESCALATED_RESPONSES["spam"] = (
+    "TIMEOUT:10m:Spam again and I'll double it.",
+    "DELETE:Spam deleted. Try again and see what happens.",
+    "STICKER:🚫😡🗑️:Stop. Spamming.",
+    "DOUBLE:Do you want a timeout?||Because this is how you get a timeout.",
+)
+
+ESCALATED_RESPONSES["overshare"] = (
+    "TIMEOUT:5m:You need 5 minutes to think about boundaries.",
+    "DELETE:Absolutely not reading that. Deleted.",
+    "STICKER:🤮🚫🗑️:Way too much information.",
+    "DOUBLE:Why would you share that here?||Keep your trauma to yourself.",
+)
+
+ESCALATED_RESPONSES["delulu"] = (
+    "TIMEOUT:5m:You need a reality check. Take 5 minutes.",
+    "DELETE:That was too delusional to leave up.",
+    "STICKER:🤡🗑️🙄:Get a grip on reality.",
+    "DOUBLE:The delusion is terminal.||Seek help.",
+)
+
+ESCALATED_RESPONSES["receipts"] = (
+    "TIMEOUT:10m:Oh, you want to bring up receipts? Timeout for you.",
+    "DELETE:Nice try. I'm deleting your 'receipts'.",
+    "STICKER:📸🚫🗑️:I make the rules here, not your screenshots.",
+    "DOUBLE:You think screenshots scare me?||I run this place.",
+)
+
 
 COLD_RESPONSES["command"] = (
 
@@ -2317,6 +2352,55 @@ SASSY_RESPONSES["question"] = (
     "REACT:🙄:Do I look like a search engine? Wait, don't answer that.",
     "WHISPER:I know the answer, but watching you struggle is funnier.",
 )
+SASSY_RESPONSES["brag"] = (
+    "DOUBLE:Sure you did.||And then you woke up.",
+    "REACT:🏆:Here is a participation trophy.",
+    "WHISPER:We both know I'm still better.",
+    "Are you done flexing on absolutely nobody?",
+)
+SASSY_RESPONSES["flirt"] = (
+    "DOUBLE:You couldn't afford me.||Even if I was free.",
+    "REACT:💅:Get in line.",
+    "WHISPER:I'm out of your league. Way out.",
+    "STICKER:👑👁️👄👁️:The confidence is staggering.",
+)
+SASSY_RESPONSES["disagreement"] = (
+    "DOUBLE:You're entitled to your opinion.||Even when it's completely wrong.",
+    "REACT:💅:I'll let you believe that.",
+    "WHISPER:Sure. If that helps you sleep at night.",
+)
+SASSY_RESPONSES["agreement"] = (
+    "DOUBLE:Finally.||You said something smart.",
+    "REACT:👑:I accept your submission to my facts.",
+    "Obviously I'm right. What took you so long?",
+)
+SASSY_RESPONSES["complaint"] = (
+    "DOUBLE:Are you done?||Because I stopped listening 10 minutes ago.",
+    "REACT:🎻:Playing the world's smallest violin for you.",
+    "WHISPER:Take that energy to customer service.",
+    "STICKER:🙄🥱🥱:Tragic.",
+)
+SASSY_RESPONSES["spam"] = (
+    "REACT:💅:I can type faster than you.",
+    "WHISPER:Do you think this makes you look cool?",
+    "DOUBLE:Wow, spam.||Groundbreaking.",
+)
+SASSY_RESPONSES["overshare"] = (
+    "DOUBLE:I didn't need to know that.||Nobody did.",
+    "REACT:😶:I charge by the hour for therapy.",
+    "WHISPER:Keep some mysteries alive, honey.",
+    "STICKER:😳👀😶:Boundaries. Google them.",
+)
+SASSY_RESPONSES["delulu"] = (
+    "DOUBLE:The delusion is strong today.||I respect the commitment to fiction.",
+    "REACT:✨:Living in a fantasy world sounds exhausting.",
+    "WHISPER:I'll let you stay in your cute little bubble.",
+)
+SASSY_RESPONSES["receipts"] = (
+    "DOUBLE:Oh, I have the screenshots.||Don't test me.",
+    "REACT:📸:Smile for the camera.",
+    "WHISPER:I remember everything.",
+)
 SASSY_RESPONSES["random"] = (
     "DOUBLE:Fascinating.||Truly.",
     "REACT:🍵:Sipping tea over here.",
@@ -2345,6 +2429,42 @@ WARM_RESPONSES["vent"] = (
     "REACT:🫂:I'm sorry you're dealing with that.",
     "DOUBLE:That sounds really hard.||I'm here if you need to vent.",
     "WHISPER:Take a deep breath. You'll get through this.",
+    "You're stronger than you think.",
+)
+WARM_RESPONSES["apology"] = (
+    "REACT:💖:It's okay, I forgive you.",
+    "DOUBLE:Don't worry about it.||We're good.",
+    "Apology accepted. Let's move on.",
+)
+WARM_RESPONSES["brag"] = (
+    "REACT:🎉:That's awesome! Good job.",
+    "DOUBLE:Wow, really?||I'm actually impressed.",
+    "You should be proud of that!",
+)
+WARM_RESPONSES["flirt"] = (
+    "REACT:😳:Oh, my.",
+    "DOUBLE:You're making a bot blush.||Stop it.",
+    "WHISPER:You're sweet.",
+)
+WARM_RESPONSES["agreement"] = (
+    "REACT:🤝:Exactly!",
+    "DOUBLE:Yes!||We are on the exact same page.",
+    "I totally agree with you.",
+)
+WARM_RESPONSES["chitchat"] = (
+    "REACT:😊:That's interesting!",
+    "DOUBLE:Tell me more!||I love hearing about this.",
+    "I'm always down for a chat.",
+)
+WARM_RESPONSES["advice"] = (
+    "REACT:💡:I'd love to help you figure this out.",
+    "DOUBLE:Here's what I think...||You've got this.",
+    "WHISPER:Whatever you decide, I support it.",
+)
+WARM_RESPONSES["overshare"] = (
+    "REACT:🫂:Thank you for trusting me with that.",
+    "DOUBLE:That's a lot to carry.||I'm here for you.",
+    "WHISPER:Your secret is safe with me.",
 )
 WARM_RESPONSES["random"] = (
     "REACT:😊:Whatever you say!",
