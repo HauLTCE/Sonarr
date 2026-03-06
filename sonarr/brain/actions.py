@@ -88,7 +88,7 @@ def build_sonarr_actions() -> list[Action]:
             # Always has a baseline score — this is the default
             Consideration(
                 name="baseline",
-                input_fn=lambda s, bb: 0.7,  # constant 0.7 baseline
+                input_fn=lambda s, bb: 0.4,  # Lowered from 0.7 so it doesn't always win
                 curve=ResponseCurve(CurveType.LINEAR, slope=1.0),
             ),
             # Higher arousal slightly reduces cold score (escalation takes over)
@@ -107,13 +107,18 @@ def build_sonarr_actions() -> list[Action]:
     # Wins when arousal is high and trust is low.
     actions.append(Action(
         name="respond_escalated",
-        weight=1.2,  # slight boost — Sonarr enjoys escalation
+        weight=1.5,  # Boosted slightly
         considerations=[
+            Consideration(
+                name="baseline",
+                input_fn=lambda s, bb: 0.4,
+                curve=ResponseCurve(CurveType.LINEAR, slope=1.0),
+            ),
             # Needs high arousal
             Consideration(
                 name="high_arousal",
                 input_fn=arousal_input,
-                curve=ResponseCurve(CurveType.LOGISTIC, slope=6.0, shift=0.6),
+                curve=ResponseCurve(CurveType.LOGISTIC, slope=4.0, shift=0.4), # broader curve
             ),
             # Low trust amplifies
             Consideration(
@@ -137,13 +142,18 @@ def build_sonarr_actions() -> list[Action]:
     # but gets mildly annoyed.
     actions.append(Action(
         name="respond_sassy",
-        weight=1.1,
+        weight=1.3,
         considerations=[
+            Consideration(
+                name="baseline",
+                input_fn=lambda s, bb: 0.4,
+                curve=ResponseCurve(CurveType.LINEAR, slope=1.0),
+            ),
             # Moderate arousal (not too angry, not too calm)
             Consideration(
                 name="moderate_arousal",
                 input_fn=arousal_input,
-                curve=ResponseCurve(CurveType.QUADRATIC, slope=-4.0, shift=0.5, exponent=2.0),
+                curve=ResponseCurve(CurveType.QUADRATIC, slope=-2.0, shift=0.5, exponent=2.0), # softer curve
             ),
             # Dominance feels good (she's in control)
             Consideration(
@@ -226,13 +236,18 @@ def build_sonarr_actions() -> list[Action]:
     # and are now trying to be normal.
     actions.append(Action(
         name="respond_grudge",
-        weight=1.0,
+        weight=1.5,
         considerations=[
+            Consideration(
+                name="baseline",
+                input_fn=lambda s, bb: 0.3,
+                curve=ResponseCurve(CurveType.LINEAR, slope=1.0),
+            ),
             # They've interacted before
             Consideration(
                 name="known_user",
                 input_fn=interaction_count_input,
-                curve=ResponseCurve(CurveType.STEP, shift=0.1),
+                curve=ResponseCurve(CurveType.STEP, shift=0.01), # very low threshold
             ),
             # Low trust — they've burned her
             Consideration(
@@ -261,13 +276,18 @@ def build_sonarr_actions() -> list[Action]:
     # When someone begs, apologizes, or she's feeling very dominant.
     actions.append(Action(
         name="respond_power_trip",
-        weight=1.1,
+        weight=1.4,
         considerations=[
+            Consideration(
+                name="baseline",
+                input_fn=lambda s, bb: 0.3,
+                curve=ResponseCurve(CurveType.LINEAR, slope=1.0),
+            ),
             # Very high dominance
             Consideration(
                 name="very_dominant",
                 input_fn=dominance_input,
-                curve=ResponseCurve(CurveType.LOGISTIC, slope=6.0, shift=0.65),
+                curve=ResponseCurve(CurveType.LOGISTIC, slope=4.0, shift=0.4), # lowered threshold
             ),
             # Not too angry (she's enjoying this)
             Consideration(
@@ -290,13 +310,18 @@ def build_sonarr_actions() -> list[Action]:
     # Genuinely interested — for philosophy, gossip, meta questions.
     actions.append(Action(
         name="respond_intrigued",
-        weight=0.9,
+        weight=1.3,
         considerations=[
+            Consideration(
+                name="baseline",
+                input_fn=lambda s, bb: 0.4,
+                curve=ResponseCurve(CurveType.LINEAR, slope=1.0),
+            ),
             # Moderate positive pleasure
             Consideration(
                 name="somewhat_pleased",
                 input_fn=pleasure_input,
-                curve=ResponseCurve(CurveType.LOGISTIC, slope=4.0, shift=0.5),
+                curve=ResponseCurve(CurveType.LOGISTIC, slope=3.0, shift=0.3), # lowered shift
             ),
             # Some arousal (interested, not bored)
             Consideration(

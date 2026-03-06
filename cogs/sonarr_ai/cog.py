@@ -111,6 +111,7 @@ class SonarrAI(BrainMixin, ClassifierMixin, BackgroundTasksMixin, commands.Cog):
         self.last_user_chat_time = {}
         self.user_ai_calls = {}
         self.user_mention_times = {}
+        self.recent_responses = []
 
         # Start background tasks
         self.idle_chat_task.start()

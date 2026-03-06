@@ -56,9 +56,6 @@ KEYWORD_MAP = {
         "heading out", "signing off", "logging off",
     ],
     "question": [
-        "what", "why", "how", "when", "where", "who", "which", "does", "can you", "is there",
-        "do you", "are you", "will you", "would you", "could you", "should", "is it", "was it",
-        "tell me", "explain", "whats", "what's", "hows", "how's", "whys", "whos", "who's",
         "anyone know", "does anyone", "wondering", "curious", "idea", "thoughts", "suppose",
     ],
     "confusion": [
@@ -144,7 +141,7 @@ KEYWORD_MAP = {
         "princess", "prince", "angel", "mine",
     ],
     "brag": [
-        "pro", "best", "god", "amazing at", "skilled", "expert", "legend",
+        "pro", "best", "amazing at", "skilled", "expert", "legend",
         "goat", "greatest", "legendary", "insane", "cracked", "goated", "built different",
         "im the best", "i'm the best", "too good", "ez", "easy", "ezpz", "gg ez",
         "destroyed", "dominated", "owned", "rekt", "wrecked", "smashed",

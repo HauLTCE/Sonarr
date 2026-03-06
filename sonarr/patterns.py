@@ -935,6 +935,11 @@ def _pattern_match_single(text: str, modifiers: dict) -> tuple:
             logger.debug(f"[Pattern] Matched '{pattern_name}' → {final_cat} (conf={base_confidence})")
             return (final_cat, base_confidence, segment_modifiers)
     
+    # === FALLBACK TO GENERIC QUESTION ===
+    if segment_modifiers.get("is_question"):
+        logger.debug(f"[Pattern] No complex match, but is_question is True → question")
+        return ("question", 2, segment_modifiers)
+
     return (None, 0, segment_modifiers)
 
 
