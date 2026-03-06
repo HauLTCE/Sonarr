@@ -14,6 +14,10 @@ Supported prefixes:
 - REACT:🤡:message - Add emoji reaction to user's message
 - REACT:🤡 - Add reaction without bot reply
 - DOUBLE:first message||second message - Send two messages with a delay
+- DELETE:message - Delete the user's message and reply
+- WHISPER:message - Wrap reply in spoiler tags (||dramatic whisper||)
+- SLOW:message - Send message then edit it word-by-word for dramatic typing
+- STICKER:🎭🤡💀:message - React with multiple emojis at once
 """
 
 import re
@@ -36,6 +40,10 @@ class ResponseEffect:
     rename_nickname: Optional[str] = None  # New nickname to set
     reactions: List[str] = field(default_factory=list)  # Emoji reactions to add
     double_message: Optional[str] = None  # Second message to send after a delay
+    delete_user_msg: bool = False  # Delete the user's triggering message
+    whisper: bool = False  # Wrap message in spoiler tags
+    slow_type: bool = False  # Edit message word-by-word for dramatic effect
+    sticker_emojis: List[str] = field(default_factory=list)  # Multiple emoji reactions at once
 
 
 def parse_duration(duration_str: str) -> Optional[timedelta]:
@@ -136,6 +144,41 @@ def parse_response(response: str) -> ResponseEffect:
             effect.reactions.append(remaining.strip())
             remaining = ""
     
+    # Parse DELETE: prefix (delete user's message)
+    if remaining.startswith("DELETE:"):
+        remaining = remaining[7:]
+        effect.delete_user_msg = True
+    
+    # Parse WHISPER: prefix (spoiler text)
+    if remaining.startswith("WHISPER:"):
+        remaining = remaining[8:]
+        effect.whisper = True
+    
+    # Parse SLOW: prefix (dramatic word-by-word typing)
+    if remaining.startswith("SLOW:"):
+        remaining = remaining[5:]
+        effect.slow_type = True
+    
+    # Parse STICKER: prefix (multiple emoji reactions)
+    if remaining.startswith("STICKER:"):
+        remaining = remaining[8:]
+        sticker_match = re.match(r'^([^:]+):(.+)$', remaining, re.DOTALL)
+        if sticker_match:
+            emoji_str = sticker_match.group(1).strip()
+            remaining = sticker_match.group(2)
+            # Split emojis (they're multi-byte, so we iterate)
+            import emoji as emoji_lib
+            try:
+                effect.sticker_emojis = [c for c in emoji_str if len(c.encode('utf-8')) > 1 or c in '🎭🤡💀😈👻']
+                if not effect.sticker_emojis:
+                    effect.sticker_emojis = list(emoji_str)
+            except Exception:
+                effect.sticker_emojis = list(emoji_str)
+        else:
+            # STICKER without message
+            effect.sticker_emojis = list(remaining.strip())
+            remaining = ""
+    
     # Parse DOUBLE: prefix (send two messages)
     if remaining.startswith("DOUBLE:"):
         remaining = remaining[7:]
@@ -227,6 +270,21 @@ async def apply_effects(effect: ResponseEffect, message, user_query: str = None,
         except Exception as e:
             logger.error(f"{logger_prefix} Unexpected rename error: {e}")
     
+    # Apply delete effect (delete user's message)
+    if effect.delete_user_msg:
+        try:
+            await message.delete()
+            logger.info(f"{logger_prefix} Deleted user message from {message.author}")
+        except discord.Forbidden:
+            logger.warning(f"{logger_prefix} Could not delete message - missing permissions")
+        except Exception as e:
+            logger.error(f"{logger_prefix} Delete error: {e}")
+    
+    # Apply whisper effect (wrap in spoiler tags)
+    if effect.whisper and final_message:
+        final_message = f"||{final_message}||"
+        logger.info(f"{logger_prefix} Whisper effect applied")
+    
     # Apply reaction effects
     if effect.reactions:
         for emoji in effect.reactions:
@@ -240,7 +298,15 @@ async def apply_effects(effect: ResponseEffect, message, user_query: str = None,
             except Exception as e:
                 logger.error(f"{logger_prefix} Unexpected reaction error: {e}")
     
-
+    # Apply sticker effect (multiple emoji reactions)
+    if effect.sticker_emojis:
+        for emoji in effect.sticker_emojis:
+            try:
+                await message.add_reaction(emoji)
+            except Exception:
+                pass
+        logger.info(f"{logger_prefix} Sticker effect: {len(effect.sticker_emojis)} reactions")
+    
     # Return main message and optional followup for DOUBLE: effect
     main_msg = final_message if final_message else None
     return (main_msg, effect.double_message)

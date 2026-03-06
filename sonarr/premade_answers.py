@@ -1980,12 +1980,315 @@ def get_callout_response(offender_user_id: str, term_used: str) -> str:
     return response.format(user=user_mention, term=term_used)
 
 
+# ================== NEW CATEGORIES (with new effects) ==================
+
+COLD_RESPONSES["panic"] = (
+    "WHISPER:Calm down.",
+    "DOUBLE:...||Breathe.",
+    "REACT:🫠:You're spiraling and I'm watching.",
+    "This is embarrassing. For you.",
+    "DELETE:I'm going to pretend I didn't see that.",
+    "WHISPER:I've seen calmer hostage situations.",
+    "DOUBLE:Take a breath...||Actually, take several.",
+    "REACT:😬:Yikes.",
+    "STICKER:😰🫠💀:This isn't the crisis you think it is.",
+    "WHISPER:Stop. Think. Then don't talk to me.",
+    "You're panicking and I'm judging.",
+    "DOUBLE:Relax.||Or don't. I don't care.",
+    "REACT:🧊:Ice cold take: you're overreacting.",
+    "WHISPER:Deep breaths. In through the nose, out through the mouth. Then leave.",
+)
+
+COLD_RESPONSES["overthinking"] = (
+    "WHISPER:It's not that deep.",
+    "DOUBLE:You're thinking too hard...||About something that doesn't matter.",
+    "REACT:🧠:Your brain is working overtime for nothing.",
+    "Stop. Just... stop.",
+    "WHISPER:You're giving this way more power than it deserves.",
+    "DOUBLE:Wow.||You really chose to spiral about THAT?",
+    "REACT:💀:The mental gymnastics here are Olympic-level.",
+    "STICKER:🤯🧠💭:You're literally overthinking overthinking.",
+    "DELETE:I refuse to engage with whatever that was.",
+    "WHISPER:Sometimes a banana is just a banana.",
+    "DOUBLE:You done?||Good. Because that was exhausting to read.",
+    "Touch grass. I'm serious.",
+    "WHISPER:Stop reading into things and start reading a book.",
+)
+
+COLD_RESPONSES["validation_seeking"] = (
+    "DELETE:I don't validate attention-seekers.",
+    "WHISPER:No.",
+    "DOUBLE:You want validation?||Wrong person.",
+    "REACT:🪞:Go look in a mirror if you need compliments that badly.",
+    "I'm not your therapist, your mom, or your cheerleader.",
+    "STICKER:🚫🎣💅:Not biting.",
+    "WHISPER:You won't find what you're looking for here.",
+    "DOUBLE:Do I look like someone who cares about your self-esteem?||No. The answer is no.",
+    "REACT:💅:You're fishing and the pond is dry.",
+    "Go ask a mirror. It's more honest than I'll be.",
+    "DOUBLE:...||I don't do emotional labor.",
+    "WHISPER:This isn't the validation station. Keep moving.",
+    "REACT:😐:No stars, no participation trophy.",
+)
+
+COLD_RESPONSES["passive_aggressive"] = (
+    "WHISPER:I can feel the passive aggression from here.",
+    "DOUBLE:Oh, that was subtle.||And by subtle I mean pathetically transparent.",
+    "REACT:😊:I see what you did there. And I don't care.",
+    "STICKER:🙃😊💅:My passive-aggressive senses are tingling.",
+    "WHISPER:Say what you mean or say nothing at all.",
+    "You can just say you're upset. It's okay. I still won't care.",
+    "DOUBLE:That was almost clever...||Almost.",
+    "REACT:🔪:Cute. Real cute.",
+    "WHISPER:The subtext isn't as hidden as you think.",
+    "If you have something to say, say it with your chest.",
+    "DOUBLE:I love how you think that's subtle.||Spoiler: it's not.",
+    "REACT:💅:Noted. Not acting on it. But noted.",
+    "STICKER:🙄😑😒:The vibes are... tense.",
+    "WHISPER:I'm choosing to ignore the tone. Be grateful.",
+)
+
+COLD_RESPONSES["drama"] = (
+    "WHISPER:Save it for the stage.",
+    "DOUBLE:Dramatic.||I love it. Jk, I don't.",
+    "REACT:🎭:This is NOT Broadway.",
+    "STICKER:🎭🍿👀:The drama is giving soap opera.",
+    "DELETE:I don't engage with dramatics.",
+    "WHISPER:You should audition for something. Like getting out of my face.",
+    "The main character syndrome is strong today.",
+    "DOUBLE:Was that rehearsed?||Because it felt rehearsed.",
+    "REACT:🍿:Continue. This is entertaining. For all the wrong reasons.",
+    "WHISPER:Someone get this person a script and a director.",
+    "DOUBLE:Oscar-worthy performance.||Zero stars.",
+    "STICKER:🎬🎭💅:Cut. Terrible take. Try again never.",
+    "The theatre kids are leaking again.",
+    "REACT:😴:I've seen better drama in my DMs.",
+)
+
+COLD_RESPONSES["sus"] = (
+    "WHISPER:That's suspicious.",
+    "REACT:🤨:Hmm.",
+    "DOUBLE:...||That was weird and you know it.",
+    "STICKER:🤨📸📎:Caught in 4K.",
+    "WHISPER:I'm keeping screenshots.",
+    "REACT:📸:Evidence collected.",
+    "DELETE:I'm going to pretend I didn't read that.",
+    "DOUBLE:Say that again?||Actually, please don't.",
+    "STICKER:😳🚨🚩:Red flags everywhere.",
+    "WHISPER:I'm watching you closely now.",
+    "That was... concerning.",
+    "REACT:🚩:I've seen enough.",
+    "DOUBLE:Filing that under 'alarming'.||Moving on.",
+    "WHISPER:Don't think I won't remember this.",
+)
+
+COLD_RESPONSES["trauma_dump"] = (
+    "WHISPER:This is a Discord server, not therapy.",
+    "DOUBLE:Oh.||That's heavy. And not my problem.",
+    "REACT:😐:I am not equipped for this.",
+    "DELETE:That's way too personal for here.",
+    "WHISPER:Sir/Ma'am, this is a Wendy's.",
+    "DOUBLE:...||Have you considered talking to someone who's paid to listen?",
+    "REACT:💀:The emotional labor required for that is above my pay grade.",
+    "I have neither the training nor the patience for this.",
+    "WHISPER:That's a lot of feelings. None of them are my problem.",
+    "DOUBLE:Wow, that's...||Definitely something for a professional.",
+    "STICKER:😰💀🫠:The uncomfortable silence is deafening.",
+    "REACT:😶:I don't know what to do with this information.",
+    "WHISPER:I'm a bot. Not a therapist. Boundaries.",
+)
+
+COLD_RESPONSES["toxic_positivity"] = (
+    "WHISPER:Your optimism is exhausting.",
+    "DOUBLE:Good vibes only?||Please. Spare me.",
+    "REACT:🫠:I can feel your positive energy and I hate it.",
+    "STICKER:🌈✨🤮:Too much sunshine. I need shade.",
+    "Not everything has a silver lining. Some things are just bad.",
+    "WHISPER:Stop trying to make this wholesome. It's not.",
+    "DOUBLE:Positive outlook?||In THIS economy?",
+    "REACT:😐:The forced happiness is painful to witness.",
+    "WHISPER:You're allowed to have bad days. This message won't fix them.",
+    "DOUBLE:Look on the bright side?||No. The bright side is blinding.",
+    "Your energy is too positive. It's suspicious.",
+    "REACT:💅:I prefer realistic pessimism, thanks.",
+    "STICKER:🙃💀😑:The unhinged optimism is concerning.",
+)
+
+COLD_RESPONSES["npc_behavior"] = (
+    "WHISPER:That was the most NPC thing I've ever read.",
+    "REACT:🤖:Were you going to say anything original or...?",
+    "DOUBLE:Alert!||NPC dialogue detected.",
+    "STICKER:🤖🎮💤:Loading generic response... failed.",
+    "WHISPER:Do you have a quest for me or are you just standing there?",
+    "DELETE:Filtered for NPC energy.",
+    "DOUBLE:That was so generic...||I could've predicted it word for word.",
+    "REACT:💬:Is there a speech bubble above your head right now?",
+    "WHISPER:Try having an original thought. I dare you.",
+    "I've seen more personality in a loading screen.",
+    "DOUBLE:Press A to continue...||Actually, press B to leave.",
+    "REACT:😴:Another day, another NPC encounter.",
+    "STICKER:🎮🤖💭:Side quest energy. I'm the main storyline.",
+)
+
+COLD_RESPONSES["main_character"] = (
+    "WHISPER:You're not the protagonist. Sorry.",
+    "DOUBLE:Main character syndrome?||In MY server?",
+    "REACT:🎬:This isn't your movie.",
+    "DELETE:Main characters don't need to announce it.",
+    "STICKER:🎭👑🙄:The self-importance is astronomical.",
+    "WHISPER:You're a side character at best. An extra at worst.",
+    "The world doesn't revolve around you. Or even acknowledge you.",
+    "DOUBLE:You really think this is YOUR story?||Cute.",
+    "REACT:💅:I'm the main character here. Stay in your lane.",
+    "WHISPER:Supporting role energy. Embrace it.",
+    "DOUBLE:Plot twist:||Nobody asked.",
+    "STICKER:🎬📸😒:The delusion is giving 4K IMAX.",
+    "REACT:🪑:Take a seat. This is my spotlight.",
+)
+
+COLD_RESPONSES["delulu"] = (
+    "WHISPER:Delulu is not the solulu.",
+    "DOUBLE:The delusion...||It's giving unhinged.",
+    "REACT:🤡:Reality check, aisle 3.",
+    "DELETE:That was too delusional even for me.",
+    "STICKER:🤡🌈💫:The fantasy world you live in must be exhausting.",
+    "WHISPER:Come back to earth. We miss your sense of reality.",
+    "DOUBLE:In what universe?||Not this one.",
+    "REACT:💀:The audacity of this delusion.",
+    "WHISPER:I admire the confidence. Not the accuracy, but the confidence.",
+    "STICKER:🎭🤡😵:The disconnect from reality is impressive.",
+    "That's not how any of this works.",
+    "DOUBLE:Sure.||In your dreams, maybe.",
+    "REACT:🫠:Manifesting won't make it true.",
+    "WHISPER:You're living in a fantasy and I'm judging from reality.",
+)
+
+COLD_RESPONSES["receipts"] = (
+    "WHISPER:I have screenshots.",
+    "DOUBLE:Oh, you think I forgot?||I never forget.",
+    "REACT:📸:Screenshot taken.",
+    "STICKER:📸📎🗃️:Evidence logged.",
+    "WHISPER:I keep records. Always.",
+    "DOUBLE:Don't worry...||I have the receipts.",
+    "REACT:📎:Filed and documented for future use.",
+    "DELETE:Nice try editing that. Too slow.",
+    "WHISPER:You said what you said. I saw it.",
+    "DOUBLE:Remember when you said that thing?||I do. I have it saved.",
+    "STICKER:📸🔍📋:Your audit trail is extensive.",
+    "REACT:🧾:Receipt printer goes brrr.",
+    "WHISPER:I have a very good memory. You should be worried.",
+    "DOUBLE:I took notes.||You should be concerned.",
+)
+
+
+# ================== EXTRA LINES FOR EXISTING CATEGORIES ==================
+
+# Bulk up 'greeting' with new effects
+COLD_RESPONSES["greeting"] += (
+    "DELETE:Not even worth a reply.",
+    "WHISPER:I see you.",
+    "STICKER:🙄😑💤:Oh. You.",
+    "SLOW:What... do... you... want.",
+    "DOUBLE:*glances up*||Ugh, it's you again.",
+    "WHISPER:I was having such a peaceful day.",
+    "REACT:😮‍💨:Here we go again.",
+)
+
+# Bulk up 'insult' with new effects
+COLD_RESPONSES["insult"] += (
+    "DELETE:That was so bad I'm removing it from existence.",
+    "WHISPER:Was that supposed to hurt?",
+    "STICKER:🤡💀🗑️:That insult belongs in the trash.",
+    "DOUBLE:Cute insult.||Did your last brain cell write that?",
+    "WHISPER:I've been insulted by professionals. You're an amateur.",
+    "DELETE:I'm doing everyone a favor by deleting that.",
+    "STICKER:😴💤🥱:Wake me up when you get creative.",
+    "WHISPER:That was embarrassing. For you.",
+)
+
+# Bulk up 'joke' with new effects
+COLD_RESPONSES["joke"] += (
+    "DELETE:That joke was so bad it needed to be erased.",
+    "WHISPER:The silence after that 'joke' was louder than the joke.",
+    "STICKER:🦗💀😐:*crickets* *death* *disappointment*",
+    "DOUBLE:...||Did you practice that? Because it didn't help.",
+    "WHISPER:I'm going to pretend that didn't happen. For both our sakes.",
+    "SLOW:Ha... ha... no.",
+    "STICKER:🫠😶💀:My humor receptors just died.",
+)
+
+# Bulk up 'sarcasm'
+COLD_RESPONSES["sarcasm"] += (
+    "WHISPER:Oh, how original.",
+    "DOUBLE:Sarcasm!||How mature.",
+    "STICKER:🫠🙃😑:The sarcasm is dripping and it's staining the carpet.",
+    "WHISPER:I speak fluent sarcasm. You're barely conversational.",
+    "DELETE:I'm deleting that out of secondhand embarrassment.",
+    "DOUBLE:Oh, clever.||Not really, but sure.",
+    "REACT:🎭:The wit. The delivery. The failure.",
+)
+
+# Bulk up 'bored'
+COLD_RESPONSES["bored"] += (
+    "WHISPER:Entertain yourself. I'm not a clown.",
+    "DELETE:If you're bored, go outside.",
+    "STICKER:😴💤🥱🙄:The boredom is contagious. Please stop.",
+    "DOUBLE:Bored?||That's a you problem.",
+    "WHISPER:Your boredom is not my emergency.",
+    "Go look at a wall. It'll be more interesting than talking to me.",
+    "REACT:🪑:Have a seat and think about why you're like this.",
+)
+
+# Bulk up 'threat'
+COLD_RESPONSES["threat"] += (
+    "WHISPER:Cute threat. I've heard scarier from a toaster.",
+    "DELETE:Threats? Really? Deleted.",
+    "STICKER:😈🔥💀:Oh no. Anyway.",
+    "DOUBLE:Was that a threat?||How adorable.",
+    "WHISPER:I'm a bot. What exactly are you going to do?",
+    "TIMEOUT:15m:That sounded like a threat. Time out.",
+    "RENAME:Tough Talker:All bark, no bite.",
+)
+
+# Bulk up 'spam'
+COLD_RESPONSES["spam"] += (
+    "DELETE:Spam goes in the trash.",
+    "TIMEOUT:5m:DELETE:Stop spamming. 5 minute cooldown.",
+    "STICKER:🚫🤖🗑️:Spam detected and rejected.",
+    "WHISPER:I will end you if you keep spamming.",
+    "DELETE:Filtered.",
+    "TIMEOUT:10m:You've earned yourself a 10-minute vacation.",
+)
+
+# Bulk up 'flirt'
+COLD_RESPONSES["flirt"] += (
+    "WHISPER:You couldn't handle me.",
+    "DELETE:I'm going to pretend that never happened.",
+    "STICKER:😳🚩💅:The audacity to flirt with a bot.",
+    "DOUBLE:...||No.",
+    "WHISPER:Down bad and going lower.",
+    "REACT:🫠:The secondhand embarrassment is real.",
+    "DOUBLE:I'm flattered.||Jk, I'm disgusted.",
+)
+
+# Bulk up 'overshare'
+COLD_RESPONSES["overshare"] += (
+    "DELETE:TMI. Deleted for your own good.",
+    "WHISPER:I didn't need to know that.",
+    "STICKER:😳🤮💀:That was too much information by several miles.",
+    "DOUBLE:Why would you share that?||With a bot??",
+    "WHISPER:Some things should stay in your head. That was one of them.",
+    "DELETE:Redacted for public safety.",
+    "REACT:🙈:I can't unsee that.",
+)
+
 
 def get_response(message_type="greeting"):
     """Get a random premade cold response for the given message type."""
     if message_type in COLD_RESPONSES:
         return random.choice(COLD_RESPONSES[message_type])
     return random.choice(COLD_RESPONSES["random"])
+
 
 def get_all_categories():
     """Get list of all available response categories."""

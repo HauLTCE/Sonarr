@@ -29,7 +29,7 @@ class BackgroundTasksMixin:
 
     # ================== MEMORY CLEANUP ==================
 
-    @tasks.loop(minutes=30)
+    @tasks.loop(hours=168)
     async def memory_cleanup_task(self):
         """Periodically clean up stale entries from tracking dictionaries."""
         logger.debug("[Memory] Cleanup task running...")
