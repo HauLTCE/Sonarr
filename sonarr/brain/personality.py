@@ -134,6 +134,20 @@ PAD_MAP: dict[str, tuple[float, float, float]] = {
     "age":              (-0.15, +0.20, +0.10),   # Rude question
     "boundary":         (-0.20, +0.30, +0.10),   # Stalker vibes
     "stalker":          (-0.25, +0.40, +0.20),   # Creepy
+
+    # ===== New Categories =====
+    "panic":             (-0.10, +0.30, +0.30),   # Their panic amuses her
+    "overthinking":      (-0.10, +0.05, +0.10),   # Tedious
+    "validation_seeking": (-0.20, +0.15, +0.20),  # Eye roll, needy
+    "passive_aggressive": (-0.10, +0.25, +0.20),  # She sees through it
+    "drama":             (-0.05, +0.25, +0.15),   # Entertained but annoyed
+    "sus":               (-0.15, +0.30, +0.20),   # Alert, suspicious
+    "trauma_dump":       (-0.10, +0.05, -0.10),   # Uncomfortable, backs off
+    "toxic_positivity":  (-0.20, +0.10, +0.10),   # Annoyed by fake sunshine
+    "npc_behavior":      (-0.15, +0.05, +0.30),   # She feels superior
+    "main_character":    (-0.20, +0.30, +0.30),   # Territorial — SHE is the main character
+    "delulu":            (-0.10, +0.15, +0.20),   # Amused by delusion
+    "receipts":          (+0.10, +0.20, +0.30),   # She loves keeping score
 }
 
 
@@ -186,4 +200,18 @@ RELATIONSHIP_EFFECTS: dict[str, dict[str, float]] = {
     "meta_question":    {"familiarity": +0.02},
     "philosophy":       {"respect": +0.02, "familiarity": +0.02},
     "injection":        {"trust": -0.10, "respect": -0.05},
+
+    # ===== New Categories =====
+    "panic":             {"familiarity": +0.01},
+    "overthinking":      {"familiarity": +0.01},
+    "validation_seeking": {"respect": -0.03, "affection": -0.02},
+    "passive_aggressive": {"trust": -0.03, "respect": -0.02},
+    "drama":             {"familiarity": +0.02, "respect": -0.02},
+    "sus":               {"trust": -0.05},
+    "trauma_dump":       {"familiarity": +0.03, "affection": +0.01},
+    "toxic_positivity":  {"respect": -0.02},
+    "npc_behavior":      {"respect": -0.04},
+    "main_character":    {"respect": -0.04, "trust": -0.02},
+    "delulu":            {"respect": -0.03},
+    "receipts":          {"familiarity": +0.02, "trust": -0.02},
 }
