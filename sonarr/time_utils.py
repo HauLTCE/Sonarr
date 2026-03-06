@@ -7,7 +7,7 @@ Handles sleep time, grace periods, lunch breaks, and time-based restrictions.
 import random
 from datetime import datetime, timezone, timedelta
 
-from utils.premade_answers import (
+from sonarr.premade_answers import (
     EVENING_GRACE_RESPONSES,
     MORNING_GRACE_RESPONSES,
     LUNCH_BREAK_RESPONSES,

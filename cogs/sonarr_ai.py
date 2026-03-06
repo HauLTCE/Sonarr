@@ -19,10 +19,13 @@ import warnings
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 
-from utils.economy import EconomyManager
-from utils.premade_answers import COLD_RESPONSES, EMPTY_MESSAGE_RESPONSES, GENDER_CORRECTION, get_gender_correction, get_callout_response
+from sonarr.premade_answers import (
+    COLD_RESPONSES, EMPTY_MESSAGE_RESPONSES, GENDER_CORRECTION,
+    get_gender_correction, get_callout_response,
+    GOSSIP_LINES, IDLE_CHAT_LINES, RATE_LIMIT_RESPONSES, IDLE_PING_MESSAGES,
+)
 from utils.database import db
-from utils.response_effects import process_response, send_response_with_effects
+from sonarr.response_effects import process_response, send_response_with_effects
 
 # Import from sonarr modules
 from sonarr import (
@@ -30,34 +33,11 @@ from sonarr import (
     TimeManager,
     KEYWORD_MAP,
     STOPWORDS,
-    GOSSIP_LINES,
-    GOSSIP_RICH,
-    GOSSIP_POOR,
-    GOSSIP_BANKRUPT,
-    GOSSIP_INVESTOR,
-    GOSSIP_DEBTOR,
-    GOSSIP_GAMBLER,
-    GOSSIP_POKEMON,
-    GOSSIP_LOUDMOUTH,
-    GOSSIP_CRIMINAL,
-    IDLE_CHAT_LINES,
-    RATE_LIMIT_RESPONSES,
-    ROB_REASONS,
-    DEBT_ENFORCEMENT_RESPONSES,
-    # Tiered debt enforcement
-    DEBT_EARLY_RESPONSES,
-    DEBT_MEDIUM_RESPONSES,
-    DEBT_SEVERE_RESPONSES,
-    # Auto-rob reasons
-    AUTO_ROB_BANK_REASONS,
-    AUTO_ROB_WALLET_REASONS,
-    # Idle ping messages
-    IDLE_PING_MESSAGES,
 )
 from sonarr.keywords import NEGATIVE_KEYWORDS
 
 # Classification logger for debugging data
-from utils.classification_logger import (
+from sonarr.classification_logger import (
     log_classify, log_misgender, log_ai_call, 
     log_trigger, log_response, log_pattern, log_error
 )
@@ -113,7 +93,6 @@ class SonarrAI(commands.Cog):
             logger.warning("[SonarrAI] Gemini not available - no API keys found")
         
         # Initialize components
-        self.economy_manager = EconomyManager()
         self.classifier = MessageClassifier()
         self.time_manager = TimeManager()
         
@@ -124,82 +103,21 @@ class SonarrAI(commands.Cog):
         self.user_mention_times = {}
         
         # Response templates (from sonarr.responses)
-        self.rob_reasons = ROB_REASONS
-        self.idle_chat_lines = IDLE_CHAT_LINES
-        self.rate_limit_responses = RATE_LIMIT_RESPONSES
-        self.gossip_lines = GOSSIP_LINES
-        self.gossip_rich = GOSSIP_RICH
-        self.gossip_poor = GOSSIP_POOR
-        self.gossip_bankrupt = GOSSIP_BANKRUPT
-        self.gossip_investor = GOSSIP_INVESTOR
-        self.gossip_debtor = GOSSIP_DEBTOR
-        self.gossip_gambler = GOSSIP_GAMBLER
-        self.gossip_pokemon = GOSSIP_POKEMON
-        self.gossip_loudmouth = GOSSIP_LOUDMOUTH
-        self.gossip_criminal = GOSSIP_CRIMINAL
         
         # Start background tasks
-        self.auto_rob_task.start()
         self.idle_chat_task.start()
         self.memory_cleanup_task.start()
 
     def cog_unload(self):
         """Clean up tasks when cog is unloaded."""
-        self.auto_rob_task.cancel()
         self.idle_chat_task.cancel()
         self.memory_cleanup_task.cancel()
 
     # ================== GOSSIP SYSTEM ==================
     
     def get_status_gossip(self, target_id: str) -> str:
-        """Get a gossip line based on the target's status in the economy."""
-        economy = db.get_user_economy(target_id)
-        wallet = economy.get("wallet", 0)
-        bank = economy.get("bank", 0)
-        total_money = wallet + bank
-        
-        is_bankrupt = db.is_in_shame_period(target_id)
-        loan = db.get_loan(target_id)
-        has_debt = loan is not None
-        portfolio = db.get_portfolio(target_id)
-        has_stocks = len(portfolio) > 0 if portfolio else False
-        owned_pokemon = db.get_owned_pokemon(target_id)
-        has_pokemon = len(owned_pokemon) > 0 if owned_pokemon else False
-        
-        user_level = db.get_user_level(target_id) if hasattr(db, 'get_user_level') else 0
-        command_count = len(db.cursor.execute(
-            'SELECT 1 FROM command_history WHERE user_id = ? LIMIT 100', (target_id,)
-        ).fetchall()) if hasattr(db, 'cursor') else 0
-        is_loudmouth = user_level >= 15 and command_count > 50
-        
-        gossip_pool = []
-        
-        if is_bankrupt:
-            gossip_pool.extend(self.gossip_bankrupt * 5)
-        elif total_money > 50000:
-            gossip_pool.extend(self.gossip_rich * 3)
-        elif total_money < 500:
-            gossip_pool.extend(self.gossip_poor * 3)
-        
-        if has_debt:
-            gossip_pool.extend(self.gossip_debtor * 4)
-        if has_stocks:
-            gossip_pool.extend(self.gossip_investor * 2)
-        if has_pokemon:
-            gossip_pool.extend(self.gossip_pokemon * 1)
-        
-        if is_loudmouth:
-            loudmouth_lines = [
-                line.format(target="{target}", level=user_level if user_level else "X") 
-                if "{level}" in line else line 
-                for line in self.gossip_loudmouth
-            ]
-            gossip_pool.extend(loudmouth_lines * 1)
-        
-        if not gossip_pool:
-            gossip_pool = self.gossip_lines
-        
-        return random.choice(gossip_pool)
+        """Get a gossip line based on the target's status."""
+        return random.choice(GOSSIP_LINES)
 
     # ================== BACKGROUND TASKS ==================
     
@@ -241,81 +159,6 @@ class SonarrAI(commands.Cog):
     async def before_memory_cleanup(self):
         await self.bot.wait_until_ready()
 
-    @tasks.loop(minutes=random.randint(10, 30))
-    async def auto_rob_task(self):
-        """Automatically rob users with money (2-5% chance per check)."""
-        logger.debug("[AutoRob] Task running...")
-        if self.time_manager.is_sleep_time():
-            logger.debug("[AutoRob] Sleep time, skipping")
-            return
-        
-        try:
-            if not self.bot.guilds:
-                return
-            
-            guild = self.bot.guilds[0]
-            bot_id = str(self.bot.user.id)
-
-            loop = asyncio.get_running_loop()
-            potential_targets = []
-            for member in guild.members:
-                if member.bot:
-                    continue
-                wallet = await loop.run_in_executor(None, self.economy_manager.get_balance, member.id, "wallet")
-                bank = await loop.run_in_executor(None, self.economy_manager.get_balance, member.id, "bank")
-                
-                total = wallet + bank
-                if total > 100:
-                    potential_targets.append((member, wallet, bank, total))
-            
-            if not potential_targets:
-                logger.debug("[AutoRob] No targets with >$100")
-                return
-            
-            if random.random() < 0.03:
-                target, wallet, bank, total = random.choices(
-                    potential_targets,
-                    weights=[t[3] for t in potential_targets],
-                    k=1
-                )[0]
-                
-                rob_from_bank = bank > wallet and random.random() < 0.6
-                
-                if rob_from_bank and bank > 0:
-                    steal_percent = random.uniform(0.02, 0.08)
-                    stolen = int(bank * steal_percent)
-                    self.economy_manager.update_balance(target.id, -stolen, "bank")
-                    self.economy_manager.update_balance(bot_id, stolen, "wallet")
-                    location = "bank"
-                    reason = random.choice(AUTO_ROB_BANK_REASONS)
-                elif wallet > 0:
-                    steal_percent = random.uniform(0.03, 0.10)
-                    stolen = int(wallet * steal_percent)
-                    self.economy_manager.update_balance(target.id, -stolen, "wallet")
-                    self.economy_manager.update_balance(bot_id, stolen, "wallet")
-                    location = "wallet"
-                    reason = random.choice(AUTO_ROB_WALLET_REASONS)
-                else:
-                    return
-                
-                logger.info(f"[AutoRob] Stole ${stolen} from {target.display_name}'s {location}. Reason: {reason}")
-                
-                guild_id = str(guild.id)
-                config = self.bot.server_config.get(guild_id, {})
-                general_id = config.get("general_channel")
-                
-                if general_id:
-                    channel = self.bot.get_channel(general_id)
-                    if channel:
-                        await channel.send(f"💰 I just took ${stolen} from {target.mention}'s {location}. {reason}")
-        
-        except Exception as e:
-            logger.error(f"[AutoRob] Error: {e}")
-    
-    @auto_rob_task.before_loop
-    async def before_auto_rob(self):
-        await self.bot.wait_until_ready()
-    
     @tasks.loop(minutes=random.randint(15, 45))
     async def idle_chat_task(self):
         """Bot randomly chats in general channel after 2 hours of no user activity."""
@@ -363,7 +206,7 @@ class SonarrAI(commands.Cog):
                     logger.info(f"[IdleChat] Pinging {target.display_name}")
                     await channel.send(message)
             else:
-                idle_msg = random.choice(self.idle_chat_lines)
+                idle_msg = random.choice(IDLE_CHAT_LINES)
                 logger.info(f"[IdleChat] Sending: '{idle_msg}'")
                 await channel.send(idle_msg)
         
@@ -376,44 +219,6 @@ class SonarrAI(commands.Cog):
 
     # ================== HELPER METHODS ==================
     
-    def secure_bot_wallet(self):
-        """Keep only $500 in bot's wallet, deposit rest to bank for safety."""
-        if not self.bot.user:
-            return
-        try:
-            bot_id = str(self.bot.user.id)
-            wallet = self.economy_manager.get_balance(bot_id, "wallet")
-            if wallet > 500:
-                excess = wallet - 500
-                self.economy_manager.update_balance(bot_id, -excess, "wallet")
-                self.economy_manager.update_balance(bot_id, excess, "bank")
-                logger.info(f"[Bot] Secured ${excess} to bank. Wallet: $500")
-        except Exception:
-            pass
-    
-    async def punish_rude_user(self, message):
-        """30% chance to rob users who use negative keywords."""
-        content_lower = message.content.lower()
-        is_rude = any(word in content_lower for word in NEGATIVE_KEYWORDS)
-        
-        if is_rude and random.random() < 0.3:
-            rob_entry = random.choice(self.rob_reasons)
-            user_id = str(message.author.id)
-            bot_id = str(self.bot.user.id)
-            
-            wallet = self.economy_manager.get_balance(user_id, "wallet")
-            if wallet > 0:
-                stolen = int(wallet * rob_entry["percent"])
-                if stolen > 0:
-                    self.economy_manager.update_balance(user_id, -stolen, "wallet")
-                    self.economy_manager.update_balance(bot_id, stolen, "wallet")
-                    try:
-                        await message.channel.send(
-                            f"💰 Robbed ${stolen} from {message.author.mention}. {rob_entry['reason']}"
-                        )
-                    except:
-                        pass
-
     # ================== AI RATE LIMITING ==================
     
     def check_user_ai_limit(self, user_id: str) -> bool:
@@ -827,7 +632,7 @@ Reply with ONLY the category name, nothing else."""
         
         # Special case: rate limited
         if category == "rate_limited":
-            return random.choice(self.rate_limit_responses)
+            return random.choice(RATE_LIMIT_RESPONSES)
         
         # Log the classification
         log_classify(
@@ -838,46 +643,6 @@ Reply with ONLY the category name, nothing else."""
         
         logger.info(f"[Classify] FINAL ({word_count}w, source={source}): '{message_content[:40]}' → {category}")
         return random.choice(COLD_RESPONSES.get(category, COLD_RESPONSES["random"]))
-
-    # ================== DEBT ENFORCEMENT ==================
-    
-    async def check_debt_enforcement(self, message) -> str | None:
-        """Check if user has overdue debt and return an enforcement response."""
-        user_id = str(message.author.id)
-        loop = asyncio.get_running_loop()
-
-        loan = await loop.run_in_executor(None, db.get_loan, user_id)
-        
-        if not loan or loan.get("status") != "active":
-            return None
-        
-        now = datetime.now(timezone.utc).timestamp()
-        deadline = loan["deadline_timestamp"]
-        
-        if now <= deadline:
-            return None
-        
-        days_overdue = (now - deadline) / 86400
-        debt = loan["amount_owed"]
-        
-        if days_overdue < 3:
-            # Early stage: gentle reminders
-            response = random.choice(DEBT_EARLY_RESPONSES)
-            await loop.run_in_executor(None, db.increment_late_notice, user_id)
-            return response.format(debt=debt)
-        
-        elif days_overdue < 7:
-            # Medium stage: start taking action
-            response = random.choice(DEBT_MEDIUM_RESPONSES)
-            await loop.run_in_executor(None, db.increment_late_notice, user_id)
-            return response.format(debt=debt, days=int(days_overdue))
-        
-        else:
-            # Severe stage: serious consequences
-            response = random.choice(DEBT_SEVERE_RESPONSES)
-            await loop.run_in_executor(None, db.increment_late_notice, user_id)
-            logger.warning(f"[DebtEnforcement] Severe enforcement on {user_id}, {int(days_overdue)} days overdue, ${debt} owed")
-            return response.format(debt=debt, days=int(days_overdue))
 
     # ================== MESSAGE EVENT ==================
     
@@ -896,18 +661,6 @@ Reply with ONLY the category name, nothing else."""
         if general_id and message.channel.id == general_id:
             self.last_user_chat_time[guild_id] = datetime.now(timezone.utc)
         
-        self.secure_bot_wallet()
-        await self.punish_rude_user(message)
-        
-        # ========== DEBT ENFORCEMENT ==========
-        if random.random() < 0.20:
-            debt_response = await self.check_debt_enforcement(message)
-            if debt_response:
-                try:
-                    await send_response_with_effects(debt_response, message, user_query=None)
-                except Exception as e:
-                    logger.error(f"[DebtEnforcement] Error: {e}")
-                return
         
         # Check if bot is mentioned or replied to
         is_bot_mentioned = (
@@ -1046,7 +799,7 @@ Reply with ONLY the category name, nothing else."""
                 
                 # DOUBLE: effect - send followup after delay
                 if followup:
-                    import asyncio
+
                     await asyncio.sleep(1.5)
                     await message.channel.send(followup)
                     logger.info(f"[OnMessage] Followup: '{followup[:100]}'")

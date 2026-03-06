@@ -1,12 +1,10 @@
 """
 Response Effects Handler
-Parses special prefixes in responses and applies effects like timeouts, robbery, etc.
+Parses special prefixes in responses and applies effects like timeouts, search links, etc.
 
 Supported prefixes:
 - TIMEOUT:message - Apply 1 hour timeout
 - TIMEOUT:30m:message - Apply custom duration timeout
-- ROB:message - Rob 5% from user's wallet
-- ROB:10:message - Rob custom % from user's wallet
 - SEARCH:GOOGLE:message - Add Google search link
 - SEARCH:YOUTUBE:message - Add YouTube search link
 - SEARCH:WIKIPEDIA:message - Add Wikipedia search link
@@ -16,8 +14,6 @@ Supported prefixes:
 - REACT:🤡:message - Add emoji reaction to user's message
 - REACT:🤡 - Add reaction without bot reply
 - DOUBLE:first message||second message - Send two messages with a delay
-- (Legacy: GOOGLE:message still supported for backwards compatibility)
-- (More can be added later: DM:, RECURSIVE:, etc.)
 """
 
 import re
@@ -35,15 +31,11 @@ class ResponseEffect:
     """Container for parsed response effects."""
     message: str
     timeout_duration: Optional[timedelta] = None
-    rob_percent: Optional[float] = None  # e.g., 0.05 for 5%
     search_platform: Optional[str] = None  # Platform to search: google, youtube, wikipedia, chatgpt, reddit
     search_query: Optional[str] = None  # User's query to search
     rename_nickname: Optional[str] = None  # New nickname to set
     reactions: List[str] = field(default_factory=list)  # Emoji reactions to add
     double_message: Optional[str] = None  # Second message to send after a delay
-    # Future effects can be added here:
-    # dm_message: str = None
-    # recursive_category: str = None
 
 
 def parse_duration(duration_str: str) -> Optional[timedelta]:
@@ -84,8 +76,6 @@ def parse_response(response: str) -> ResponseEffect:
         "Hello there" -> ResponseEffect(message="Hello there")
         "TIMEOUT:You earned a timeout" -> ResponseEffect(message="You earned...", timeout_duration=1h)
         "TIMEOUT:30m:Short timeout" -> ResponseEffect(message="Short timeout", timeout_duration=30m)
-        "ROB:Took your money" -> ResponseEffect(message="Took your money", rob_percent=0.05)
-        "ROB:10:Took 10%" -> ResponseEffect(message="Took 10%", rob_percent=0.10)
         "GOOGLE:Go search it" -> ResponseEffect(message="Go search it", google_query=original_user_query)
         "RENAME:Clown:You're dressed for it" -> ResponseEffect(message="You're...", rename_nickname="Clown")
         "REACT:🤡:Honk honk" -> ResponseEffect(message="Honk honk", reactions=["🤡"])
@@ -106,18 +96,7 @@ def parse_response(response: str) -> ResponseEffect:
         else:
             effect.timeout_duration = timedelta(hours=1)
     
-    # Parse ROB: prefix
-    if remaining.startswith("ROB:"):
-        remaining = remaining[4:]
-        percent_match = re.match(r'^(\d+):(.+)$', remaining, re.DOTALL)
-        
-        if percent_match:
-            percent = int(percent_match.group(1))
-            remaining = percent_match.group(2)
-            effect.rob_percent = percent / 100.0
-        else:
-            effect.rob_percent = 0.05  # Default 5%
-    
+
     # Parse SEARCH: prefix (SEARCH:GOOGLE:, SEARCH:YOUTUBE:, etc.)
     if remaining.startswith("SEARCH:"):
         remaining = remaining[7:]  # Remove "SEARCH:"
@@ -130,11 +109,7 @@ def parse_response(response: str) -> ResponseEffect:
             # Fallback to google if no platform specified
             effect.search_platform = "google"
     
-    # Legacy GOOGLE: prefix support (backwards compatibility)
-    if remaining.startswith("GOOGLE:"):
-        remaining = remaining[7:]
-        effect.search_platform = "google"
-    
+
     # Parse RENAME: prefix
     if remaining.startswith("RENAME:"):
         remaining = remaining[7:]
@@ -188,7 +163,6 @@ async def apply_effects(effect: ResponseEffect, message, user_query: str = None,
         Tuple of (main_message, followup_message). followup_message is None if no DOUBLE: effect.
     """
     import discord
-    from utils.economy import EconomyManager
     
     final_message = effect.message
     
@@ -206,26 +180,7 @@ async def apply_effects(effect: ResponseEffect, message, user_query: str = None,
         except Exception as e:
             logger.error(f"{logger_prefix} Timeout error: {e}")
     
-    # Apply rob effect
-    if effect.rob_percent:
-        try:
-            economy = EconomyManager()
-            user_id = str(message.author.id)
-            bot_id = str(message.guild.me.id) if message.guild else None
-            
-            if bot_id:
-                wallet = economy.get_balance(user_id, "wallet")
-                if wallet > 0:
-                    stolen = int(wallet * effect.rob_percent)
-                    if stolen > 0:
-                        economy.update_balance(user_id, -stolen, "wallet")
-                        economy.update_balance(bot_id, stolen, "wallet")
-                        percent_display = int(effect.rob_percent * 100)
-                        logger.info(f"{logger_prefix} Robbed ${stolen} ({percent_display}%) from {message.author}")
-                        final_message = f"💰 *Stole ${stolen} from your wallet*\n{effect.message}"
-        except Exception as e:
-            logger.error(f"{logger_prefix} Rob error: {e}")
-    
+
     # Apply search effect (Google, YouTube, Wikipedia, ChatGPT, Reddit)
     if effect.search_platform and user_query:
         try:
@@ -285,10 +240,7 @@ async def apply_effects(effect: ResponseEffect, message, user_query: str = None,
             except Exception as e:
                 logger.error(f"{logger_prefix} Unexpected reaction error: {e}")
     
-    # Future effects would be applied here:
-    # if effect.dm_message:
-    #     await message.author.send(effect.dm_message)
-    
+
     # Return main message and optional followup for DOUBLE: effect
     main_msg = final_message if final_message else None
     return (main_msg, effect.double_message)

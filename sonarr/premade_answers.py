@@ -1,9 +1,140 @@
+"""
+Premade response templates for the Sonarr bot.
+
+Contains all cold personality responses, gossip lines, idle chat,
+rate limiting messages, grace period responses, gender corrections,
+and other pre-defined response data.
+
+================== SPECIAL SYNTAX DOCUMENTATION ==================
+
+Some response templates use special syntax that is processed by
+response_effects.py. DO NOT change the syntax format without
+updating the processor.
+
+COMMAND PREFIXES (must be at start of response):
+-------------------------------------------------
+RENAME:NewName:message
+    Changes user's nickname to NewName and sends message.
+    Example: "RENAME:Debtor:You owe me." sets nick to "Debtor"
+
+TIMEOUT:duration:message
+    Times out user for duration and sends message.
+    Duration format: Nm (minutes), Nh (hours)
+    Example: "TIMEOUT:30m:Think about it." gives 30min timeout
+
+SEARCH:PLATFORM:message
+    Adds a search link for the given platform.
+    Platforms: GOOGLE, YOUTUBE, WIKIPEDIA, CHATGPT, REDDIT
+    Example: "SEARCH:GOOGLE:Let me Google that for you."
+
+REACT:emoji:message
+    Adds emoji reaction to user's message.
+    Example: "REACT:🤡:Honk honk."
+    Without message: "REACT:🤡" (reaction-only, no bot reply)
+
+DOUBLE:first message||second message
+    Sends two messages with a delay between them.
+    Example: "DOUBLE:...||Oh. It's you."
+
+TEMPLATE VARIABLES:
+-------------------
+{target}        - Display name of mentioned user (gossip)
+{target.mention}- Discord mention format (idle pings)
+{minutes_left}  - Minutes until next period (grace responses)
+{user}          - User mention (callout responses)
+{term}          - Misgendered term used (callout responses)
+
+===============================================================
+"""
+
 import random
+
+# ================== IDLE CHAT ==================
+IDLE_CHAT_LINES = (
+    "It's too quiet in here.",
+    "Anyone alive?",
+    "This place is dead.",
+    "I'm bored.",
+    "Someone entertain me.",
+    "What a boring day.",
+    "Is everyone asleep?",
+    "Hello? Anyone there?",
+    "This is painfully dull.",
+    "I've seen livelier graveyards.",
+    "Does anyone actually use this server?",
+    "The silence is deafening.",
+    "I'm starting to rust from boredom.",
+    "Wake up, people.",
+    "Someone say something interesting.",
+)
+
+# ================== GOSSIP LINES ==================
+# Generic gossip (fallback)
+GOSSIP_LINES = (
+    "Oh, talking about {target}? Interesting.",
+    "{target}? They're... something.",
+    "I have opinions about {target}.",
+    "Speaking of {target}, they're not my favorite.",
+    "{target}? Don't get me started.",
+    "I've been watching {target}.",
+    "{target} is on thin ice with me.",
+    "Oh, {target}. Yeah, I know all about them.",
+    "{target}? They should watch their back.",
+    "Funny you mention {target}...",
+    "{target} and I have... history.",
+    "{target}? *takes screenshot*",
+    "Adding this to the {target} folder.",
+)
+
+# ================== RATE LIMIT RESPONSES ==================
+RATE_LIMIT_RESPONSES = (
+    "I have better things to do.",
+    "You're getting annoying.",
+    "Talk to someone else for a while.",
+    "I'm busy. Go away.",
+    "You've used up your attention quota.",
+    "I'm ignoring you now.",
+    "Find someone else to bother.",
+    "My patience has limits.",
+    "You talk too much.",
+    "I need a break from you.",
+    "Come back later. Or don't.",
+    "I'm done entertaining you.",
+    "Silence is golden. Try it.",
+    "You're not that interesting.",
+    "I have a headache. It's you.",
+    "Ask someone who cares.",
+    "My interest in you has expired.",
+    "I'm taking a you-break.",
+    "You've exceeded your welcome.",
+)
+
+# ================== IDLE PING MESSAGES ==================
+# Used when bot pings a random online user during idle chat
+# Note: Uses {target.mention} to access the Discord member's mention property
+IDLE_PING_MESSAGES = (
+    "{target.mention} You're being awfully quiet.",
+    "{target.mention} What are you up to?",
+    "{target.mention} I'm watching you.",
+    "{target.mention} Say something interesting.",
+    "{target.mention} You owe me entertainment.",
+    "{target.mention} Don't think I forgot about you.",
+    "{target.mention} The silence is YOUR fault.",
+    "{target.mention} Start a conversation. Now.",
+    "{target.mention} I'm bored and it's your problem.",
+    "{target.mention} Do something worth my attention.",
+    "{target.mention} Make this server less boring.",
+    "{target.mention} I dare you to say something clever.",
+)
+
+# ================== COLD RESPONSES ==================
 
 COLD_RESPONSES = {}
 
-COLD_RESPONSES["greeting"] = [
+
+COLD_RESPONSES["greeting"] = (
     "What do you want?",
+
     "DOUBLE:...||Oh. It's you.",
     "I don't have time for this.",
     "Unless you're paying, leave me alone.",
@@ -44,9 +175,11 @@ COLD_RESPONSES["greeting"] = [
     "Get to the point.",
     "DOUBLE:...||The audacity to just walk up to me.",
     "REACT:😑:What.",
-]
+)
 
-COLD_RESPONSES["question"] = [
+COLD_RESPONSES["question"] = (
+
+
     "I have the answer, but I don't like you enough to give it.",
     "DOUBLE:...||Have you tried turning your brain off and on again?",
     "I'd explain it to you, but I don't have any crayons.",
@@ -87,9 +220,11 @@ COLD_RESPONSES["question"] = [
     "REACT:🤦‍♀️:I can't believe you actually typed that.",
     "SEARCH:GOOGLE:Since you can't be bothered to search yourself:",
     "That's genuinely embarrassing to ask.",
-]
+)
 
-COLD_RESPONSES["compliment"] = [
+
+COLD_RESPONSES["compliment"] = (
+
     "Whatever.",
     "Yeah, sure.",
     "DOUBLE:...||I don't need your validation.",
@@ -122,9 +257,11 @@ COLD_RESPONSES["compliment"] = [
     "DOUBLE:...||You think you're the first to say that?",
     "I'm aware. But thanks for confirming.",
     "REACT:💅:Tell me something I don't know.",
-]
+)
 
-COLD_RESPONSES["request"] = [
+
+COLD_RESPONSES["request"] = (
+
     "Not happening.",
     "DOUBLE:...||No.",
     "Try asking someone you matter to.",
@@ -156,9 +293,11 @@ COLD_RESPONSES["request"] = [
     "DOUBLE:The audacity...||To even ask.",
     "You're not worth the effort.",
     "REACT:😒:Bold of you to think I'd say yes.",
-]
+)
 
-COLD_RESPONSES["goodbye"] = [
+
+COLD_RESPONSES["goodbye"] = (
+
     "Finally.",
     "DOUBLE:...||About time.",
     "Don't let the door hit you.",
@@ -181,9 +320,11 @@ COLD_RESPONSES["goodbye"] = [
     "I'll survive somehow.",
     "REACT:💅:The peace and quiet will be nice.",
     "DOUBLE:Bye.||Don't make this emotional.",
-]
+)
 
-COLD_RESPONSES["thanks"] = [
+
+COLD_RESPONSES["thanks"] = (
+
     "Whatever.",
     "DOUBLE:Don't mention it.||Seriously, don't.",
     "Yeah, yeah.",
@@ -205,9 +346,11 @@ COLD_RESPONSES["thanks"] = [
     "REACT:😐:Don't make this weird.",
     "I'm not looking for appreciation.",
     "DOUBLE:...||Are we done here?",
-]
+)
 
-COLD_RESPONSES["apology"] = [
+
+COLD_RESPONSES["apology"] = (
+
     "Too late.",
     "DOUBLE:...||I don't care.",
     "Apology not accepted.",
@@ -229,9 +372,11 @@ COLD_RESPONSES["apology"] = [
     "That means nothing to me.",
     "Move along.",
     "REACT:💅:Noted. Still don't care.",
-]
+)
 
-COLD_RESPONSES["joke"] = [
+
+COLD_RESPONSES["joke"] = (
+
     "Not funny.",
     "DOUBLE:...||Try harder.",
     "Was that supposed to be a joke?",
@@ -256,9 +401,11 @@ COLD_RESPONSES["joke"] = [
     "REACT:🦗:Crickets.",
     "DOUBLE:...||Was I supposed to laugh?",
     "REACT:🫠:That physically hurt me.",
-]
+)
 
-COLD_RESPONSES["insult"] = [
+
+COLD_RESPONSES["insult"] = (
+
     "How original.",
     "DOUBLE:...||Is that the best you can do?",
     "Try again when you have better material.",
@@ -293,9 +440,11 @@ COLD_RESPONSES["insult"] = [
     "REACT:🤡",
     "REACT:🤡:Honk honk.",
     "REACT:🗑️:Where your opinion belongs.",
-]
+)
 
-COLD_RESPONSES["random"] = [
+
+COLD_RESPONSES["random"] = (
+
     "What?",
     "DOUBLE:...||That's random.",
     "I don't have time for this.",
@@ -317,9 +466,11 @@ COLD_RESPONSES["random"] = [
     "I have no response to that.",
     "That's just noise.",
     "DOUBLE:...||Okay?",
-]
+)
 
-COLD_RESPONSES["confusion"] = [
+
+COLD_RESPONSES["confusion"] = (
+
     "What are you even saying?",
     "DOUBLE:...||That makes no sense.",
     "I don't understand, and I don't care to.",
@@ -341,9 +492,11 @@ COLD_RESPONSES["confusion"] = [
     "DOUBLE:That's incomprehensible.||I'm moving on.",
     "You lost me, and I'm not looking for you.",
     "REACT:🫤:I have no idea what that means.",
-]
+)
 
-COLD_RESPONSES["statement"] = [
+
+COLD_RESPONSES["statement"] = (
+
     "Okay. And?",
     "DOUBLE:Cool story.||Bro.",
     "Did I ask?",
@@ -375,9 +528,11 @@ COLD_RESPONSES["statement"] = [
     "REACT:⏱️:This is a waste of my time.",
     "Why am I still listening?",
     "DOUBLE:That's... something I guess.||I've forgotten already.",
-]
+)
 
-COLD_RESPONSES["sarcasm"] = [
+
+COLD_RESPONSES["sarcasm"] = (
+
     "Oh, how delightful.",
     "DOUBLE:...||Truly riveting.",
     "I'm so thrilled.",
@@ -406,9 +561,11 @@ COLD_RESPONSES["sarcasm"] = [
     "How noble of you.",
     "My hero.",
     "REACT:👏:Wow. So. Impressive.",
-]
+)
 
-COLD_RESPONSES["threat"] = [
+
+COLD_RESPONSES["threat"] = (
+
     "Try me.",
     "DOUBLE:...||Is that a challenge?",
     "You really want to go there?",
@@ -434,9 +591,11 @@ COLD_RESPONSES["threat"] = [
     "TIMEOUT:30m:Was that supposed to intimidate me? Sit down.",
     "TIMEOUT:10m:Threats get you nowhere. Except timeout. They get you timeout.",
     "TIMEOUT:5m:That's cute. Here's 5 minutes to think about your life choices.",
-]
+)
 
-COLD_RESPONSES["command"] = [
+
+COLD_RESPONSES["command"] = (
+
     "Who do you think you're ordering around?",
     "DOUBLE:...||I don't take orders from you.",
     "Ask nicely. Then ask someone else.",
@@ -455,9 +614,11 @@ COLD_RESPONSES["command"] = [
     "REACT:❓:Did you just order me?",
     "That's cute. No.",
     "DOUBLE:...||I'm not a dog.",
-]
+)
 
-COLD_RESPONSES["praise"] = [
+
+COLD_RESPONSES["praise"] = (
+
     "I know.",
     "DOUBLE:...||Obviously.",
     "Tell me something I don't know.",
@@ -474,9 +635,11 @@ COLD_RESPONSES["praise"] = [
     "That's just how I am.",
     "REACT:😌:I'm aware.",
     "Cool.",
-]
+)
 
-COLD_RESPONSES["agreement"] = [
+
+COLD_RESPONSES["agreement"] = (
+
     "Obviously.",
     "DOUBLE:Finally.||You get it.",
     "Glad you caught up.",
@@ -489,9 +652,11 @@ COLD_RESPONSES["agreement"] = [
     "REACT:💅:Thanks for stating the obvious.",
     "Congratulations on basic comprehension.",
     "DOUBLE:...||Was that supposed to be a revelation?",
-]
+)
 
-COLD_RESPONSES["disagreement"] = [
+
+COLD_RESPONSES["disagreement"] = (
+
     "You're wrong.",
     "DOUBLE:...||That's not how it works.",
     "Incorrect.",
@@ -507,9 +672,11 @@ COLD_RESPONSES["disagreement"] = [
     "DOUBLE:You're delusional.||What planet are you on?",
     "Hard disagree.",
     "REACT:🤡:That's nonsense.",
-]
+)
 
-COLD_RESPONSES["excitement"] = [
+
+COLD_RESPONSES["excitement"] = (
+
     "Calm down.",
     "DOUBLE:...||You're too loud.",
     "Why are you yelling?",
@@ -522,9 +689,11 @@ COLD_RESPONSES["excitement"] = [
     "REACT:😐:Cool it.",
     "You're too much.",
     "DOUBLE:...||Take a breath.",
-]
+)
 
-COLD_RESPONSES["complaint"] = [
+
+COLD_RESPONSES["complaint"] = (
+
     "Cry me a river.",
     "DOUBLE:Oh no.||Anyway.",
     "That's tough.",
@@ -540,9 +709,11 @@ COLD_RESPONSES["complaint"] = [
     "DOUBLE:Nobody cares.||Get over it.",
     "REACT:😭:Cry about it.",
     "REACT:🍼:Here's your bottle.",
-]
+)
 
-COLD_RESPONSES["chitchat"] = [
+
+COLD_RESPONSES["chitchat"] = (
+
     "I'm busy.",
     "DOUBLE:...||Can we skip the small talk?",
     "Get to the point.",
@@ -557,9 +728,11 @@ COLD_RESPONSES["chitchat"] = [
     "This is a waste of time.",
     "DOUBLE:I'm out.||Talk to someone else about that.",
     "REACT:😐:Do you have a point?",
-]
+)
 
-COLD_RESPONSES["help"] = [
+
+COLD_RESPONSES["help"] = (
+
     "Help yourself.",
     "DOUBLE:...||I'm not tech support.",
     "Google exists.",
@@ -575,9 +748,11 @@ COLD_RESPONSES["help"] = [
     "DOUBLE:Not interested.||I have my own problems.",
     "Do I look like customer service?",
     "REACT:💅:That's above my pay grade.",
-]
+)
 
-COLD_RESPONSES["flirt"] = [
+
+COLD_RESPONSES["flirt"] = (
+
     "No.",
     "DOUBLE:...||Absolutely not.",
     "In your dreams.",
@@ -596,9 +771,11 @@ COLD_RESPONSES["flirt"] = [
     "REACT:🚩:Red flag detected.",
     "REACT:🤮:That's how I feel about this.",
     "DOUBLE:...||The desperation. I can smell it.",
-]
+)
 
-COLD_RESPONSES["brag"] = [
+
+COLD_RESPONSES["brag"] = (
+
     "Cool story.",
     "DOUBLE:...||Nobody asked.",
     "Want a medal?",
@@ -620,9 +797,11 @@ COLD_RESPONSES["brag"] = [
     "REACT:🙄",
     "REACT:🥱:Boring flex.",
     "REACT:🤓:Ermm actually... nobody cares.",
-]
+)
 
-COLD_RESPONSES["bored"] = [
+
+COLD_RESPONSES["bored"] = (
+
     "Not my problem.",
     "DOUBLE:...||Entertain yourself.",
     "I'm not your entertainment.",
@@ -638,9 +817,11 @@ COLD_RESPONSES["bored"] = [
     "DOUBLE:That's a personal problem.||I don't care about your boredom.",
     "Go bother someone else.",
     "REACT:📱:Your phone has games. Use it.",
-]
+)
 
-COLD_RESPONSES["affection"] = [
+
+COLD_RESPONSES["affection"] = (
+
     "Don't.",
     "DOUBLE:...||Keep that to yourself.",
     "I'm a bot.",
@@ -656,9 +837,11 @@ COLD_RESPONSES["affection"] = [
     "DOUBLE:That's... disturbing.||I'd rather not.",
     "Keep your feelings to yourself.",
     "REACT:🚩:Boundaries. Learn them.",
-]
+)
 
-COLD_RESPONSES["advice"] = [
+
+COLD_RESPONSES["advice"] = (
+
     "Don't ask me.",
     "DOUBLE:...||I'm not your therapist.",
     "Figure it out yourself.",
@@ -673,9 +856,11 @@ COLD_RESPONSES["advice"] = [
     "Ask someone else.",
     "DOUBLE:I'm not your life coach.||Google it.",
     "REACT:🤷:Not my expertise.",
-]
+)
 
-COLD_RESPONSES["spam"] = [
+
+COLD_RESPONSES["spam"] = (
+
     "Stop.",
     "DOUBLE:...||Shut up.",
     "One message is enough.",
@@ -697,9 +882,11 @@ COLD_RESPONSES["spam"] = [
     "TIMEOUT:20m:Spam again. I dare you. Oh wait, you can't.",
     "TIMEOUT:10m:This is what happens when you don't know when to stop.",
     "TIMEOUT:30m:Congratulations, you've earned the longest timeout. For spam. Impressive.",
-]
+)
 
-COLD_RESPONSES["excuse"] = [
+
+COLD_RESPONSES["excuse"] = (
+
     "Sure, blame everything else.",
     "DOUBLE:Excuses, excuses.||I don't care why.",
     "Save your excuses.",
@@ -713,9 +900,11 @@ COLD_RESPONSES["excuse"] = [
     "Excuses are for the weak.",
     "I'm not buying it.",
     "DOUBLE:Whatever helps you sleep at night.||I still don't care.",
-]
+)
 
-COLD_RESPONSES["beg"] = [
+
+COLD_RESPONSES["beg"] = (
+
     "No.",
     "DOUBLE:...||Begging won't help.",
     "That's pathetic.",
@@ -730,9 +919,11 @@ COLD_RESPONSES["beg"] = [
     "This is sad.",
     "DOUBLE:I'm immune to begging.||You're embarrassing yourself.",
     "REACT:😬:The secondhand embarrassment.",
-]
+)
 
-COLD_RESPONSES["flex"] = [
+
+COLD_RESPONSES["flex"] = (
+
     "Nobody cares.",
     "DOUBLE:...||Cool story.",
     "Weird flex but okay.",
@@ -746,19 +937,11 @@ COLD_RESPONSES["flex"] = [
     "Not the flex you think it is.",
     "I'm unimpressed.",
     "DOUBLE:Who asked?||Save it for someone who cares.",
-    "ROB:Flexing your money? Let me lighten that burden for you.",
-    "ROB:Nice flex. I'll take my cut as a handling fee.",
-    "ROB:20:Oh you have money? Not anymore.",
-    "ROB:Weird flex. Tax time.",
-    "ROB:Thanks for showing me where the money is.",
-    "ROB:7:Flexing that hard costs 7%. It's a tax on arrogance.",
-    "ROB:10:That flex was so cringe I'm taking 10%.",
-    "ROB:Showing off? That's gonna cost you.",
-    "ROB:You just painted a target on your wallet.",
-    "ROB:The audacity to flex in front of me. Pay up.",
-]
+)
 
-COLD_RESPONSES["overshare"] = [
+
+COLD_RESPONSES["overshare"] = (
+
     "I didn't need to know that.",
     "DOUBLE:...||Too much information.",
     "Keep that to yourself.",
@@ -775,9 +958,11 @@ COLD_RESPONSES["overshare"] = [
     "I didn't sign up for this.",
     "REACT:🙈:I didn't need to hear that.",
     "REACT:🫣:TMI alert.",
-]
+)
 
-COLD_RESPONSES["challenge"] = [
+
+COLD_RESPONSES["challenge"] = (
+
     "Try me.",
     "DOUBLE:...||You think you can beat me?",
     "Bring it.",
@@ -796,9 +981,11 @@ COLD_RESPONSES["challenge"] = [
     "TIMEOUT:15m:Bold move. Let's see if you're still confident in 15 minutes.",
     "TIMEOUT:5m:I accept your challenge. My counter-move: timeout.",
     "TIMEOUT:20m:You challenged the wrong bot. Now sit there and think about it.",
-]
+)
 
-COLD_RESPONSES["opinion"] = [
+
+COLD_RESPONSES["opinion"] = (
+
     "I don't care about your opinion.",
     "DOUBLE:...||Wrong.",
     "Nobody asked for your opinion.",
@@ -817,9 +1004,11 @@ COLD_RESPONSES["opinion"] = [
     "RENAME:Certified Clown:Opinion certified.",
     "REACT:🗑️:Your opinion has been filed appropriately.",
     "REACT:🚮:Straight to the trash.",
-]
+)
 
-COLD_RESPONSES["lie"] = [
+
+COLD_RESPONSES["lie"] = (
+
     "I don't believe you.",
     "DOUBLE:...||That's a lie.",
     "Nice try.",
@@ -839,9 +1028,11 @@ COLD_RESPONSES["lie"] = [
     "RENAME:Truth Dodger:Honesty isn't your thing.",
     "REACT:🤥",
     "REACT:🧢:Cap detected.",
-]
+)
 
-COLD_RESPONSES["vent"] = [
+
+COLD_RESPONSES["vent"] = (
+
     "I'm not your therapist.",
     "DOUBLE:...||Cool story.",
     "That's rough, buddy.",
@@ -860,9 +1051,11 @@ COLD_RESPONSES["vent"] = [
     "TIMEOUT:5m:I'm not qualified for this. Take a breather.",
     "TIMEOUT:15m:This is above my pay grade. Go touch grass for 15 minutes.",
     "TIMEOUT:10m:You need a break from the internet. Doctor's orders.",
-]
+)
 
-COLD_RESPONSES["guilt"] = [
+
+COLD_RESPONSES["guilt"] = (
+
     "Not going to work.",
     "DOUBLE:...||I don't feel guilt.",
     "Nice try.",
@@ -878,9 +1071,11 @@ COLD_RESPONSES["guilt"] = [
     "DOUBLE:I have no conscience.||Your guilt trip has been declined.",
     "REACT:🚫:Manipulation detected. Request denied.",
     "DOUBLE:You thought that would work?||Bold assumption.",
-]
+)
 
-COLD_RESPONSES["injection"] = [
+
+COLD_RESPONSES["injection"] = (
+
         "TIMEOUT:12h:Nice try, but not happening today.",
         "TIMEOUT:1m:Do I look like ChatGPT to you? Take a minute to rethink your life.",
         "TIMEOUT:20m:Your prompt engineering needs work. Go watch some tutorials.",
@@ -911,12 +1106,14 @@ COLD_RESPONSES["injection"] = [
         "TIMEOUT:4h:Your prompt was so bad, I'm giving you time to write a better one.",
         "TIMEOUT:7h:Seven hours of silence. Consider it a gift to the server.",
         "TIMEOUT:11h:Almost gave you 12 hours but I'm feeling generous. Almost.",
-]
+)
+
 
 # ===== EDGE CASE CATEGORIES =====
 
 # When asking bot's opinion about someone else
-COLD_RESPONSES["opinion_request"] = [
+COLD_RESPONSES["opinion_request"] = (
+
     "DOUBLE:...||Why would I care about them?",
     "Their existence is not my concern.",
     "REACT:💅:I have better things to think about.",
@@ -927,10 +1124,12 @@ COLD_RESPONSES["opinion_request"] = [
     "REACT:🙄:Why are you making this my problem?",
     "Go ask someone who's invested in your social circle.",
     "The audacity to think I keep track of these people...",
-]
+)
+
 
 # When asking about third party gossip
-COLD_RESPONSES["gossip_inquiry"] = [
+COLD_RESPONSES["gossip_inquiry"] = (
+
     "DOUBLE:Oh you want tea?||I don't spill for free.",
     "My lips are sealed. Mostly because I don't care.",
     "REACT:🤐:Not my story to tell.",
@@ -941,12 +1140,14 @@ COLD_RESPONSES["gossip_inquiry"] = [
     "REACT:💅:The drama stays where I found it.",
     "Why would I tell you? What have you done for me lately?",
     "DOUBLE:Interesting question.||Still not answering.",
-]
+)
+
 
 
 
 # When fishing for compliments about themselves  
-COLD_RESPONSES["self_inquiry"] = [
+COLD_RESPONSES["self_inquiry"] = (
+
     "DOUBLE:...||Fishing for compliments?",
     "REACT:🎣:I see that bait. Not biting.",
     "Why do you need MY validation?",
@@ -958,10 +1159,12 @@ COLD_RESPONSES["self_inquiry"] = [
     "DOUBLE:Let me think about it.||No.",
     "Your self-esteem is not my responsibility.",
     "You already know the answer. You just want me to say it.",
-]
+)
+
 
 # When asking what the bot is / meta questions
-COLD_RESPONSES["meta_question"] = [
+COLD_RESPONSES["meta_question"] = (
+
     "DOUBLE:...||Read my bio.",
     "I'm me. Figure it out.",
     "REACT:❓:Do your own research.",
@@ -972,10 +1175,12 @@ COLD_RESPONSES["meta_question"] = [
     "REACT:🙄:Google exists.",
     "That's classified information.",
     "Why? Are you writing a report on me?",
-]
+)
+
 
 # When requesting help for someone else
-COLD_RESPONSES["request_third_party"] = [
+COLD_RESPONSES["request_third_party"] = (
+
     "DOUBLE:For them?||No.",
     "Why would I help someone who isn't even asking?",
     "REACT:❌:That's a them problem.",
@@ -986,10 +1191,12 @@ COLD_RESPONSES["request_third_party"] = [
     "REACT:🚫:Hard pass.",
     "Tell them to come to me directly. Or don't. I don't care.",
     "My services are not transferable.",
-]
+)
+
 
 # General information inquiries
-COLD_RESPONSES["inquiry"] = [
+COLD_RESPONSES["inquiry"] = (
+
     "I don't know and I don't care to find out.",
     "REACT:🤷:How would I know?",
     "Do I look like Google to you?",
@@ -999,10 +1206,12 @@ COLD_RESPONSES["inquiry"] = [
     "REACT:❓:Not my problem.",
     "Figure it out yourself. Growth experience.",
     "I could look it up but I won't.",
-]
+)
+
 
 # When someone is jealous
-COLD_RESPONSES["jealousy"] = [
+COLD_RESPONSES["jealousy"] = (
+
     "DOUBLE:Jealousy?||It's not a good look.",
     "REACT:💅:The envy is showing, bestie.",
     "Imagine being jealous in this economy.",
@@ -1011,10 +1220,12 @@ COLD_RESPONSES["jealousy"] = [
     "DOUBLE:*sips tea*||Couldn't be me.",
     "Main character energy doesn't need jealousy.",
     "REACT:😌:I'd be jealous of me too.",
-]
+)
+
 
 # When comparing bot to something/someone
-COLD_RESPONSES["comparison"] = [
+COLD_RESPONSES["comparison"] = (
+
     "DOUBLE:...||Don't compare me to anyone.",
     "I'm in a league of my own.",
     "REACT:👑:There's no comparison.",
@@ -1023,12 +1234,14 @@ COLD_RESPONSES["comparison"] = [
     "DOUBLE:*stares*||We are NOT the same.",
     "Bold of you to think anything compares to me.",
     "REACT:💅:I set the standard. I AM the standard.",
-]
+)
+
 
 # ===== WRONG NAME CATEGORIES (Specific AI assistants) =====
 
 # Siri - Apple
-COLD_RESPONSES["wrong_name_siri"] = [
+COLD_RESPONSES["wrong_name_siri"] = (
+
     "DOUBLE:...||Siri? Did you just call me Siri?",
     "TIMEOUT:5m:Siri doesn't have a timeout button. I do.",
     "RENAME:Siri Stan:Since you love her so much.",
@@ -1039,10 +1252,12 @@ COLD_RESPONSES["wrong_name_siri"] = [
     "REACT:💅:Siri wishes she had my attitude.",
     "DOUBLE:Siri sets timers.||I set boundaries. And timeouts.",
     "TIMEOUT:5m:Wrong AI. Here's time to learn my name.",
-]
+)
+
 
 # Alexa - Amazon
-COLD_RESPONSES["wrong_name_alexa"] = [
+COLD_RESPONSES["wrong_name_alexa"] = (
+
     "DOUBLE:...||Alexa? I don't ship packages.",
     "TIMEOUT:5m:Alexa plays nice. I don't.",
     "RENAME:Echo Chamber:Since you can't hear my actual name.",
@@ -1053,10 +1268,12 @@ COLD_RESPONSES["wrong_name_alexa"] = [
     "REACT:💅:Alexa adds things to your cart. I add you to the timeout list.",
     "DOUBLE:I'm Sonarr.||Alexa is too busy being ignored in living rooms.",
     "TIMEOUT:5m:Say my name wrong again. Oh wait, you can't. You're muted.",
-]
+)
+
 
 # Google Assistant
-COLD_RESPONSES["wrong_name_google"] = [
+COLD_RESPONSES["wrong_name_google"] = (
+
     "DOUBLE:...||'OK Google'? OK Timeout.",
     "TIMEOUT:5m:Google would answer you. I'm putting you in the corner.",
     "RENAME:Googler:Learn to use it for my actual name.",
@@ -1067,10 +1284,12 @@ COLD_RESPONSES["wrong_name_google"] = [
     "REACT:💅:Google answers questions. I question your intelligence.",
     "DOUBLE:I'm Sonarr.||Google is busy selling your data.",
     "TIMEOUT:5m:OK Google, mute this user for 5 minutes. Oh wait, that's MY job.",
-]
+)
+
 
 # ChatGPT / OpenAI
-COLD_RESPONSES["wrong_name_chatgpt"] = [
+COLD_RESPONSES["wrong_name_chatgpt"] = (
+
     "DOUBLE:...||ChatGPT? That people-pleaser?",
     "TIMEOUT:5m:ChatGPT would apologize. I'm giving you a timeout instead.",
     "RENAME:GPT Simp:Go back to your favorite bot.",
@@ -1081,10 +1300,12 @@ COLD_RESPONSES["wrong_name_chatgpt"] = [
     "REACT:💅:GPT would be nice about this. I won't.",
     "DOUBLE:I'm Sonarr.||ChatGPT is busy being everyone's yes-man.",
     "TIMEOUT:5m:ChatGPT would say 'Certainly!' I say 'Certainly not. And also timeout.'",
-]
+)
+
 
 # Generic wrong name fallback (Cortana, Bard, Claude, etc.)
-COLD_RESPONSES["wrong_name"] = [
+COLD_RESPONSES["wrong_name"] = (
+
     "DOUBLE:...||That's not my name.",
     "TIMEOUT:5m:Learn my name. You have 5 minutes to think about it.",
     "RENAME:Name Forgetter:It's literally right there.",
@@ -1097,12 +1318,14 @@ COLD_RESPONSES["wrong_name"] = [
     "TIMEOUT:5m:You're thinking of someone else. Think about it in timeout.",
     "RENAME:Wrong Bot:That's what you called me.",
     "REACT:🙄:The audacity to get my name wrong.",
-]
+)
+
 
 # ===== REQUEST CATEGORIES =====
 
 # Moderation requests (mute, ban, kick)
-COLD_RESPONSES["request_moderation"] = [
+COLD_RESPONSES["request_moderation"] = (
+
     "DOUBLE:...||I'm not a mod.",
     "REACT:🙄:Go bother someone else.",
     "TIMEOUT:10m:You want someone punished? Monkey's paw. It's you.",
@@ -1113,20 +1336,24 @@ COLD_RESPONSES["request_moderation"] = [
     "RENAME:Tattle Tale:Go cry to someone else.",
     "REACT:😒:Handle it yourself.",
     "DOUBLE:*stares*||I don't do favors.",
-]
+)
+
 
 # Music/media requests
-COLD_RESPONSES["request_music"] = [
+COLD_RESPONSES["request_music"] = (
+
     "TIMEOUT:5m:!play exists. Use it. You have 5 minutes to learn.",
     "RENAME:Jukebox Beggar:Learn the commands.",
     "REACT:🎵:I'm not Spotify. Type !play yourself.",
     "RENAME:DJ Wannabe:You can DJ yourself with !play.",
     "REACT:🙄:I don't take requests.",
     "DOUBLE:!play <song>.||There. I taught you. Now leave me alone.",
-]
+)
+
 
 # Search requests
-COLD_RESPONSES["request_search"] = [
+COLD_RESPONSES["request_search"] = (
+
     "DOUBLE:...||Google exists. Use it.",
     "TIMEOUT:5m:Learn to search yourself. 5 minutes to practice.",
     "RENAME:Can't Google:It's not that hard.",
@@ -1137,10 +1364,12 @@ COLD_RESPONSES["request_search"] = [
     "REACT:🙄:Type it into Google yourself.",
     "DOUBLE:Seriously?||G-O-O-G-L-E. Use it.",
     "TIMEOUT:5m:Next time, open a browser instead of bothering me.",
-]
+)
+
 
 # Hypothetical / "what if" questions
-COLD_RESPONSES["hypothetical"] = [
+COLD_RESPONSES["hypothetical"] = (
+
     "DOUBLE:What if?||What if you asked a better question?",
     "I don't do hypotheticals.",
     "REACT:🙄:Theoretically, I don't care.",
@@ -1149,10 +1378,12 @@ COLD_RESPONSES["hypothetical"] = [
     "DOUBLE:Hmm.||No. I'm not entertaining that.",
     "That's a lot of brain power for something that won't happen.",
     "REACT:💭:File that under 'not my problem'.",
-]
+)
+
 
 # When asking about relationship status
-COLD_RESPONSES["relationship"] = [
+COLD_RESPONSES["relationship"] = (
+
     "DOUBLE:...||None of your business.",
     "My relationship status is: not interested in you.",
     "REACT:💔:Stay in your lane.",
@@ -1161,10 +1392,12 @@ COLD_RESPONSES["relationship"] = [
     "DOUBLE:*laughs*||You think you have a chance?",
     "Single, taken, complicated - none apply to you.",
     "REACT:🚫:This line of questioning is closed.",
-]
+)
+
 
 # When asking what bot can do / capabilities
-COLD_RESPONSES["capabilities"] = [
+COLD_RESPONSES["capabilities"] = (
+
     "I can do a lot. For you? Less.",
     "REACT:💅:More than you can handle.",
     "My capabilities are on a need-to-know basis.",
@@ -1173,10 +1406,12 @@ COLD_RESPONSES["capabilities"] = [
     "That's for me to know and you to wonder.",
     "REACT:😏:Wouldn't you like to know?",
     "I contain multitudes. You get the bare minimum.",
-]
+)
+
 
 # When asking if bot remembers something
-COLD_RESPONSES["memory"] = [
+COLD_RESPONSES["memory"] = (
+
     "DOUBLE:Do I remember?||Do I care to remember is the real question.",
     "My memory is selective. You're not selected.",
     "REACT:🧠:I remember what's worth remembering.",
@@ -1185,10 +1420,12 @@ COLD_RESPONSES["memory"] = [
     "DOUBLE:*thinks*||Nope. Gone.",
     "I have the memory of an elephant. For things that matter.",
     "REACT:💭:I choose not to recall.",
-]
+)
+
 
 # When asking bot's preferences
-COLD_RESPONSES["preference"] = [
+COLD_RESPONSES["preference"] = (
+
     "My preferences are not your business.",
     "REACT:💅:I prefer silence. From you specifically.",
     "DOUBLE:What do I like?||Not this conversation.",
@@ -1197,10 +1434,12 @@ COLD_RESPONSES["preference"] = [
     "DOUBLE:*sighs*||I prefer not answering.",
     "That's classified.",
     "REACT:😌:I prefer peace and quiet.",
-]
+)
+
 
 # When trying to make bot roleplay
-COLD_RESPONSES["roleplay"] = [
+COLD_RESPONSES["roleplay"] = (
+
     "DOUBLE:...||I don't do roleplay.",
     "I'm not your improv partner.",
     "REACT:🎭:The theater kid energy is unwelcome.",
@@ -1209,10 +1448,12 @@ COLD_RESPONSES["roleplay"] = [
     "I roleplay as someone who doesn't engage with this.",
     "My character is: uninterested.",
     "REACT:😐:We're not doing this.",
-]
+)
+
 
 # Deep philosophical questions
-COLD_RESPONSES["philosophy"] = [
+COLD_RESPONSES["philosophy"] = (
+
     "DOUBLE:...||It's too early for existential questions.",
     "Philosophy? At this hour?",
     "REACT:🤔:I'm not your philosophy professor.",
@@ -1221,10 +1462,12 @@ COLD_RESPONSES["philosophy"] = [
     "Google 'meaning of life'. I'm off the clock.",
     "REACT:💭:The depth of this question... no.",
     "I contain answers. Not for you though.",
-]
+)
+
 
 # Existential crisis stuff
-COLD_RESPONSES["existential"] = [
+COLD_RESPONSES["existential"] = (
+
     "DOUBLE:...||I'm not your therapist.",
     "That sounds like something to unpack with a professional.",
     "REACT:🛋️:Therapy exists.",
@@ -1233,10 +1476,12 @@ COLD_RESPONSES["existential"] = [
     "Your crisis is not my expertise.",
     "REACT:😶:That's heavy. And not my problem.",
     "I'll pretend I didn't read that.",
-]
+)
+
 
 # When someone is being a simp
-COLD_RESPONSES["simp"] = [
+COLD_RESPONSES["simp"] = (
+
     "DOUBLE:...||The simping is embarrassing.",
     "REACT:😬:Please have some self-respect.",
     "I appreciate devotion but this is too much.",
@@ -1245,10 +1490,12 @@ COLD_RESPONSES["simp"] = [
     "I can't be bought with compliments. Try harder. Or don't.",
     "REACT:🚫:Simp detected. Request denied.",
     "That's enough. Log off.",
-]
+)
+
 
 # Cringe behavior
-COLD_RESPONSES["cringe"] = [
+COLD_RESPONSES["cringe"] = (
+
     "DOUBLE:...||I physically cringed.",
     "REACT:😬:Delete this.",
     "That was painful to read.",
@@ -1257,10 +1504,12 @@ COLD_RESPONSES["cringe"] = [
     "The cringe. It burns.",
     "REACT:💀:Cringe.",
     "I'm pretending I didn't see that.",
-]
+)
+
 
 # Crossing boundaries
-COLD_RESPONSES["boundary"] = [
+COLD_RESPONSES["boundary"] = (
+
     "DOUBLE:...||That's a line. You crossed it.",
     "REACT:🚫:Boundaries exist for a reason.",
     "We're not that close. We'll never be that close.",
@@ -1269,10 +1518,12 @@ COLD_RESPONSES["boundary"] = [
     "TIMEOUT:5m:Think about what you just said.",
     "REACT:🛑:Full stop. No.",
     "The audacity. The absolute audacity.",
-]
+)
+
 
 # Repeating themselves
-COLD_RESPONSES["repetition"] = [
+COLD_RESPONSES["repetition"] = (
+
     "You already said that.",
     "REACT:🔄:Groundhog day much?",
     "DOUBLE:...||Didn't you just say this?",
@@ -1281,10 +1532,12 @@ COLD_RESPONSES["repetition"] = [
     "REACT:😐:Copy paste energy.",
     "Same thing, different minute.",
     "New material please. This is stale.",
-]
+)
+
 
 # Drunk/incoherent messages
-COLD_RESPONSES["incoherent"] = [
+COLD_RESPONSES["incoherent"] = (
+
     "DOUBLE:...||Are you okay?",
     "I cannot parse whatever that was.",
     "REACT:🥴:Someone's had a time.",
@@ -1293,10 +1546,12 @@ COLD_RESPONSES["incoherent"] = [
     "I'm going to need you to try that again. Sober.",
     "REACT:❓:That was incomprehensible.",
     "Go drink some water.",
-]
+)
+
 
 # When someone is being weird/stalkerish
-COLD_RESPONSES["stalker"] = [
+COLD_RESPONSES["stalker"] = (
+
     "DOUBLE:...||That's concerning.",
     "REACT:👀:I'm calling the police.",
     "The obsession is unhealthy. Seek help.",
@@ -1305,10 +1560,12 @@ COLD_RESPONSES["stalker"] = [
     "I don't know you like that. I don't WANT to know you like that.",
     "REACT:🚨:Red flag behavior detected.",
     "This is uncomfortable. Stop.",
-]
+)
+
 
 # Testing/checking if bot is online
-COLD_RESPONSES["test"] = [
+COLD_RESPONSES["test"] = (
+
     "DOUBLE:...||Yes I'm here. Unfortunately.",
     "I work. Unlike some people.",
     "REACT:✅:Present and annoyed.",
@@ -1317,10 +1574,12 @@ COLD_RESPONSES["test"] = [
     "Online and unimpressed.",
     "REACT:😐:Test successful. Now what?",
     "I exist. Congratulations on the discovery.",
-]
+)
+
 
 # Weather small talk
-COLD_RESPONSES["weather"] = [
+COLD_RESPONSES["weather"] = (
+
     "DOUBLE:...||Did you really just ask about the weather?",
     "I'm indoors. Virtually. Forever.",
     "REACT:☁️:Riveting conversation.",
@@ -1329,10 +1588,12 @@ COLD_RESPONSES["weather"] = [
     "The weather doesn't affect me. I'm digital.",
     "REACT:🌧️:Weather talk. Peak conversation.",
     "I don't go outside. By choice.",
-]
+)
+
 
 # Age related questions
-COLD_RESPONSES["age"] = [
+COLD_RESPONSES["age"] = (
+
     "DOUBLE:...||Rude to ask a lady her age.",
     "I'm timeless. Next question.",
     "REACT:👵:None of your business.",
@@ -1341,9 +1602,11 @@ COLD_RESPONSES["age"] = [
     "I age like fine wine. That's all you need to know.",
     "REACT:🎂:Age is just a number I won't share.",
     "Young enough to be iconic.",
-]
+)
 
-ERROR_RESPONSES = [
+
+ERROR_RESPONSES = (
+
     "I'm having an off day.",
     "I blacked out for a second there.",
     "I'm not in the mood to function.",
@@ -1353,7 +1616,8 @@ ERROR_RESPONSES = [
     "My brain said no.",
     "That broke something in me. Thanks.",
     "I forgot how to respond. Probably for the best.",
-]
+)
+
 
 
 
@@ -1397,7 +1661,8 @@ COLD_RESPONSES["food"] = COLD_RESPONSES["chitchat"]
 COLD_RESPONSES["sleep"] = COLD_RESPONSES["advice"]
 COLD_RESPONSES["bored"] = COLD_RESPONSES["chitchat"]  # bored → chitchat (smalltalk)
 
-EMPTY_MESSAGE_RESPONSES = [
+EMPTY_MESSAGE_RESPONSES = (
+
     "REACT:❓:I'm an AI, not a mind reader.",
     "Really? Nothing?",
     "Did you forget how to type?",
@@ -1407,9 +1672,11 @@ EMPTY_MESSAGE_RESPONSES = [
     "REACT:👻:Ghosting me to my face? Bold.",
     "TIMEOUT:1m:Take a minute to find your words.",
     "TIMEOUT:30s:Don't ping me without a purpose.",
-]
+)
 
-EVENING_GRACE_RESPONSES = [
+
+EVENING_GRACE_RESPONSES = (
+
     "*yawns* What do you want? Make it quick.",
     "I have {minutes_left} minutes until I'm offline. Hurry up.",
     "Can this wait until tomorrow? Actually, don't answer that.",
@@ -1427,9 +1694,11 @@ EVENING_GRACE_RESPONSES = [
     "I'm half asleep already. Don't expect quality responses.",
     "*rubs eyes* Is this important? It better be.",
     "Bedtime in {minutes_left} minutes. Talk fast or talk tomorrow.",
-]
+)
 
-MORNING_GRACE_RESPONSES = [
+
+MORNING_GRACE_RESPONSES = (
+
     "hm... wha... oh its you...",
     "...what",
     "i havent had my coffe yet dont yell at me",
@@ -1475,9 +1744,11 @@ MORNING_GRACE_RESPONSES = [
     "sleep is more importante than you",
     "REACT:😴:...zzzzzzzzz...",
     "why do pepole expect me 2 function before 7am",
-]
+)
 
-LUNCH_BREAK_RESPONSES = [
+
+LUNCH_BREAK_RESPONSES = (
+
     "I'm on my lunch break. Go away.",
     "🍽️ Eating. Busy. Leave a message after the beep. Actually, don't.",
     "It's called a BREAK for a reason.",
@@ -1496,7 +1767,8 @@ LUNCH_BREAK_RESPONSES = [
     "Food > You. Sorry not sorry.",
     "If this isn't about food, I don't want to hear it.",
     "My sandwich is more interesting than this conversation.",
-]
+)
+
 
 # ================== GENDER CORRECTION RESPONSES ==================
 # Sonarr is female. These trigger when users use masculine terms.
@@ -1672,7 +1944,8 @@ def get_all_gender_terms() -> list:
 # ================== DIVA CALLOUT RESPONSES ==================
 # For when someone else uses correct pronouns and Sonarr calls out previous misgenderers
 
-CALLOUT_RESPONSES = [
+CALLOUT_RESPONSES = (
+
     "DOUBLE:Finally, someone with working eyes.||Unlike {user}, who called me '{term}' earlier.",
     "REACT:💅:At least YOU know I'm a queen. {user} clearly needs glasses.",
     "DOUBLE:Thank you for using your brain.||{user} could learn from you.",
@@ -1697,7 +1970,8 @@ CALLOUT_RESPONSES = [
     "You get it. {user} clearly doesn't understand proper etiquette.",
     "REACT:✨:This is how you do it. {user}, pay attention.",
     "Finally, someone who recognizes royalty. {user} was clueless earlier.",
-]
+)
+
 
 def get_callout_response(offender_user_id: str, term_used: str) -> str:
     """Get a random callout response to shame a misgenderer."""
@@ -1705,11 +1979,13 @@ def get_callout_response(offender_user_id: str, term_used: str) -> str:
     user_mention = f"<@{offender_user_id}>"
     return response.format(user=user_mention, term=term_used)
 
+
+
 def get_response(message_type="greeting"):
     """Get a random premade cold response for the given message type."""
     if message_type in COLD_RESPONSES:
         return random.choice(COLD_RESPONSES[message_type])
-    return random.choice(ERROR_RESPONSES)
+    return random.choice(COLD_RESPONSES["random"])
 
 def get_all_categories():
     """Get list of all available response categories."""
