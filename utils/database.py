@@ -55,43 +55,44 @@ class Database:
             self.connection.commit()
             
 
-            self.cursor.execute("PRAGMA table_info(economy)")
-            columns = {row[1] for row in self.cursor.fetchall()}
-            if "daily_streak" not in columns:
-                self.cursor.execute("ALTER TABLE economy ADD COLUMN daily_streak INTEGER DEFAULT 0")
-                self.connection.commit()
+            # Legacy table migrations (may not exist on fresh deploy)
+            try:
+                self.cursor.execute("PRAGMA table_info(economy)")
+                columns = {row[1] for row in self.cursor.fetchall()}
+                if columns and "daily_streak" not in columns:
+                    self.cursor.execute("ALTER TABLE economy ADD COLUMN daily_streak INTEGER DEFAULT 0")
+                    self.connection.commit()
+            except sqlite3.OperationalError:
+                pass  # Table doesn't exist on fresh deploy
             
+            try:
+                self.cursor.execute("PRAGMA table_info(pokemon_owned)")
+                pokemon_owned_columns = {row[1] for row in self.cursor.fetchall()}
+                if pokemon_owned_columns:
+                    if "ivs_json" not in pokemon_owned_columns:
+                        self.cursor.execute("ALTER TABLE pokemon_owned ADD COLUMN ivs_json TEXT DEFAULT '{}'")
+                    if "trait" not in pokemon_owned_columns:
+                        self.cursor.execute("ALTER TABLE pokemon_owned ADD COLUMN trait TEXT")
+                    if "current_hp" not in pokemon_owned_columns:
+                        self.cursor.execute("ALTER TABLE pokemon_owned ADD COLUMN current_hp INTEGER DEFAULT 0")
+                    if "is_fainted" not in pokemon_owned_columns:
+                        self.cursor.execute("ALTER TABLE pokemon_owned ADD COLUMN is_fainted INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
 
+            try:
+                self.cursor.execute("PRAGMA table_info(pokemon_encounters)")
+                encounter_columns = {row[1] for row in self.cursor.fetchall()}
+                if encounter_columns:
+                    if "current_hp" not in encounter_columns:
+                        self.cursor.execute("ALTER TABLE pokemon_encounters ADD COLUMN current_hp INTEGER DEFAULT 0")
+                    if "max_hp" not in encounter_columns:
+                        self.cursor.execute("ALTER TABLE pokemon_encounters ADD COLUMN max_hp INTEGER DEFAULT 0")
+                    if "zone_id" not in encounter_columns:
+                        self.cursor.execute("ALTER TABLE pokemon_encounters ADD COLUMN zone_id TEXT")
+            except sqlite3.OperationalError:
+                pass
 
-
-
-
-
-
-
-
-
-            
-
-            self.cursor.execute("PRAGMA table_info(pokemon_owned)")
-            pokemon_owned_columns = {row[1] for row in self.cursor.fetchall()}
-            if "ivs_json" not in pokemon_owned_columns:
-                self.cursor.execute("ALTER TABLE pokemon_owned ADD COLUMN ivs_json TEXT DEFAULT '{}'")
-            if "trait" not in pokemon_owned_columns:
-                self.cursor.execute("ALTER TABLE pokemon_owned ADD COLUMN trait TEXT")
-            if "current_hp" not in pokemon_owned_columns:
-                self.cursor.execute("ALTER TABLE pokemon_owned ADD COLUMN current_hp INTEGER DEFAULT 0")
-            if "is_fainted" not in pokemon_owned_columns:
-                self.cursor.execute("ALTER TABLE pokemon_owned ADD COLUMN is_fainted INTEGER DEFAULT 0")
-
-            self.cursor.execute("PRAGMA table_info(pokemon_encounters)")
-            encounter_columns = {row[1] for row in self.cursor.fetchall()}
-            if "current_hp" not in encounter_columns:
-                self.cursor.execute("ALTER TABLE pokemon_encounters ADD COLUMN current_hp INTEGER DEFAULT 0")
-            if "max_hp" not in encounter_columns:
-                self.cursor.execute("ALTER TABLE pokemon_encounters ADD COLUMN max_hp INTEGER DEFAULT 0")
-            if "zone_id" not in encounter_columns:
-                self.cursor.execute("ALTER TABLE pokemon_encounters ADD COLUMN zone_id TEXT")
             
             self.cursor.execute('''
                 CREATE TABLE IF NOT EXISTS message_cache (
