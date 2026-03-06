@@ -9,7 +9,9 @@ import random
 import logging
 from datetime import datetime, timezone
 
-from sonarr.premade_answers import COLD_RESPONSES
+from sonarr.premade_answers import (
+    COLD_RESPONSES, ESCALATED_RESPONSES, SASSY_RESPONSES, WARM_RESPONSES
+)
 from sonarr.brain import Stimulus
 from sonarr.brain.personality import RELATIONSHIP_EFFECTS
 
@@ -97,21 +99,17 @@ class BrainMixin:
         The category determines WHAT pool to pick from.
         The action determines HOW to modify the selection.
         """
-        responses = COLD_RESPONSES.get(category, COLD_RESPONSES["random"])
+        # Default fallback to cold
+        pool = COLD_RESPONSES.get(category, COLD_RESPONSES["random"])
 
-        pool = responses
-        if action_name == "respond_escalated":
-            sorted_responses = sorted(responses, key=len, reverse=True)
-            pool = sorted_responses[:max(len(sorted_responses) // 2, 1)]
-        elif action_name == "respond_warm":
-            sorted_responses = sorted(responses, key=len)
-            pool = sorted_responses[:max(len(sorted_responses) // 2, 1)]
+        if action_name in ["respond_escalated", "respond_grudge"]:
+            pool = ESCALATED_RESPONSES.get(category, pool)
+        elif action_name in ["respond_sassy", "respond_power_trip"]:
+            pool = SASSY_RESPONSES.get(category, pool)
+        elif action_name in ["respond_warm", "respond_intrigued"]:
+            pool = WARM_RESPONSES.get(category, pool)
         elif action_name == "ignore":
             return ""
-        elif action_name == "respond_grudge":
-            pool = COLD_RESPONSES.get("sarcasm", responses)
-        elif action_name == "respond_power_trip":
-            pool = COLD_RESPONSES.get("brag", responses)
 
         # Try to avoid recently used responses
         available = [r for r in pool if r not in self.recent_responses]

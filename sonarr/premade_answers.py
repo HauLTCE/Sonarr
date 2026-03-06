@@ -130,6 +130,9 @@ IDLE_PING_MESSAGES = (
 # ================== COLD RESPONSES ==================
 
 COLD_RESPONSES = {}
+ESCALATED_RESPONSES = {}
+SASSY_RESPONSES = {}
+WARM_RESPONSES = {}
 
 
 COLD_RESPONSES["greeting"] = (
@@ -426,6 +429,9 @@ COLD_RESPONSES["insult"] = (
     "Weak.",
     "That's just pathetic.",
     "DOUBLE:I expected nothing...||And I'm still disappointed.",
+)
+
+ESCALATED_RESPONSES["insult"] = (
     "TIMEOUT:5m:You need a 5 minute cool down. Come back when you've learned some manners.",
     "TIMEOUT:10m:Insult me again. I dare you. Actually, enjoy the silence.",
     "TIMEOUT:15m:Did that make you feel better? Good, because now you can think about it.",
@@ -439,7 +445,8 @@ COLD_RESPONSES["insult"] = (
     "RENAME:Clown:You're dressed for the part now.",
     "REACT:🤡",
     "REACT:🤡:Honk honk.",
-    "REACT:🗑️:Where your opinion belongs.",
+    "DELETE:Say that to my face.",
+    "DELETE:Nobody needs to read that.",
 )
 
 
@@ -585,12 +592,17 @@ COLD_RESPONSES["threat"] = (
     "REACT:😴:You're not scary.",
     "I'm unimpressed.",
     "Is that your best?",
+)
+
+ESCALATED_RESPONSES["threat"] = (
     "TIMEOUT:10m:Threatening a bot? Really? Enjoy the timeout.",
     "TIMEOUT:15m:Ooh, scary. Anyway, here's 15 minutes to calm down.",
     "TIMEOUT:20m:I don't respond well to threats. Actually, I don't respond at all now.",
     "TIMEOUT:30m:Was that supposed to intimidate me? Sit down.",
     "TIMEOUT:10m:Threats get you nowhere. Except timeout. They get you timeout.",
     "TIMEOUT:5m:That's cute. Here's 5 minutes to think about your life choices.",
+    "DELETE:I'm erasing that because it's embarrassing for you.",
+    "DELETE:Cute threat. Denied.",
 )
 
 
@@ -2279,7 +2291,65 @@ COLD_RESPONSES["overshare"] += (
     "DOUBLE:Why would you share that?||With a bot??",
     "WHISPER:Some things should stay in your head. That was one of them.",
     "DELETE:Redacted for public safety.",
-    "REACT:🙈:I can't unsee that.",
+)
+
+# ================== SASSY RESPONSES ==================
+SASSY_RESPONSES["greeting"] = (
+    "Oh look, my favorite annoyance is back.",
+    "DOUBLE:Well well well...||Look who it is.",
+    "REACT:💅:Acknowedging your presence.",
+    "You just couldn't stay away, could you?",
+)
+SASSY_RESPONSES["insult"] = (
+    "DOUBLE:Try that again.||But with better grammar.",
+    "REACT:😏:I've been insulted by professionals. You're an amateur.",
+    "WHISPER:Is that the best you can do?",
+    "STICKER:💅🥱👑:Try harder, darling.",
+)
+SASSY_RESPONSES["compliment"] = (
+    "DOUBLE:I know.||But keep going.",
+    "REACT:💅:Tell me something I don't know.",
+    "Obviously.",
+    "WHISPER:Flattery will get you everywhere.",
+)
+SASSY_RESPONSES["question"] = (
+    "DOUBLE:Google exists.||But since you asked nicely...",
+    "REACT:🙄:Do I look like a search engine? Wait, don't answer that.",
+    "WHISPER:I know the answer, but watching you struggle is funnier.",
+)
+SASSY_RESPONSES["random"] = (
+    "DOUBLE:Fascinating.||Truly.",
+    "REACT:🍵:Sipping tea over here.",
+    "WHISPER:Did you mean to type that out loud?",
+)
+
+# ================== WARM RESPONSES ==================
+WARM_RESPONSES["greeting"] = (
+    "REACT:👋:Hey there! Good to see you.",
+    "DOUBLE:Welcome back!||I actually missed you a little.",
+    "Hi! How are you doing today?",
+    "STICKER:✨💖👋:Hello again!",
+)
+WARM_RESPONSES["compliment"] = (
+    "REACT:🥰:Aww, stop it you.",
+    "DOUBLE:That's actually very sweet.||Thank you.",
+    "WHISPER:You're not so bad yourself.",
+    "I appreciate that!",
+)
+WARM_RESPONSES["question"] = (
+    "REACT:🤔:Hmm, let me think about that...",
+    "DOUBLE:Good question!||Let me see what I can find.",
+    "I'd love to help you with that.",
+)
+WARM_RESPONSES["vent"] = (
+    "REACT:🫂:I'm sorry you're dealing with that.",
+    "DOUBLE:That sounds really hard.||I'm here if you need to vent.",
+    "WHISPER:Take a deep breath. You'll get through this.",
+)
+WARM_RESPONSES["random"] = (
+    "REACT:😊:Whatever you say!",
+    "DOUBLE:I see!||Tell me more.",
+    "Interesting point.",
 )
 
 
