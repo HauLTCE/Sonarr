@@ -83,7 +83,7 @@ async def on_ready():
 async def cleanup_youtube_cache():
     """Clean expired YouTube cache entries every 6 hours."""
     try:
-        from utils.cache import youtube_metadata_cache, youtube_search_cache
+        from cogs.music.cache import youtube_metadata_cache, youtube_search_cache
         youtube_metadata_cache.cleanup()
         youtube_search_cache.cleanup()
         logger.info("[Cache Cleanup] YouTube caches cleaned")
@@ -307,27 +307,39 @@ async def reload(ctx, extension):
         await ctx.send(f"❌ Error reloading: {e}")
 
 async def load_extensions():
-    """Tier 3.1: Load all cogs in parallel for 80% faster startup (500ms vs 2s)."""
+    """Load all cogs - supports both file cogs and package cogs."""
     if not os.path.exists('./cogs'):
         os.makedirs('./cogs')
     
-    ignored_files = ['views.py', 'pokemon_views.py']
-    cog_files = []
+    # Package-based cogs (directories with __init__.py)
+    package_cogs = ['sonarr_ai', 'music']
     
+    # File-based cogs to ignore (old files superseded by packages, or view-only files)
+    ignored_files = ['views.py', 'pokemon_views.py', 'sonarr_ai.py', 'music.py']
+    
+    cog_names = []
+    
+    # Add package cogs
+    for pkg in package_cogs:
+        pkg_path = os.path.join('./cogs', pkg)
+        if os.path.isdir(pkg_path) and os.path.exists(os.path.join(pkg_path, '__init__.py')):
+            cog_names.append(pkg)
+    
+    # Add file-based cogs
     for filename in os.listdir('./cogs'):
         if filename.endswith('.py') and filename not in ignored_files:
-            cog_files.append(filename)
+            cog_names.append(filename[:-3])
     
-    async def load_cog(filename):
+    async def load_cog(name):
         try:
-            await bot.load_extension(f'cogs.{filename[:-3]}')
-            logger.info(f'Loaded Extension: {filename}')
+            await bot.load_extension(f'cogs.{name}')
+            logger.info(f'Loaded Extension: {name}')
             return True
         except Exception as e:
-            logger.error(f"Failed to load extension {filename}: {e}")
+            logger.error(f"Failed to load extension {name}: {e}")
             return False
     
-    results = await asyncio.gather(*[load_cog(f) for f in cog_files], return_exceptions=True)
+    results = await asyncio.gather(*[load_cog(n) for n in cog_names], return_exceptions=True)
 
 async def main():
     async with bot:

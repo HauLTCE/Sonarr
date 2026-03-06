@@ -848,6 +848,3 @@ class Music(commands.Cog):
 
         asyncio.create_task(delayed_disconnect())
 
-
-async def setup(bot: commands.Bot) -> None:
-    await bot.add_cog(Music(bot))
