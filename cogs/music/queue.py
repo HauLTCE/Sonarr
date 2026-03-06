@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from utils.ytdl import YTDLSource
+from .player import YTDLSource
 
 logger = logging.getLogger("bot")
 
