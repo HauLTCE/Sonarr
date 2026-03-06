@@ -26,6 +26,13 @@ from sonarr.premade_answers import (
 )
 from utils.database import db
 from sonarr.response_effects import process_response, send_response_with_effects
+from sonarr.brain import AIBrain, Stimulus
+from sonarr.brain.personality import (
+    SONARR_TRAITS, PAD_MAP, REACTIVITY, DECAY_RATE, MOOD_ALPHA,
+    RELATIONSHIP_EFFECTS,
+)
+from sonarr.brain.actions import build_sonarr_actions
+from sonarr.brain.persistence import BrainPersistence
 
 # Import from sonarr modules
 from sonarr import (
@@ -96,13 +103,25 @@ class SonarrAI(commands.Cog):
         self.classifier = MessageClassifier()
         self.time_manager = TimeManager()
         
+        # Initialize AI Brain (state machine)
+        self.brain = AIBrain(
+            traits=SONARR_TRAITS,
+            reactivity=REACTIVITY,
+            decay_rate=DECAY_RATE,
+            mood_alpha=MOOD_ALPHA,
+        )
+        self.brain.emotion_engine._pad_map = PAD_MAP
+        for action in build_sonarr_actions():
+            self.brain.utility.register_action(action)
+        self.brain_persistence = BrainPersistence()
+        self._last_brain_tick = datetime.now(timezone.utc)
+        logger.info(f"[SonarrAI] Brain initialized: {len(self.brain.utility.action_names)} actions")
+        
         # Tracking state
         self.last_idle_chat = datetime.now(timezone.utc)
         self.last_user_chat_time = {}
         self.user_ai_calls = {}
         self.user_mention_times = {}
-        
-        # Response templates (from sonarr.responses)
         
         # Start background tasks
         self.idle_chat_task.start()
@@ -112,6 +131,130 @@ class SonarrAI(commands.Cog):
         """Clean up tasks when cog is unloaded."""
         self.idle_chat_task.cancel()
         self.memory_cleanup_task.cancel()
+    
+    # ========== BRAIN HELPERS ==========
+    
+    def _brain_select_response(self, category: str, user_id: str, guild_id: int = None) -> str:
+        """Use the AI brain to select a response based on emotional state.
+        
+        Args:
+            category: Classified message category (e.g. 'insult', 'greeting')
+            user_id: Discord user ID as string
+            guild_id: Discord guild ID
+        
+        Returns:
+            Selected response string from premade answers.
+        """
+        # Time decay since last interaction
+        now = datetime.now(timezone.utc)
+        dt = (now - self._last_brain_tick).total_seconds()
+        if dt > 0:
+            self.brain.tick(dt)
+            self._last_brain_tick = now
+        
+        # Create stimulus from classified category
+        stimulus = Stimulus(
+            entity_id=user_id,
+            event_type=category,
+            intensity=0.5,
+        )
+        
+        # Process through brain pipeline
+        action_result, cog_state, all_scores = self.brain.receive_stimulus_full(stimulus)
+        
+        # Update relationship based on category
+        effects = RELATIONSHIP_EFFECTS.get(category, {})
+        for dimension, delta in effects.items():
+            self.brain.blackboard.update_relationship(user_id, dimension, delta)
+        
+        # Save state asynchronously (non-blocking)
+        guild_str = str(guild_id) if guild_id else "global"
+        entity = self.brain.blackboard.get_entity(user_id)
+        if entity:
+            try:
+                self.brain_persistence.save_entity(
+                    user_id, guild_str, entity.relationship,
+                    len(entity.interaction_history)
+                )
+            except Exception as e:
+                logger.error(f"[Brain] Failed to save entity: {e}")
+        
+        try:
+            self.brain_persistence.save_emotional_state(
+                guild_str,
+                self.brain.current_emotion,
+                self.brain.current_mood,
+            )
+        except Exception as e:
+            logger.error(f"[Brain] Failed to save emotion: {e}")
+        
+        # Determine action name
+        action_name = action_result.action_name if action_result else "respond_cold"
+        
+        # Log brain decision
+        emotion = self.brain.current_emotion
+        mood = self.brain.current_mood
+        label = self.brain.emotion_label
+        entity_info = self.brain.blackboard.get_entity(user_id)
+        rel_str = repr(entity_info.relationship) if entity_info else "unknown"
+        scores_str = ", ".join(f"{s.action_name}={s.score:.3f}" for s in (all_scores or [])[:4])
+        logger.info(
+            f"[Brain] user={user_id} | cat={category} | emotion={emotion} ({label}) "
+            f"| mood={mood} | rel={rel_str} | scores=[{scores_str}] → {action_name}"
+        )
+        
+        # Select response based on action
+        return self._pick_response_for_action(action_name, category)
+    
+    def _pick_response_for_action(self, action_name: str, category: str) -> str:
+        """Pick a premade response based on the brain's chosen action.
+        
+        The category determines WHAT pool to pick from.
+        The action determines HOW to modify the selection.
+        """
+        responses = COLD_RESPONSES.get(category, COLD_RESPONSES["random"])
+        
+        if action_name == "respond_cold":
+            # Standard cold response
+            return random.choice(responses)
+        
+        elif action_name == "respond_escalated":
+            # Pick harsher responses — prefer longer ones (usually more cutting)
+            sorted_responses = sorted(responses, key=len, reverse=True)
+            top_half = sorted_responses[:max(len(sorted_responses) // 2, 1)]
+            return random.choice(top_half)
+        
+        elif action_name == "respond_sassy":
+            # Standard response with sassy flavor — just regular pick
+            return random.choice(responses)
+        
+        elif action_name == "respond_warm":
+            # Rare warm response — prefer shorter, softer ones
+            sorted_responses = sorted(responses, key=len)
+            bottom_half = sorted_responses[:max(len(sorted_responses) // 2, 1)]
+            return random.choice(bottom_half)
+        
+        elif action_name == "ignore":
+            # Return empty — on_message will skip sending
+            return ""
+        
+        elif action_name == "respond_grudge":
+            # Grudge — use the category response but with grudge flavor
+            grudge_pool = COLD_RESPONSES.get("sarcasm", responses)
+            return random.choice(grudge_pool)
+        
+        elif action_name == "respond_power_trip":
+            # Power trip — pick from dominant categories
+            power_pool = COLD_RESPONSES.get("brag", responses)
+            return random.choice(power_pool)
+        
+        elif action_name == "respond_intrigued":
+            # Interested — standard pick, she's engaged
+            return random.choice(responses)
+        
+        else:
+            # Fallback
+            return random.choice(responses)
 
     # ================== GOSSIP SYSTEM ==================
     
@@ -579,12 +722,12 @@ Reply with ONLY the category name, nothing else."""
             if keyword_cat:
                 logger.info(f"[Classify] KEYWORD ({word_count}w): '{message_content[:40]}' → {keyword_cat}")
                 log_classify(message_content, keyword_cat, "keyword", user_id=user_id, guild_id=str(guild_id) if guild_id else None, word_count=word_count)
-                return random.choice(COLD_RESPONSES.get(keyword_cat, COLD_RESPONSES["random"]))
+                return self._brain_select_response(keyword_cat, user_id, guild_id)
             else:
                 fallback_cat = random.choice(["random", "bored", "confusion"])
                 logger.info(f"[Classify] SHORT UNKNOWN ({word_count}w): '{message_content[:40]}' → {fallback_cat}")
                 log_classify(message_content, fallback_cat, "fallback", user_id=user_id, guild_id=str(guild_id) if guild_id else None, word_count=word_count)
-                return random.choice(COLD_RESPONSES.get(fallback_cat, COLD_RESPONSES["random"]))
+                return self._brain_select_response(fallback_cat, user_id, guild_id)
         
         # ========== PARALLEL PROCESSING ==========
         # Run pattern, cache, and pronoun checks in parallel
@@ -642,7 +785,7 @@ Reply with ONLY the category name, nothing else."""
         )
         
         logger.info(f"[Classify] FINAL ({word_count}w, source={source}): '{message_content[:40]}' → {category}")
-        return random.choice(COLD_RESPONSES.get(category, COLD_RESPONSES["random"]))
+        return self._brain_select_response(category, user_id, guild_id)
 
     # ================== MESSAGE EVENT ==================
     
@@ -721,7 +864,7 @@ Reply with ONLY the category name, nothing else."""
         
         if len(self.user_mention_times[user_id]) >= 5:
             logger.warning(f"[SPAM] User {message.author} mentioned bot {len(self.user_mention_times[user_id])} times in 30s")
-            response = random.choice(COLD_RESPONSES["spam"])
+            response = self._brain_select_response("spam", user_id, message.guild.id)
             try:
                 await send_response_with_effects(response, message, user_query=None)
                 logger.info(f"[OnMessage] Spam response triggered")
