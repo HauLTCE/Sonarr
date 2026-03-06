@@ -100,14 +100,14 @@ class BrainMixin:
         The action determines HOW to modify the selection.
         """
         # Default fallback to cold
-        pool = COLD_RESPONSES.get(category, COLD_RESPONSES["random"])
+        pool = COLD_RESPONSES.get(category, COLD_RESPONSES.get("random", ["What?"]))
 
         if action_name in ["respond_escalated", "respond_grudge"]:
-            pool = ESCALATED_RESPONSES.get(category, pool)
+            pool = ESCALATED_RESPONSES.get(category, ESCALATED_RESPONSES.get("random", pool))
         elif action_name in ["respond_sassy", "respond_power_trip"]:
-            pool = SASSY_RESPONSES.get(category, pool)
+            pool = SASSY_RESPONSES.get(category, SASSY_RESPONSES.get("random", pool))
         elif action_name in ["respond_warm", "respond_intrigued"]:
-            pool = WARM_RESPONSES.get(category, pool)
+            pool = WARM_RESPONSES.get(category, WARM_RESPONSES.get("random", pool))
         elif action_name == "ignore":
             return ""
 
