@@ -99,35 +99,30 @@ class BrainMixin:
         """
         responses = COLD_RESPONSES.get(category, COLD_RESPONSES["random"])
 
-        if action_name == "respond_cold":
-            return random.choice(responses)
-
-        elif action_name == "respond_escalated":
+        pool = responses
+        if action_name == "respond_escalated":
             sorted_responses = sorted(responses, key=len, reverse=True)
-            top_half = sorted_responses[:max(len(sorted_responses) // 2, 1)]
-            return random.choice(top_half)
-
-        elif action_name == "respond_sassy":
-            return random.choice(responses)
-
+            pool = sorted_responses[:max(len(sorted_responses) // 2, 1)]
         elif action_name == "respond_warm":
             sorted_responses = sorted(responses, key=len)
-            bottom_half = sorted_responses[:max(len(sorted_responses) // 2, 1)]
-            return random.choice(bottom_half)
-
+            pool = sorted_responses[:max(len(sorted_responses) // 2, 1)]
         elif action_name == "ignore":
             return ""
-
         elif action_name == "respond_grudge":
-            grudge_pool = COLD_RESPONSES.get("sarcasm", responses)
-            return random.choice(grudge_pool)
-
+            pool = COLD_RESPONSES.get("sarcasm", responses)
         elif action_name == "respond_power_trip":
-            power_pool = COLD_RESPONSES.get("brag", responses)
-            return random.choice(power_pool)
+            pool = COLD_RESPONSES.get("brag", responses)
 
-        elif action_name == "respond_intrigued":
-            return random.choice(responses)
-
-        else:
-            return random.choice(responses)
+        # Try to avoid recently used responses
+        available = [r for r in pool if r not in self.recent_responses]
+        if not available:
+            available = pool  # fallback if we've exhausted the exact subset
+            
+        choice = random.choice(available)
+        
+        # Track history
+        self.recent_responses.append(choice)
+        if len(self.recent_responses) > 30:
+            self.recent_responses.pop(0)
+            
+        return choice
