@@ -170,8 +170,8 @@ class SonarrAI(BrainMixin, ClassifierMixin, BackgroundTasksMixin, commands.Cog):
                 lambda: self.get_status_gossip(str(target.id)).format(target=target.display_name)
             )
 
-            logger.info(f"[Gossip] Trigger: {message.author} mentioned {target.display_name}")
-            logger.info(f"[Gossip] Response: '{gossip}'")
+            logger.debug(f"[Gossip] Trigger: {message.author} mentioned {target.display_name}")
+            logger.debug(f"[Gossip] Response: '{gossip}'")
             await message.channel.send(gossip)
             return
 
@@ -201,7 +201,7 @@ class SonarrAI(BrainMixin, ClassifierMixin, BackgroundTasksMixin, commands.Cog):
             response = self._brain_select_response("spam", user_id, message.guild.id)
             try:
                 await send_response_with_effects(response, message, user_query=None)
-                logger.info(f"[OnMessage] Spam response triggered")
+                logger.debug(f"[OnMessage] Spam response triggered")
             except Exception as e:
                 logger.error(f"Error sending spam response: {e}")
             return
@@ -222,13 +222,13 @@ class SonarrAI(BrainMixin, ClassifierMixin, BackgroundTasksMixin, commands.Cog):
                 try:
                     grace_type = "Evening" if self.time_manager.is_evening_grace() else "Morning"
                     chance = self.time_manager.get_grace_chance()
-                    logger.info(f"[{grace_type}Grace] Triggered at {chance:.0%} chance: {message.author} said '{content_for_ai[:60]}'")
+                    logger.debug(f"[{grace_type}Grace] Triggered at {chance:.0%} chance: {message.author} said '{content_for_ai[:60]}'")
                     await send_response_with_effects(grace_response, message, user_query=content_for_ai)
                     return
                 except Exception as e:
                     logger.error(f"[GracePeriod] Error: {e}")
         elif has_curse and (self.time_manager.is_evening_grace() or self.time_manager.is_morning_grace()):
-            logger.info(f"[Grace] Bypassed due to curse words in: '{content_for_ai[:60]}'")
+            logger.debug(f"[Grace] Bypassed due to curse words in: '{content_for_ai[:60]}'")
 
         # Get reply context
         reply_context = None
@@ -252,8 +252,8 @@ class SonarrAI(BrainMixin, ClassifierMixin, BackgroundTasksMixin, commands.Cog):
             main_msg, followup = await process_response(response, message, user_query=content_for_ai)
 
             if main_msg is not None and main_msg.strip():
-                logger.info(f"[OnMessage] Trigger: {message.author} said '{content_for_ai[:60]}'")
-                logger.info(f"[OnMessage] Response: '{main_msg[:100]}'")
+                logger.debug(f"[OnMessage] Trigger: {message.author} said '{content_for_ai[:60]}'")
+                logger.debug(f"[OnMessage] Response: '{main_msg[:100]}'")
 
                 log_trigger(
                     content_for_ai,
@@ -274,7 +274,7 @@ class SonarrAI(BrainMixin, ClassifierMixin, BackgroundTasksMixin, commands.Cog):
                 if followup:
                     await asyncio.sleep(1.5)
                     await message.channel.send(followup)
-                    logger.info(f"[OnMessage] Followup: '{followup[:100]}'")
+                    logger.debug(f"[OnMessage] Followup: '{followup[:100]}'")
             else:
                 logger.debug("[OnMessage] Skipping reply (reaction-only or empty response)")
         except Exception as e:

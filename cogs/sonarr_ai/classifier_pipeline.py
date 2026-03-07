@@ -270,7 +270,7 @@ Reply with ONLY the category name, nothing else."""
                 await loop.run_in_executor(
                     None, db.clear_misgendering_memory, user_id, str(guild_id)
                 )
-                logger.info(f"[Decision] {user_id} used correct pronouns, cleared memory")
+                logger.debug(f"[Decision] {user_id} used correct pronouns, cleared memory")
             except Exception:
                 pass
 
@@ -280,12 +280,12 @@ Reply with ONLY the category name, nothing else."""
             if targets and random.random() < 0.20:
                 target = targets[0]
                 callout = get_callout_response(target["user_id"], target["term_used"])
-                logger.info(f"[Decision] Callout triggered for {target['user_id']}")
+                logger.debug(f"[Decision] Callout triggered for {target['user_id']}")
                 return (None, "callout", callout)
 
         # Priority 3: High-confidence cache hit
         if cache_result.get("category") and cache_result.get("confidence", 0) >= 5:
-            logger.info(f"[Decision] Cache HIT: {cache_result['category']}")
+            logger.debug(f"[Decision] Cache HIT: {cache_result['category']}")
             return (cache_result["category"], "cache", None)
 
         # Priority 4: Misgendering
@@ -312,12 +312,12 @@ Reply with ONLY the category name, nothing else."""
 
         # Priority 5: Pattern match
         if pattern_result.get("category") and pattern_result.get("confidence", 0) >= min_confidence:
-            logger.info(f"[Decision] Pattern: {pattern_result['category']} (conf={pattern_result['confidence']})")
+            logger.debug(f"[Decision] Pattern: {pattern_result['category']} (conf={pattern_result['confidence']})")
             return (pattern_result["category"], "pattern", None)
 
         # Priority 6: Fuzzy cache
         if cache_result.get("source") == "fuzzy" and cache_result.get("category"):
-            logger.info(f"[Decision] Fuzzy: {cache_result['category']}")
+            logger.debug(f"[Decision] Fuzzy: {cache_result['category']}")
             return (cache_result["category"], "fuzzy", None)
 
         # Priority 7: AI result
@@ -332,7 +332,7 @@ Reply with ONLY the category name, nothing else."""
                     )
             except Exception:
                 pass
-            logger.info(f"[Decision] AI: {ai_result['category']}")
+            logger.debug(f"[Decision] AI: {ai_result['category']}")
             return (ai_result["category"], "ai", None)
 
         # Priority 8: Low-confidence pattern (short messages)
@@ -344,7 +344,7 @@ Reply with ONLY the category name, nothing else."""
             return ("rate_limited", "rate_limited", None)
 
         fallback = random.choice(["random", "bored", "confusion"])
-        logger.info(f"[Decision] Fallback: {fallback}")
+        logger.debug(f"[Decision] Fallback: {fallback}")
         return (fallback, "fallback", None)
 
     # ================== MAIN CLASSIFIER ENTRY POINT ==================
@@ -369,7 +369,7 @@ Reply with ONLY the category name, nothing else."""
         # Empty message
         if word_count == 0:
             response = random.choice(EMPTY_MESSAGE_RESPONSES)
-            logger.info(f"[Classify] EMPTY MESSAGE → {response[:50]}")
+            logger.debug(f"[Classify] EMPTY MESSAGE → {response[:50]}")
             log_classify(message_content, "empty", "empty", user_id=user_id,
                         guild_id=str(guild_id) if guild_id else None, word_count=0)
             return response
@@ -380,13 +380,13 @@ Reply with ONLY the category name, nothing else."""
                 None, self.classifier.keyword_classify, message_content
             )
             if keyword_cat:
-                logger.info(f"[Classify] KEYWORD ({word_count}w): '{message_content[:40]}' → {keyword_cat}")
+                logger.debug(f"[Classify] KEYWORD ({word_count}w): '{message_content[:40]}' → {keyword_cat}")
                 log_classify(message_content, keyword_cat, "keyword", user_id=user_id,
                             guild_id=str(guild_id) if guild_id else None, word_count=word_count)
                 return self._brain_select_response(keyword_cat, user_id, guild_id)
             else:
                 fallback_cat = random.choice(["random", "bored", "confusion"])
-                logger.info(f"[Classify] SHORT UNKNOWN ({word_count}w): '{message_content[:40]}' → {fallback_cat}")
+                logger.debug(f"[Classify] SHORT UNKNOWN ({word_count}w): '{message_content[:40]}' → {fallback_cat}")
                 log_classify(message_content, fallback_cat, "fallback", user_id=user_id,
                             guild_id=str(guild_id) if guild_id else None, word_count=word_count)
                 return self._brain_select_response(fallback_cat, user_id, guild_id)
@@ -438,5 +438,5 @@ Reply with ONLY the category name, nothing else."""
             user_id=user_id, guild_id=str(guild_id) if guild_id else None, word_count=word_count
         )
 
-        logger.info(f"[Classify] FINAL ({word_count}w, source={source}): '{message_content[:40]}' → {category}")
+        logger.debug(f"[Classify] FINAL ({word_count}w, source={source}): '{message_content[:40]}' → {category}")
         return self._brain_select_response(category, user_id, guild_id)
