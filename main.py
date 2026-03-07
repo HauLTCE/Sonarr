@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 from utils.help import PrettyHelp
 from utils.checks import WrongChannelError, BotRestrictedTimeError
-from utils.logger import setup_logging
+from core.logger import setup_logging
 from utils.config import load_config
 from utils.spam import check_spam, check_command_type_spam
 from utils.command_history import log_command, update_command_status
