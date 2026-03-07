@@ -372,6 +372,7 @@ Reply with ONLY the category name, nothing else."""
             logger.debug(f"[Classify] EMPTY MESSAGE → {response[:50]}")
             log_classify(message_content, "empty", "empty", user_id=user_id,
                         guild_id=str(guild_id) if guild_id else None, word_count=0)
+            logger.info(f"[BotReply] Q: '{message_content}' (cat: empty) -> A: '{response}'")
             return response
 
         # Very short messages (1-2 words)
@@ -383,13 +384,17 @@ Reply with ONLY the category name, nothing else."""
                 logger.debug(f"[Classify] KEYWORD ({word_count}w): '{message_content[:40]}' → {keyword_cat}")
                 log_classify(message_content, keyword_cat, "keyword", user_id=user_id,
                             guild_id=str(guild_id) if guild_id else None, word_count=word_count)
-                return self._brain_select_response(keyword_cat, user_id, guild_id)
+                response = self._brain_select_response(keyword_cat, user_id, guild_id)
+                logger.info(f"[BotReply] Q: '{message_content}' (cat: {keyword_cat}) -> A: '{response}'")
+                return response
             else:
                 fallback_cat = random.choice(["random", "bored", "confusion"])
                 logger.debug(f"[Classify] SHORT UNKNOWN ({word_count}w): '{message_content[:40]}' → {fallback_cat}")
                 log_classify(message_content, fallback_cat, "fallback", user_id=user_id,
                             guild_id=str(guild_id) if guild_id else None, word_count=word_count)
-                return self._brain_select_response(fallback_cat, user_id, guild_id)
+                response = self._brain_select_response(fallback_cat, user_id, guild_id)
+                logger.info(f"[BotReply] Q: '{message_content}' (cat: {fallback_cat}) -> A: '{response}'")
+                return response
 
         # ========== PARALLEL PROCESSING ==========
         logger.debug(f"[Parallel] Starting parallel classification for: '{message_content[:40]}'")
@@ -427,10 +432,13 @@ Reply with ONLY the category name, nothing else."""
         )
 
         if response_override:
+            logger.info(f"[BotReply] Q: '{message_content}' (cat: {category}) -> A: '{response_override}'")
             return response_override
 
         if category == "rate_limited":
-            return random.choice(RATE_LIMIT_RESPONSES)
+            response = random.choice(RATE_LIMIT_RESPONSES)
+            logger.info(f"[BotReply] Q: '{message_content}' (cat: {category}) -> A: '{response}'")
+            return response
 
         log_classify(
             message_content, category, source,
@@ -439,4 +447,7 @@ Reply with ONLY the category name, nothing else."""
         )
 
         logger.debug(f"[Classify] FINAL ({word_count}w, source={source}): '{message_content[:40]}' → {category}")
-        return self._brain_select_response(category, user_id, guild_id)
+        
+        response = self._brain_select_response(category, user_id, guild_id)
+        logger.info(f"[BotReply] Q: '{message_content}' (cat: {category}) -> A: '{response}'")
+        return response

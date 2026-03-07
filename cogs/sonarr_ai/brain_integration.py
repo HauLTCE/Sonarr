@@ -85,7 +85,7 @@ class BrainMixin:
         entity_info = self.brain.blackboard.get_entity(user_id)
         rel_str = repr(entity_info.relationship) if entity_info else "unknown"
         scores_str = ", ".join(f"{s.action_name}={s.score:.3f}" for s in (all_scores or [])[:4])
-        logger.info(
+        logger.debug(
             f"[Brain] user={user_id} | cat={category} | emotion={emotion} ({label}) "
             f"| mood={mood} | rel={rel_str} | scores=[{scores_str}] → {action_name}"
         )
