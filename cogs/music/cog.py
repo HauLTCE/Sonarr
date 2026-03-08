@@ -4,6 +4,7 @@ import logging
 import os
 import tempfile
 from typing import Any
+from urllib.parse import urlparse
 
 import discord
 import wavelink
@@ -150,8 +151,39 @@ class Music(commands.Cog):
 
         await self.bot.change_presence(activity=activity)
 
+    def _search_sources_for_query(self, query: str) -> tuple[wavelink.TrackSource | None, ...]:
+        parsed = urlparse(query.strip())
+        if parsed.scheme in {"http", "https"} and parsed.netloc:
+            return (None,)
+
+        return (wavelink.TrackSource.YouTubeMusic, wavelink.TrackSource.YouTube)
+
+    async def _search_query(self, query: str) -> wavelink.Search:
+        last_exception: Exception | None = None
+
+        for source in self._search_sources_for_query(query):
+            try:
+                results = await wavelink.Playable.search(query, source=source)
+            except Exception as exc:
+                logger.warning("Search failed for query '%s' with source %s: %s", query, source, exc)
+                last_exception = exc
+                continue
+
+            if isinstance(results, wavelink.Playlist):
+                if results.tracks:
+                    return results
+                continue
+
+            if results:
+                return results
+
+        if last_exception is not None:
+            raise last_exception
+
+        return []
+
     async def _resolve_track(self, query: str) -> wavelink.Playable | None:
-        results = await wavelink.Playable.search(query, source=None)
+        results = await self._search_query(query)
 
         if isinstance(results, wavelink.Playlist):
             if not results.tracks:
@@ -164,7 +196,7 @@ class Music(commands.Cog):
         return results[0]
 
     async def _resolve_tracks(self, query: str) -> list[wavelink.Playable]:
-        results = await wavelink.Playable.search(query, source=None)
+        results = await self._search_query(query)
 
         if isinstance(results, wavelink.Playlist):
             return list(results.tracks[:MAX_PLAYLIST_ADD])
@@ -291,7 +323,7 @@ class Music(commands.Cog):
             pass
 
     async def _enqueue_query(self, player: wavelink.Player, query: str) -> tuple[int, str]:
-        results = await wavelink.Playable.search(query, source=None)
+        results = await self._search_query(query)
 
         if isinstance(results, wavelink.Playlist):
             tracks = list(results.tracks[:MAX_PLAYLIST_ADD])
@@ -431,7 +463,7 @@ class Music(commands.Cog):
     @commands.command()
     @is_music_channel()
     async def search(self, ctx: commands.Context, *, query: str) -> None:
-        results = await wavelink.Playable.search(query, source=None)
+        results = await self._search_query(query)
         tracks = list(results.tracks) if isinstance(results, wavelink.Playlist) else list(results)
         tracks = tracks[:5]
 
