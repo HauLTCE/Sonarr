@@ -9,7 +9,7 @@ import random
 import logging
 from datetime import datetime, timezone
 
-from sonarr.premade_answers import (
+from sonarr.responses import (
     COLD_RESPONSES, ESCALATED_RESPONSES, SASSY_RESPONSES, WARM_RESPONSES
 )
 from sonarr.brain import Stimulus

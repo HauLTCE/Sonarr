@@ -23,7 +23,7 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
-from sonarr.premade_answers import COLD_RESPONSES
+from sonarr.responses import COLD_RESPONSES
 from sonarr.response_effects import process_response, send_response_with_effects
 from sonarr.keywords import NEGATIVE_KEYWORDS
 from sonarr.classification_logger import log_trigger, log_response, log_error
