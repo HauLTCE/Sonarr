@@ -148,6 +148,13 @@ PAD_MAP: dict[str, tuple[float, float, float]] = {
     "main_character":    (-0.20, +0.30, +0.30),   # Territorial — SHE is the main character
     "delulu":            (-0.10, +0.15, +0.20),   # Amused by delusion
     "receipts":          (+0.10, +0.20, +0.30),   # She loves keeping score
+    "affection_insult":  (-0.25, +0.40, +0.10),   # Confused/Annoyed
+    "insult_affection":  (-0.15, +0.30, +0.20),   # Slightly less angry
+    "question_insult":   (-0.35, +0.60, +0.30),   # Still angry
+    "question_threat":   (-0.25, +0.60, +0.40),   # Still threatened/angry
+    "question_affection":(-0.10, +0.20, +0.10),   # Suspicious/arrogant
+    "gossip":            (+0.05, +0.20, +0.10),   # She loves gossip
+    "relief":            (+0.05, -0.10, +0.05),   # Mildly positive
 }
 
 
@@ -214,4 +221,11 @@ RELATIONSHIP_EFFECTS: dict[str, dict[str, float]] = {
     "main_character":    {"respect": -0.04, "trust": -0.02},
     "delulu":            {"respect": -0.03},
     "receipts":          {"familiarity": +0.02, "trust": -0.02},
+    "affection_insult":  {"trust": -0.05, "respect": -0.04},
+    "insult_affection":  {"trust": -0.04, "respect": -0.02},
+    "question_insult":   {"trust": -0.08, "respect": -0.06, "affection": -0.05},
+    "question_threat":   {"trust": -0.12, "respect": -0.05, "fear": -0.03},
+    "question_affection":{"familiarity": +0.02},
+    "gossip":            {"familiarity": +0.03, "affection": +0.01},
+    "relief":            {"trust": +0.02, "familiarity": +0.01},
 }

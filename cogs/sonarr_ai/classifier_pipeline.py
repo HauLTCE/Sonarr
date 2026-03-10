@@ -11,7 +11,7 @@ import asyncio
 import logging
 from datetime import datetime, timezone
 
-from sonarr.premade_answers import (
+from sonarr.responses import (
     COLD_RESPONSES, EMPTY_MESSAGE_RESPONSES, RATE_LIMIT_RESPONSES,
     get_gender_correction, get_callout_response,
 )
@@ -154,7 +154,7 @@ class ClassifierMixin:
             self.record_user_ai_call(user_id)
 
         # API call with retry logic
-        from sonarr.premade_answers import COLD_RESPONSES as _CR
+        from sonarr.responses import COLD_RESPONSES as _CR
         total_keys = len(self._gemini_keys)
         total_models = len(self.models)
         max_attempts = total_keys * total_models

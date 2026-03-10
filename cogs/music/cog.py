@@ -350,12 +350,17 @@ class Music(commands.Cog):
         title = _track_title(track)
         uri = _track_uri(track)
 
-        self.history.insert(0, (title, uri))
-        if len(self.history) > 20:
-            self.history = self.history[:20]
+        last_track_uri = getattr(player, "last_track_uri", None)
+        is_looping_same = player.queue.mode == wavelink.QueueMode.loop and last_track_uri == uri
+        setattr(player, "last_track_uri", uri)
 
-        await self.update_status(title)
-        await self._send_now_playing(player, track)
+        if not is_looping_same:
+            self.history.insert(0, (title, uri))
+            if len(self.history) > 20:
+                self.history = self.history[:20]
+
+            await self.update_status(title)
+            await self._send_now_playing(player, track)
 
     @commands.Cog.listener()
     async def on_wavelink_track_exception(self, payload: wavelink.TrackExceptionEventPayload) -> None:
@@ -518,6 +523,118 @@ class Music(commands.Cog):
             await ctx.send(f"Queued and started: **{_track_title(selected_track)}**")
         else:
             await ctx.send(f"Added to queue: **{_track_title(selected_track)}**")
+
+    @commands.command(aliases=["np", "now"])
+    @is_music_channel()
+    async def nowplaying(self, ctx: commands.Context) -> None:
+        player = ctx.voice_client
+        if not isinstance(player, wavelink.Player) or not player.playing:
+            await ctx.send("Nothing is currently playing.")
+            return
+
+        track = player.current
+        if track is None:
+            await ctx.send("Nothing is currently playing.")
+            return
+
+        position = player.position
+        length = getattr(track, "length", 0)
+
+        bar_length = 20
+        if length > 0:
+            progress = min(1.0, position / length)
+            filled = int(progress * bar_length)
+        else:
+            filled = bar_length
+
+        if filled >= bar_length:
+            bar = "▬" * bar_length + "🔘"
+        else:
+            bar = "▬" * filled + "🔘" + "▬" * (bar_length - filled - 1)
+
+        pos_str = _format_duration(position)
+        len_str = "Live" if length == 0 else _format_duration(length)
+        
+        description = f"[{_track_title(track)}]({_track_uri(track)})\n\n`{pos_str}` {bar} `{len_str}`"
+        
+        embed = discord.Embed(
+            title="Now Playing",
+            description=description,
+            color=0x00FF00
+        )
+        artwork = getattr(track, "artwork", None)
+        if artwork:
+            embed.set_thumbnail(url=artwork)
+
+        await ctx.send(embed=embed)
+
+    @commands.command()
+    @is_music_channel()
+    async def playnext(self, ctx: commands.Context, *, query: str) -> None:
+        player = await self._ensure_player(ctx)
+        if player is None:
+            return
+
+        async with ctx.typing():
+            try:
+                results = await self._search_query(query)
+                if isinstance(results, wavelink.Playlist):
+                    tracks = list(results.tracks[:MAX_PLAYLIST_ADD])
+                    if not tracks:
+                        raise ValueError("Playlist has no playable tracks.")
+                    
+                    for track in reversed(tracks):
+                        player.queue.put_at(0, track)
+                    added = len(tracks)
+                    first_title = _track_title(tracks[0])
+                else:
+                    if not results:
+                        raise ValueError("No tracks found.")
+                    track = results[0]
+                    player.queue.put_at(0, track)
+                    added = 1
+                    first_title = _track_title(track)
+
+            except Exception as exc:
+                await ctx.send(f"Could not load track: {exc}")
+                return
+
+            started = await self._start_if_idle(player)
+
+        if added == 1:
+            if started:
+                await ctx.send(f"Queued and started: **{first_title}**")
+            else:
+                await ctx.send(f"Added to play next: **{first_title}**")
+            return
+
+        if started:
+            await ctx.send(f"Added {added} tracks from playlist to play next. Playback started.")
+        else:
+            await ctx.send(f"Added {added} tracks from playlist to play next.")
+
+    @commands.command()
+    @is_music_channel()
+    async def move(self, ctx: commands.Context, from_index: int, to_index: int) -> None:
+        player = ctx.voice_client
+        if not isinstance(player, wavelink.Player) or not player.queue:
+            await ctx.send("Queue is empty.")
+            return
+
+        queue_length = len(player.queue)
+        if from_index < 1 or from_index > queue_length or to_index < 1 or to_index > queue_length:
+            await ctx.send(f"Invalid queue index. Must be between 1 and {queue_length}.")
+            return
+
+        if from_index == to_index:
+            await ctx.send("The from and to indices are the same.")
+            return
+
+        removed = player.queue[from_index - 1]
+        player.queue.delete(from_index - 1)
+        player.queue.put_at(to_index - 1, removed)
+
+        await ctx.send(f"Moved **{_track_title(removed)}** from position {from_index} to {to_index}.")
 
     @commands.command()
     @is_music_channel()

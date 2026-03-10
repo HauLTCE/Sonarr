@@ -27,7 +27,7 @@ from .patterns import (
 )
 from .classifier import MessageClassifier
 from .keywords import KEYWORD_MAP, STOPWORDS
-from .premade_answers import (
+from .responses import (
     GOSSIP_LINES,
     IDLE_CHAT_LINES,
     RATE_LIMIT_RESPONSES,

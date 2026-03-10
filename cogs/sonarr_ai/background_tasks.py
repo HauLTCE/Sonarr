@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 import discord
 from discord.ext import tasks
 
-from sonarr.premade_answers import GOSSIP_LINES, IDLE_CHAT_LINES, IDLE_PING_MESSAGES
+from sonarr.responses import GOSSIP_LINES, IDLE_CHAT_LINES, IDLE_PING_MESSAGES
 from utils.database import db
 
 logger = logging.getLogger("bot")

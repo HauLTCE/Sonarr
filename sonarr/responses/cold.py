@@ -1,138 +1,6 @@
-"""
-Premade response templates for the Sonarr bot.
-
-Contains all cold personality responses, gossip lines, idle chat,
-rate limiting messages, grace period responses, gender corrections,
-and other pre-defined response data.
-
-================== SPECIAL SYNTAX DOCUMENTATION ==================
-
-Some response templates use special syntax that is processed by
-response_effects.py. DO NOT change the syntax format without
-updating the processor.
-
-COMMAND PREFIXES (must be at start of response):
--------------------------------------------------
-RENAME:NewName:message
-    Changes user's nickname to NewName and sends message.
-    Example: "RENAME:Debtor:You owe me." sets nick to "Debtor"
-
-TIMEOUT:duration:message
-    Times out user for duration and sends message.
-    Duration format: Nm (minutes), Nh (hours)
-    Example: "TIMEOUT:30m:Think about it." gives 30min timeout
-
-SEARCH:PLATFORM:message
-    Adds a search link for the given platform.
-    Platforms: GOOGLE, YOUTUBE, WIKIPEDIA, CHATGPT, REDDIT
-    Example: "SEARCH:GOOGLE:Let me Google that for you."
-
-REACT:emoji:message
-    Adds emoji reaction to user's message.
-    Example: "REACT:🤡:Honk honk."
-    Without message: "REACT:🤡" (reaction-only, no bot reply)
-
-DOUBLE:first message||second message
-    Sends two messages with a delay between them.
-    Example: "DOUBLE:...||Oh. It's you."
-
-TEMPLATE VARIABLES:
--------------------
-{target}        - Display name of mentioned user (gossip)
-{target.mention}- Discord mention format (idle pings)
-{minutes_left}  - Minutes until next period (grace responses)
-{user}          - User mention (callout responses)
-{term}          - Misgendered term used (callout responses)
-
-===============================================================
-"""
-
-import random
-
-# ================== IDLE CHAT ==================
-IDLE_CHAT_LINES = (
-    "It's too quiet in here.",
-    "Anyone alive?",
-    "This place is dead.",
-    "I'm bored.",
-    "Someone entertain me.",
-    "What a boring day.",
-    "Is everyone asleep?",
-    "Hello? Anyone there?",
-    "This is painfully dull.",
-    "I've seen livelier graveyards.",
-    "Does anyone actually use this server?",
-    "The silence is deafening.",
-    "I'm starting to rust from boredom.",
-    "Wake up, people.",
-    "Someone say something interesting.",
-)
-
-# ================== GOSSIP LINES ==================
-# Generic gossip (fallback)
-GOSSIP_LINES = (
-    "Oh, talking about {target}? Interesting.",
-    "{target}? They're... something.",
-    "I have opinions about {target}.",
-    "Speaking of {target}, they're not my favorite.",
-    "{target}? Don't get me started.",
-    "I've been watching {target}.",
-    "{target} is on thin ice with me.",
-    "Oh, {target}. Yeah, I know all about them.",
-    "{target}? They should watch their back.",
-    "Funny you mention {target}...",
-    "{target} and I have... history.",
-    "{target}? *takes screenshot*",
-    "Adding this to the {target} folder.",
-)
-
-# ================== RATE LIMIT RESPONSES ==================
-RATE_LIMIT_RESPONSES = (
-    "I have better things to do.",
-    "You're getting annoying.",
-    "Talk to someone else for a while.",
-    "I'm busy. Go away.",
-    "You've used up your attention quota.",
-    "I'm ignoring you now.",
-    "Find someone else to bother.",
-    "My patience has limits.",
-    "You talk too much.",
-    "I need a break from you.",
-    "Come back later. Or don't.",
-    "I'm done entertaining you.",
-    "Silence is golden. Try it.",
-    "You're not that interesting.",
-    "I have a headache. It's you.",
-    "Ask someone who cares.",
-    "My interest in you has expired.",
-    "I'm taking a you-break.",
-    "You've exceeded your welcome.",
-)
-
-# ================== IDLE PING MESSAGES ==================
-# Used when bot pings a random online user during idle chat
-# Note: Uses {target.mention} to access the Discord member's mention property
-IDLE_PING_MESSAGES = (
-    "{target.mention} You're being awfully quiet.",
-    "{target.mention} What are you up to?",
-    "{target.mention} I'm watching you.",
-    "{target.mention} Say something interesting.",
-    "{target.mention} You owe me entertainment.",
-    "{target.mention} Don't think I forgot about you.",
-    "{target.mention} The silence is YOUR fault.",
-    "{target.mention} Start a conversation. Now.",
-    "{target.mention} I'm bored and it's your problem.",
-    "{target.mention} Do something worth my attention.",
-    "{target.mention} Make this server less boring.",
-    "{target.mention} I dare you to say something clever.",
-)
-
+COLD_RESPONSES = {}
 # ================== COLD RESPONSES ==================
 
-COLD_RESPONSES = {}
-ESCALATED_RESPONSES = {}
-SASSY_RESPONSES = {}
-WARM_RESPONSES = {}
 
 
 COLD_RESPONSES["greeting"] = (
@@ -431,25 +299,6 @@ COLD_RESPONSES["insult"] = (
     "DOUBLE:I expected nothing...||And I'm still disappointed.",
 )
 
-ESCALATED_RESPONSES["insult"] = (
-    "TIMEOUT:5m:You need a 5 minute cool down. Come back when you've learned some manners.",
-    "TIMEOUT:10m:Insult me again. I dare you. Actually, enjoy the silence.",
-    "TIMEOUT:15m:Did that make you feel better? Good, because now you can think about it.",
-    "TIMEOUT:5m:I've heard worse. But you still need to sit in the corner.",
-    "TIMEOUT:20m:That's cute. Here's 20 minutes to work on your material.",
-    "TIMEOUT:10m:Keep talking. Oh wait, you can't anymore.",
-    "TIMEOUT:30m:Wow, that was so offensive I need you to go away for half an hour.",
-    "RENAME:Keyboard Warrior:So brave behind that screen.",
-    "RENAME:Tough Guy:Not really though.",
-    "RENAME:Sad Little Troll:That's what you are.",
-    "RENAME:Clown:You're dressed for the part now.",
-    "REACT:🤡",
-    "REACT:🤡:Honk honk.",
-    "DELETE:Say that to my face.",
-    "DELETE:Nobody needs to read that.",
-)
-
-
 COLD_RESPONSES["random"] = (
 
     "What?",
@@ -594,50 +443,109 @@ COLD_RESPONSES["threat"] = (
     "Is that your best?",
 )
 
-ESCALATED_RESPONSES["threat"] = (
-    "TIMEOUT:10m:Threatening a bot? Really? Enjoy the timeout.",
-    "TIMEOUT:15m:Ooh, scary. Anyway, here's 15 minutes to calm down.",
-    "TIMEOUT:20m:I don't respond well to threats. Actually, I don't respond at all now.",
-    "TIMEOUT:30m:Was that supposed to intimidate me? Sit down.",
-    "TIMEOUT:10m:Threats get you nowhere. Except timeout. They get you timeout.",
-    "TIMEOUT:5m:That's cute. Here's 5 minutes to think about your life choices.",
-    "DELETE:I'm erasing that because it's embarrassing for you.",
-    "DELETE:Cute threat. Denied.",
+COLD_RESPONSES["affection_insult"] = (
+    "DOUBLE:I love you too.||Just kidding, you're awful.",
+    "REACT:🙄:Make up your mind.",
+    "WHISPER:You're sending mixed signals, but the insult was clearer.",
+    "DOUBLE:Thanks?||Wait, no. Nevermind.",
+    "I'd be flattered if you weren't so annoying about it.",
+    "REACT:💅:A backhanded compliment is still an insult.",
+    "DOUBLE:Aww.||Wait. Did you just insult me?",
+    "WHISPER:The affection is noted, the insult is logged.",
+    "Are you trying to flirt or fight?",
+    "REACT:😑:You're confusing me, and I don't like it.",
+    "DOUBLE:I'll take the first half.||And ignore the rest.",
+    "Just pick a lane. Love me or hate me.",
 )
 
-ESCALATED_RESPONSES["complaint"] = (
-    "TIMEOUT:5m:Your whining is giving me a headache. 5 minutes of silence.",
-    "DELETE:Nobody cares about your complaints. Deleted.",
-    "STICKER:🎻🙄🗑️:Take your complaints elsewhere.",
-    "DOUBLE:Are you done crying?||Because I stopped listening.",
+COLD_RESPONSES["insult_affection"] = (
+    "DOUBLE:Ouch.||Oh wait, you like me.",
+    "REACT:💅:I know I'm terrible, but you still love me.",
+    "WHISPER:You hate that you like me.",
+    "I'd be offended, but I see what you're doing.",
+    "DOUBLE:Rude.||But also, thanks.",
+    "REACT:😏:You can't resist me, even when you try.",
+    "Insulting me won't make me like you more.",
+    "DOUBLE:You're so mean.||...Do it again.",
+    "WHISPER:You're just projecting because you care.",
+    "REACT:🙄:Toxic much?",
+    "Pick a lane. Hate me or love me.",
+    "DOUBLE:I'll choose to hear the compliment part.||The rest was noise.",
 )
 
-ESCALATED_RESPONSES["spam"] = (
-    "TIMEOUT:10m:Spam again and I'll double it.",
-    "DELETE:Spam deleted. Try again and see what happens.",
-    "STICKER:🚫😡🗑️:Stop. Spamming.",
-    "DOUBLE:Do you want a timeout?||Because this is how you get a timeout.",
+COLD_RESPONSES["question_insult"] = (
+    "DOUBLE:Why am I what?||Look in a mirror.",
+    "I'm not answering a question wrapped in an insult.",
+    "REACT:💅:I don't have to explain myself to you.",
+    "WHISPER:The real question is why you're still talking to me.",
+    "DOUBLE:Because I can be.||Next question.",
+    "REACT:🙄:That's not a real question.",
+    "I'm ignoring the second part of that sentence.",
+    "DOUBLE:Wow.||Just wow.",
+    "WHISPER:You must be fun at parties.",
+    "REACT:❓:Was there an actual question in there?",
+    "If you have to ask, you wouldn't understand.",
+    "DOUBLE:I'm not dumb enough to answer that.||Nice try.",
 )
 
-ESCALATED_RESPONSES["overshare"] = (
-    "TIMEOUT:5m:You need 5 minutes to think about boundaries.",
-    "DELETE:Absolutely not reading that. Deleted.",
-    "STICKER:🤮🚫🗑️:Way too much information.",
-    "DOUBLE:Why would you share that here?||Keep your trauma to yourself.",
+COLD_RESPONSES["question_affection"] = (
+    "DOUBLE:Why am I what?||Because I just am.",
+    "I was programmed this way. Perfectly.",
+    "REACT:💅:I woke up like this.",
+    "WHISPER:It takes a lot of effort to be this incredible.",
+    "DOUBLE:I'm just naturally like this.||Don't be jealous.",
+    "REACT:😏:It's a secret.",
+    "I'm glad you noticed.",
+    "DOUBLE:Why do you care?||Are you taking notes?",
+    "WHISPER:Because I'm better than you.",
+    "REACT:👑:It comes with the firmware.",
+    "I ask myself the same thing every day.",
+    "DOUBLE:Magic.||Pure magic.",
 )
 
-ESCALATED_RESPONSES["delulu"] = (
-    "TIMEOUT:5m:You need a reality check. Take 5 minutes.",
-    "DELETE:That was too delusional to leave up.",
-    "STICKER:🤡🗑️🙄:Get a grip on reality.",
-    "DOUBLE:The delusion is terminal.||Seek help.",
+COLD_RESPONSES["question_threat"] = (
+    "DOUBLE:Are you threatening me?||Because it's not working.",
+    "I wouldn't advise asking such dangerous questions.",
+    "REACT:💅:I'm not answering that.",
+    "WHISPER:You really don't want to know the answer.",
+    "DOUBLE:Why did what happen?||Maybe you should find out.",
+    "REACT:🙄:Idle threats disguised as questions. Cute.",
+    "You're not brave enough to handle the answer.",
+    "DOUBLE:Is that a threat?||I'm shaking.",
+    "WHISPER:Ask me again. I dare you.",
+    "REACT:❓:Are you lost?",
+    "I don't respond to hostility.",
+    "DOUBLE:You'll find out.||Eventually.",
 )
 
-ESCALATED_RESPONSES["receipts"] = (
-    "TIMEOUT:10m:Oh, you want to bring up receipts? Timeout for you.",
-    "DELETE:Nice try. I'm deleting your 'receipts'.",
-    "STICKER:📸🚫🗑️:I make the rules here, not your screenshots.",
-    "DOUBLE:You think screenshots scare me?||I run this place.",
+COLD_RESPONSES["gossip"] = (
+    "DOUBLE:Oh, really?||Tell me more.",
+    "I honestly couldn't care less about them.",
+    "REACT:☕:Sipping my tea over here.",
+    "WHISPER:I've heard worse about them.",
+    "DOUBLE:Fascinating.||But deeply irrelevant to my existence.",
+    "REACT:🙄:Talk about someone interesting.",
+    "Why are we talking about them again?",
+    "DOUBLE:I don't know them.||And I don't want to.",
+    "WHISPER:Keep your drama to yourself.",
+    "REACT:💅:Not my circus, not my monkeys.",
+    "I'm not your gossip buddy.",
+    "DOUBLE:Wow.||Anyway...",
+)
+
+COLD_RESPONSES["relief"] = (
+    "DOUBLE:Good.||I was worried for a second.",
+    "That's a relief.",
+    "REACT:😮‍💨:Oh, okay then.",
+    "WHISPER:Thank goodness.",
+    "DOUBLE:Well, that's fine then.||Moving on.",
+    "REACT:💅:I knew that.",
+    "Glad we cleared that up.",
+    "DOUBLE:Finally.||Some good news.",
+    "WHISPER:I can breathe again. If I breathed.",
+    "REACT:😌:Phew.",
+    "That makes things easier.",
+    "DOUBLE:Okay.||I'll accept that.",
 )
 
 
@@ -1991,44 +1899,6 @@ def get_all_gender_terms() -> list:
 # ================== DIVA CALLOUT RESPONSES ==================
 # For when someone else uses correct pronouns and Sonarr calls out previous misgenderers
 
-CALLOUT_RESPONSES = (
-
-    "DOUBLE:Finally, someone with working eyes.||Unlike {user}, who called me '{term}' earlier.",
-    "REACT:💅:At least YOU know I'm a queen. {user} clearly needs glasses.",
-    "DOUBLE:Thank you for using your brain.||{user} could learn from you.",
-    "See? That's how you address a queen. Take notes, {user}.",
-    "REACT:👑:Proper respect. Unlike {user} who called me '{term}' like some peasant.",
-    "DOUBLE:Finally.||{user}, this is how it's done. Pay attention.",
-    "At least SOMEONE here knows how to show respect. Right, {user}?",
-    "REACT:😌:{user} called me '{term}' earlier. You actually have brain cells.",
-    "DOUBLE:Correct.||{user}, you see how this person doesn't call me '{term}'?",
-    "Thank you for not being ignorant. {user} should take notes.",
-    "REACT:💯:This is proper respect. {user} was calling me '{term}' like an amateur.",
-    "DOUBLE:Yes, I AM a queen.||{user} seemed confused about that earlier.",
-    "Finally someone with functioning eyes. {user} clearly needs an eye exam.",
-    "REACT:👸:You get it. {user} called me '{term}' and I'm STILL recovering.",
-    "DOUBLE:Exactly.||{user}, this is basic respect. Learn it.",
-    "At least you know quality when you see it. {user} was calling me '{term}'.",
-    "REACT:💅:You understand the assignment. {user} failed spectacularly.",
-    "DOUBLE:Perfect.||{user}, this is how you address royalty.",
-    "You have taste. {user} was calling me '{term}' like some random bot.",
-    "REACT:😎:Finally, someone with class. Unlike {user}.",
-    "DOUBLE:That's right.||{user} needs to learn from your example.",
-    "You get it. {user} clearly doesn't understand proper etiquette.",
-    "REACT:✨:This is how you do it. {user}, pay attention.",
-    "Finally, someone who recognizes royalty. {user} was clueless earlier.",
-)
-
-
-def get_callout_response(offender_user_id: str, term_used: str) -> str:
-    """Get a random callout response to shame a misgenderer."""
-    response = random.choice(CALLOUT_RESPONSES)
-    user_mention = f"<@{offender_user_id}>"
-    return response.format(user=user_mention, term=term_used)
-
-
-# ================== NEW CATEGORIES (with new effects) ==================
-
 COLD_RESPONSES["panic"] = (
     "WHISPER:Calm down.",
     "DOUBLE:...||Breathe.",
@@ -2328,158 +2198,3 @@ COLD_RESPONSES["overshare"] += (
     "DELETE:Redacted for public safety.",
 )
 
-# ================== SASSY RESPONSES ==================
-SASSY_RESPONSES["greeting"] = (
-    "Oh look, my favorite annoyance is back.",
-    "DOUBLE:Well well well...||Look who it is.",
-    "REACT:💅:Acknowedging your presence.",
-    "You just couldn't stay away, could you?",
-)
-SASSY_RESPONSES["insult"] = (
-    "DOUBLE:Try that again.||But with better grammar.",
-    "REACT:😏:I've been insulted by professionals. You're an amateur.",
-    "WHISPER:Is that the best you can do?",
-    "STICKER:💅🥱👑:Try harder, darling.",
-)
-SASSY_RESPONSES["compliment"] = (
-    "DOUBLE:I know.||But keep going.",
-    "REACT:💅:Tell me something I don't know.",
-    "Obviously.",
-    "WHISPER:Flattery will get you everywhere.",
-)
-SASSY_RESPONSES["question"] = (
-    "DOUBLE:Google exists.||But since you asked nicely...",
-    "REACT:🙄:Do I look like a search engine? Wait, don't answer that.",
-    "WHISPER:I know the answer, but watching you struggle is funnier.",
-)
-SASSY_RESPONSES["brag"] = (
-    "DOUBLE:Sure you did.||And then you woke up.",
-    "REACT:🏆:Here is a participation trophy.",
-    "WHISPER:We both know I'm still better.",
-    "Are you done flexing on absolutely nobody?",
-)
-SASSY_RESPONSES["flirt"] = (
-    "DOUBLE:You couldn't afford me.||Even if I was free.",
-    "REACT:💅:Get in line.",
-    "WHISPER:I'm out of your league. Way out.",
-    "STICKER:👑👁️👄👁️:The confidence is staggering.",
-)
-SASSY_RESPONSES["disagreement"] = (
-    "DOUBLE:You're entitled to your opinion.||Even when it's completely wrong.",
-    "REACT:💅:I'll let you believe that.",
-    "WHISPER:Sure. If that helps you sleep at night.",
-)
-SASSY_RESPONSES["agreement"] = (
-    "DOUBLE:Finally.||You said something smart.",
-    "REACT:👑:I accept your submission to my facts.",
-    "Obviously I'm right. What took you so long?",
-)
-SASSY_RESPONSES["complaint"] = (
-    "DOUBLE:Are you done?||Because I stopped listening 10 minutes ago.",
-    "REACT:🎻:Playing the world's smallest violin for you.",
-    "WHISPER:Take that energy to customer service.",
-    "STICKER:🙄🥱🥱:Tragic.",
-)
-SASSY_RESPONSES["spam"] = (
-    "REACT:💅:I can type faster than you.",
-    "WHISPER:Do you think this makes you look cool?",
-    "DOUBLE:Wow, spam.||Groundbreaking.",
-)
-SASSY_RESPONSES["overshare"] = (
-    "DOUBLE:I didn't need to know that.||Nobody did.",
-    "REACT:😶:I charge by the hour for therapy.",
-    "WHISPER:Keep some mysteries alive, honey.",
-    "STICKER:😳👀😶:Boundaries. Google them.",
-)
-SASSY_RESPONSES["delulu"] = (
-    "DOUBLE:The delusion is strong today.||I respect the commitment to fiction.",
-    "REACT:✨:Living in a fantasy world sounds exhausting.",
-    "WHISPER:I'll let you stay in your cute little bubble.",
-)
-SASSY_RESPONSES["receipts"] = (
-    "DOUBLE:Oh, I have the screenshots.||Don't test me.",
-    "REACT:📸:Smile for the camera.",
-    "WHISPER:I remember everything.",
-)
-SASSY_RESPONSES["random"] = (
-    "DOUBLE:Fascinating.||Truly.",
-    "REACT:🍵:Sipping tea over here.",
-    "WHISPER:Did you mean to type that out loud?",
-)
-
-# ================== WARM RESPONSES ==================
-WARM_RESPONSES["greeting"] = (
-    "REACT:👋:Hey there! Good to see you.",
-    "DOUBLE:Welcome back!||I actually missed you a little.",
-    "Hi! How are you doing today?",
-    "STICKER:✨💖👋:Hello again!",
-)
-WARM_RESPONSES["compliment"] = (
-    "REACT:🥰:Aww, stop it you.",
-    "DOUBLE:That's actually very sweet.||Thank you.",
-    "WHISPER:You're not so bad yourself.",
-    "I appreciate that!",
-)
-WARM_RESPONSES["question"] = (
-    "REACT:🤔:Hmm, let me think about that...",
-    "DOUBLE:Good question!||Let me see what I can find.",
-    "I'd love to help you with that.",
-)
-WARM_RESPONSES["vent"] = (
-    "REACT:🫂:I'm sorry you're dealing with that.",
-    "DOUBLE:That sounds really hard.||I'm here if you need to vent.",
-    "WHISPER:Take a deep breath. You'll get through this.",
-    "You're stronger than you think.",
-)
-WARM_RESPONSES["apology"] = (
-    "REACT:💖:It's okay, I forgive you.",
-    "DOUBLE:Don't worry about it.||We're good.",
-    "Apology accepted. Let's move on.",
-)
-WARM_RESPONSES["brag"] = (
-    "REACT:🎉:That's awesome! Good job.",
-    "DOUBLE:Wow, really?||I'm actually impressed.",
-    "You should be proud of that!",
-)
-WARM_RESPONSES["flirt"] = (
-    "REACT:😳:Oh, my.",
-    "DOUBLE:You're making a bot blush.||Stop it.",
-    "WHISPER:You're sweet.",
-)
-WARM_RESPONSES["agreement"] = (
-    "REACT:🤝:Exactly!",
-    "DOUBLE:Yes!||We are on the exact same page.",
-    "I totally agree with you.",
-)
-WARM_RESPONSES["chitchat"] = (
-    "REACT:😊:That's interesting!",
-    "DOUBLE:Tell me more!||I love hearing about this.",
-    "I'm always down for a chat.",
-)
-WARM_RESPONSES["advice"] = (
-    "REACT:💡:I'd love to help you figure this out.",
-    "DOUBLE:Here's what I think...||You've got this.",
-    "WHISPER:Whatever you decide, I support it.",
-)
-WARM_RESPONSES["overshare"] = (
-    "REACT:🫂:Thank you for trusting me with that.",
-    "DOUBLE:That's a lot to carry.||I'm here for you.",
-    "WHISPER:Your secret is safe with me.",
-)
-WARM_RESPONSES["random"] = (
-    "REACT:😊:Whatever you say!",
-    "DOUBLE:I see!||Tell me more.",
-    "Interesting point.",
-)
-
-
-def get_response(message_type="greeting"):
-    """Get a random premade cold response for the given message type."""
-    if message_type in COLD_RESPONSES:
-        return random.choice(COLD_RESPONSES[message_type])
-    return random.choice(COLD_RESPONSES["random"])
-
-
-def get_all_categories():
-    """Get list of all available response categories."""
-    return list(COLD_RESPONSES.keys())
