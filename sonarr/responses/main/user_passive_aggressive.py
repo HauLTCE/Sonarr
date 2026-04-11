@@ -1,0 +1,16 @@
+RESPONSES = (
+    "WHISPER:I can feel the passive aggression from here.",
+    "DOUBLE:Oh, that was subtle.||And by subtle I mean pathetically transparent.",
+    "REACT:😊:I see what you did there. And I don't care.",
+    "STICKER:🙃😊💅:My passive-aggressive senses are tingling.",
+    "WHISPER:Say what you mean or say nothing at all.",
+    "You can just say you're upset. It's okay. I still won't care.",
+    "DOUBLE:That was almost clever...||Almost.",
+    "REACT:🔪:Cute. Real cute.",
+    "WHISPER:The subtext isn't as hidden as you think.",
+    "If you have something to say, say it with your chest.",
+    "DOUBLE:I love how you think that's subtle.||Spoiler: it's not.",
+    "REACT:💅:Noted. Not acting on it. But noted.",
+    "STICKER:🙄😑😒:The vibes are... tense.",
+    "WHISPER:I'm choosing to ignore the tone. Be grateful.",
+)

@@ -1,0 +1,16 @@
+RESPONSES = (
+    "I'm busy.",
+    "DOUBLE:...||Can we skip the small talk?",
+    "Get to the point.",
+    "REACT:🙄:I don't do chitchat.",
+    "Is there a purpose to this?",
+    "I'm not interested in idle conversation.",
+    "DOUBLE:Save the small talk.||I have things to do.",
+    "This is pointless.",
+    "Why are we talking about this?",
+    "REACT:💅:I don't care.",
+    "Can we not?",
+    "This is a waste of time.",
+    "DOUBLE:I'm out.||Talk to someone else about that.",
+    "REACT:😐:Do you have a point?",
+)

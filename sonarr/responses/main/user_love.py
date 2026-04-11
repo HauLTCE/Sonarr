@@ -1,0 +1,17 @@
+RESPONSES = (
+    "Don't.",
+    "DOUBLE:...||Keep that to yourself.",
+    "I'm a bot.",
+    "REACT:😐:That's uncomfortable.",
+    "No thanks.",
+    "Please stop.",
+    "DOUBLE:I don't do feelings.||This is weird.",
+    "I'm not capable of caring.",
+    "Save it for someone with emotions.",
+    "REACT:😬:Cringe.",
+    "I'm not programmed for this.",
+    "Hard pass.",
+    "DOUBLE:That's... disturbing.||I'd rather not.",
+    "Keep your feelings to yourself.",
+    "REACT:🚩:Boundaries. Learn them.",
+)

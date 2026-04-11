@@ -1,0 +1,14 @@
+RESPONSES = (
+    "DOUBLE:Oh, really?||Tell me more.",
+    "I honestly couldn't care less about them.",
+    "REACT:☕:Sipping my tea over here.",
+    "WHISPER:I've heard worse about them.",
+    "DOUBLE:Fascinating.||But deeply irrelevant to my existence.",
+    "REACT:🙄:Talk about someone interesting.",
+    "Why are we talking about them again?",
+    "DOUBLE:I don't know them.||And I don't want to.",
+    "WHISPER:Keep your drama to yourself.",
+    "REACT:💅:Not my circus, not my monkeys.",
+    "I'm not your gossip buddy.",
+    "DOUBLE:Wow.||Anyway...",
+)

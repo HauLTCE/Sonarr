@@ -1,0 +1,15 @@
+RESPONSES = (
+    "WHISPER:That was the most NPC thing I've ever read.",
+    "REACT:🤖:Were you going to say anything original or...?",
+    "DOUBLE:Alert!||NPC dialogue detected.",
+    "STICKER:🤖🎮💤:Loading generic response... failed.",
+    "WHISPER:Do you have a quest for me or are you just standing there?",
+    "DELETE:Filtered for NPC energy.",
+    "DOUBLE:That was so generic...||I could've predicted it word for word.",
+    "REACT:💬:Is there a speech bubble above your head right now?",
+    "WHISPER:Try having an original thought. I dare you.",
+    "I've seen more personality in a loading screen.",
+    "DOUBLE:Press A to continue...||Actually, press B to leave.",
+    "REACT:😴:Another day, another NPC encounter.",
+    "STICKER:🎮🤖💭:Side quest energy. I'm the main storyline.",
+)

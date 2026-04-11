@@ -4,6 +4,7 @@ Time management utilities for the Sonarr bot.
 Handles sleep time, grace periods, lunch breaks, and time-based restrictions.
 """
 
+import os
 import random
 from datetime import datetime, timezone, timedelta
 
@@ -51,6 +52,9 @@ class TimeManager:
     @classmethod
     def is_lunch_break(cls) -> bool:
         """Check if bot is on lunch break (12PM - 1PM in UTC+7)."""
+        enabled = os.getenv("MIDDAY_BREAK_ENABLED", "True").lower() == "true"
+        if not enabled:
+            return False
         return cls.get_hour() == cls.LUNCH_HOUR
     
     @classmethod

@@ -19,12 +19,27 @@ import asyncio
 import warnings
 from datetime import datetime, timezone
 
+# google-genai internally uses aiohttp and (in some versions) expects certain
+# connector exceptions to be exposed at the top-level `aiohttp` module.
+# Some aiohttp releases only expose them via `aiohttp.client_exceptions`.
+# To keep prod stable, we provide a tiny compatibility shim.
+try:
+    import aiohttp  # type: ignore
+    from aiohttp import client_exceptions as _aiohttp_exc  # type: ignore
+
+    if not hasattr(aiohttp, "ClientConnectorDNSError") and hasattr(_aiohttp_exc, "ClientConnectorDNSError"):
+        aiohttp.ClientConnectorDNSError = _aiohttp_exc.ClientConnectorDNSError  # type: ignore[attr-defined]
+except Exception:
+    # If aiohttp isn't installed for some reason, let the normal import error
+    # surface where it's actually used.
+    pass
+
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
 from sonarr.responses import COLD_RESPONSES
-from sonarr.response_effects import process_response, send_response_with_effects
+from sonarr.responses.effects import process_response, send_response_with_effects
 from sonarr.keywords import NEGATIVE_KEYWORDS
 from sonarr.classification_logger import log_trigger, log_response, log_error
 from sonarr import MessageClassifier, TimeManager, KEYWORD_MAP, STOPWORDS
@@ -32,6 +47,7 @@ from sonarr.brain import AIBrain
 from sonarr.brain.personality import SONARR_TRAITS, PAD_MAP, REACTIVITY, DECAY_RATE, MOOD_ALPHA
 from sonarr.brain.actions import build_sonarr_actions
 from sonarr.brain.persistence import BrainPersistence
+from sonarr.context import ContextEngine, MemoryStore
 
 from .brain_integration import BrainMixin
 from .classifier_pipeline import ClassifierMixin
@@ -47,6 +63,7 @@ except ImportError:
 load_dotenv()
 
 GEMINI_API_KEYS = [
+    os.getenv("GEMINI_API_KEY_MAIN"),
     os.getenv("GEMINI_API_KEY_1"),
     os.getenv("GEMINI_API_KEY_2"),
     os.getenv("GEMINI_API_KEY_3"),
@@ -106,6 +123,11 @@ class SonarrAI(BrainMixin, ClassifierMixin, BackgroundTasksMixin, commands.Cog):
         self._last_brain_tick = datetime.now(timezone.utc)
         logger.info(f"[SonarrAI] Brain initialized: {len(self.brain.utility.action_names)} actions")
 
+        # Context Engine
+        self.context_engine = ContextEngine(max_history=15)
+        from sonarr.context.memory_store import memory_store
+        self.memory_store = memory_store
+
         # Tracking state
         self.last_idle_chat = datetime.now(timezone.utc)
         self.last_user_chat_time = {}
@@ -147,7 +169,8 @@ class SonarrAI(BrainMixin, ClassifierMixin, BackgroundTasksMixin, commands.Cog):
         )
 
         # ========== SLEEP TIME (10PM - 6AM) ==========
-        if self.time_manager.is_sleep_time():
+        sleep_enabled = os.getenv("SLEEP_MODE_ENABLED", "True").lower() == "true"
+        if sleep_enabled and self.time_manager.is_sleep_time():
             if is_bot_mentioned:
                 await message.reply("The bot is asleep.", mention_author=False)
             return
@@ -175,6 +198,15 @@ class SonarrAI(BrainMixin, ClassifierMixin, BackgroundTasksMixin, commands.Cog):
             await message.channel.send(gossip)
             return
 
+        # Add to context engine
+        self.context_engine.add_message(
+            channel_id=str(message.channel.id),
+            author_id=str(message.author.id),
+            author_name=message.author.display_name,
+            content=message.content,
+            is_bot=False
+        )
+
         # Only respond if bot is mentioned
         if not is_bot_mentioned:
             return
@@ -198,7 +230,7 @@ class SonarrAI(BrainMixin, ClassifierMixin, BackgroundTasksMixin, commands.Cog):
 
         if len(self.user_mention_times[user_id]) >= 5:
             logger.warning(f"[SPAM] User {message.author} mentioned bot {len(self.user_mention_times[user_id])} times in 30s")
-            response = self._brain_select_response("spam", user_id, message.guild.id)
+            response = await self._brain_select_response("disruptive_spam", user_id, message.guild.id, message.content)
             try:
                 await send_response_with_effects(response, message, user_query=None)
                 logger.debug(f"[OnMessage] Spam response triggered")
@@ -232,19 +264,30 @@ class SonarrAI(BrainMixin, ClassifierMixin, BackgroundTasksMixin, commands.Cog):
 
         # Get reply context
         reply_context = None
+        reply_msg_obj = None
         if message.reference and message.reference.resolved:
             ref_msg = message.reference.resolved
+            reply_msg_obj = ref_msg
             reply_context = f"{ref_msg.author.display_name}: {ref_msg.content[:200]}"
             logger.debug(f"[OnMessage] Reply context: '{reply_context[:50]}...'")
+
+        # Get chat history for AI
+        chat_history = self.context_engine.get_history_string(str(message.channel.id))
 
         # Classify and respond
         guild_id_int = message.guild.id if message.guild else None
         logger.debug(f"[OnMessage] Calling classify_and_respond_with_ai for: '{content_for_ai}'")
+        
+        # We pass chat_history and reply_msg_obj to the classifier, but we need to intercept
+        # macro categories if they are memory intents (done inside classify_and_respond_with_ai)
         response = await self.classify_and_respond_with_ai(
             content_for_ai,
             user_id=str(message.author.id),
             guild_id=guild_id_int,
-            reply_context=reply_context
+            reply_context=reply_context,
+            chat_history=chat_history,
+            reply_msg_obj=reply_msg_obj,
+            channel_id=str(message.channel.id)
         )
         logger.debug(f"[OnMessage] Got response: '{response[:50] if response else 'None'}'")
 
@@ -270,11 +313,27 @@ class SonarrAI(BrainMixin, ClassifierMixin, BackgroundTasksMixin, commands.Cog):
                 )
 
                 await message.reply(main_msg, mention_author=False)
+                
+                # Add bot response to context engine
+                self.context_engine.add_message(
+                    channel_id=str(message.channel.id),
+                    author_id=str(self.bot.user.id),
+                    author_name=self.bot.user.display_name,
+                    content=main_msg,
+                    is_bot=True
+                )
 
                 if followup:
                     await asyncio.sleep(1.5)
                     await message.channel.send(followup)
                     logger.debug(f"[OnMessage] Followup: '{followup[:100]}'")
+                    self.context_engine.add_message(
+                        channel_id=str(message.channel.id),
+                        author_id=str(self.bot.user.id),
+                        author_name=self.bot.user.display_name,
+                        content=followup,
+                        is_bot=True
+                    )
             else:
                 logger.debug("[OnMessage] Skipping reply (reaction-only or empty response)")
         except Exception as e:

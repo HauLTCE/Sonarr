@@ -75,6 +75,11 @@ class BackgroundTasksMixin:
     @tasks.loop(minutes=random.randint(15, 45))
     async def idle_chat_task(self):
         """Bot randomly chats in general channel after 2 hours of no user activity."""
+        import os
+        idle_chat_enabled = os.getenv("IDLE_CHAT_ENABLED", "True").lower() == "true"
+        if not idle_chat_enabled:
+            return
+
         logger.debug("[IdleChat] Task running...")
         try:
             if not self.bot.guilds or self.time_manager.is_sleep_time():

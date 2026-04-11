@@ -10,7 +10,7 @@ import logging
 from datetime import datetime, timezone
 
 from sonarr.responses import (
-    COLD_RESPONSES, ESCALATED_RESPONSES, SASSY_RESPONSES, WARM_RESPONSES
+    COLD_RESPONSES, ESCALATED_RESPONSES, SASSY_RESPONSES
 )
 from sonarr.brain import Stimulus
 from sonarr.brain.personality import RELATIONSHIP_EFFECTS
@@ -21,7 +21,7 @@ logger = logging.getLogger("bot")
 class BrainMixin:
     """Mixin providing brain-based response selection for SonarrAI."""
 
-    def _brain_select_response(self, category: str, user_id: str, guild_id: int = None) -> str:
+    async def _brain_select_response(self, category: str, user_id: str, guild_id: int = None, user_query: str = None, chat_history: str = None) -> str:
         """Use the AI brain to select a response based on emotional state.
 
         Args:
@@ -91,14 +91,32 @@ class BrainMixin:
         )
 
         # Select response based on action
-        return self._pick_response_for_action(action_name, category)
+        return await self._pick_response_for_action(action_name, category, user_id, user_query, chat_history)
 
-    def _pick_response_for_action(self, action_name: str, category: str) -> str:
+    def _strip_effects(self, response: str) -> str:
+        """Strip prefixes like REACT:, DOUBLE:, TIMEOUT:, WHISPER:, DELETE: from response."""
+        parts = response.split(":")
+        if len(parts) >= 2 and parts[0] in ["REACT", "DOUBLE", "TIMEOUT", "WHISPER", "DELETE"]:
+            # Special case for DOUBLE: which has ||
+            if parts[0] == "DOUBLE" and "||" in response:
+                return response.split(":", 1)[1].replace("||", " ")
+            elif parts[0] == "REACT":
+                return ":".join(parts[2:]) # Skip the emoji part too
+            elif parts[0] == "TIMEOUT":
+                return ":".join(parts[2:]) # Skip the duration part too
+            else:
+                return ":".join(parts[1:])
+        return response
+
+    async def _pick_response_for_action(self, action_name: str, category: str, user_id: str = None, user_query: str = None, chat_history: str = None) -> str:
         """Pick a premade response based on the brain's chosen action.
 
         The category determines WHAT pool to pick from.
         The action determines HOW to modify the selection.
         """
+        import os
+        import asyncio
+
         # Default fallback to cold
         pool = COLD_RESPONSES.get(category, COLD_RESPONSES.get("random", ["What?"]))
 
@@ -107,7 +125,8 @@ class BrainMixin:
         elif action_name in ["respond_sassy", "respond_power_trip"]:
             pool = SASSY_RESPONSES.get(category, SASSY_RESPONSES.get("random", pool))
         elif action_name in ["respond_warm", "respond_intrigued"]:
-            pool = WARM_RESPONSES.get(category, WARM_RESPONSES.get("random", pool))
+            # Fallback to cold since warm responses were removed
+            pass
         elif action_name == "ignore":
             return ""
 
@@ -116,7 +135,104 @@ class BrainMixin:
         if not available:
             available = pool  # fallback if we've exhausted the exact subset
             
-        choice = random.choice(available)
+        ai_selection_enabled = os.getenv("AI_RESPONSE_SELECTION_ENABLED", "False").lower() == "true"
+        ai_dynamic_enabled = os.getenv("AI_DYNAMIC_RESPONSE_ENABLED", "False").lower() == "true"
+        
+        choice = None
+        
+        if hasattr(self, 'genai_client') and self.genai_client and getattr(self, 'ai_available', False) and user_query:
+            if ai_dynamic_enabled:
+                context_str = ""
+                if chat_history:
+                    context_str = f"CHAT HISTORY:\n{chat_history}\n\n"
+                
+                # Fetch long-term memories
+                from sonarr.context.memory_store import memory_store
+                guild_str = str(self.bot.guilds[0].id) if self.bot.guilds else "global" # Fallback
+                
+                memories = memory_store.get_memories(guild_str, user_id, limit=5)
+                memory_str = ""
+                if memories:
+                    memory_str = "LONG-TERM MEMORIES WITH THIS USER:\n" + "\n".join([f"- {m['content']}" for m in memories]) + "\n\n"
+                
+                # Fetch brain state
+                emotion = self.brain.current_emotion
+                mood = self.brain.current_mood
+                entity_info = self.brain.blackboard.get_entity(user_id)
+                rel_str = str(entity_info.relationship) if entity_info else "Neutral"
+                
+                prompt = f"""You are Sonarr, an AI chatbot. You are generating a direct response to the user.
+Your personality and current state must dictate how you respond.
+
+YOUR CURRENT STATE:
+Emotion: {emotion}
+Mood: {mood}
+Relationship with User: {rel_str}
+Message Category/Intent: {category}
+Action Decided: {action_name}
+
+{memory_str}{context_str}The user just sent this message:
+"{user_query}"
+
+Generate the perfect, in-character response. Keep it natural, conversational, and tailored to your current emotional state. Do not include quotes or prefixes. Just the response text."""
+                
+                try:
+                    response = await asyncio.wait_for(
+                        self.genai_client.aio.models.generate_content(
+                            model=getattr(self, 'current_model', 'gemini-2.5-flash'),
+                            contents=prompt
+                        ),
+                        timeout=10.0
+                    )
+                    choice = response.text.strip()
+                    logger.debug(f"[AI-Dynamic] Generated: '{choice}'")
+                except Exception as e:
+                    logger.warning(f"[AI-Dynamic] Failed to generate response: {e}")
+                    
+            elif ai_selection_enabled:
+                # Prepare choices for AI
+                stripped_choices = {self._strip_effects(r).strip(): r for r in available}
+                choices_list_str = "\n".join([f"- {c}" for c in stripped_choices.keys() if c])
+                
+                if choices_list_str:
+                    context_str = ""
+                    if chat_history:
+                        context_str = f"CHAT HISTORY (context for the conversation):\n{chat_history}\n\n"
+                        
+                    prompt = f"""You are selecting the best response for a chatbot to send.
+{context_str}The user just sent this message:
+"{user_query}"
+
+Choose the absolute best response from the list below that matches the tone and context of the conversation. Reply ONLY with the exact text of the response you choose, nothing else. Do not add quotes.
+
+Responses:
+{choices_list_str}"""
+                    
+                    try:
+                        response = await asyncio.wait_for(
+                            self.genai_client.aio.models.generate_content(
+                                model=getattr(self, 'current_model', 'gemini-2.5-flash'),
+                                contents=prompt
+                            ),
+                            timeout=10.0
+                        )
+                        ai_choice = response.text.strip()
+                        
+                        # Match back to original (with prefixes)
+                        best_match_orig = None
+                        for stripped, orig in stripped_choices.items():
+                            if ai_choice.lower() in stripped.lower() or stripped.lower() in ai_choice.lower():
+                                best_match_orig = orig
+                                break
+                                
+                        if best_match_orig:
+                            choice = best_match_orig
+                            logger.debug(f"[AI-Select] Chosen: '{choice}'")
+                    except Exception as e:
+                        logger.warning(f"[AI-Select] Failed to pick response: {e}")
+                    
+        if choice is None:
+            choice = random.choice(available)
         
         # Track history
         self.recent_responses.append(choice)
