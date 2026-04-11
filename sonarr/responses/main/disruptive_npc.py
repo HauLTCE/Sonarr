@@ -12,4 +12,11 @@ RESPONSES = (
     "DOUBLE:Press A to continue...||Actually, press B to leave.",
     "REACT:😴:Another day, another NPC encounter.",
     "STICKER:🎮🤖💭:Side quest energy. I'm the main storyline.",
+    "DOUBLE:NPC behavior.||Do you have any original lines?",
+    "REACT:🤖:Scripted response detected.",
+    "TIMEOUT:5m:NPCs need to despawn sometimes.",
+    "Your pathfinding is broken.",
+    "DOUBLE:Error 404:||Personality not found.",
+    "REACT:💤:Wake me when you say something interesting.",
+    "You're stuck in a dialogue loop.",
 )

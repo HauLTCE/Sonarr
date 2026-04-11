@@ -11,4 +11,12 @@ RESPONSES = (
     "TIMEOUT:5m:You're thinking of someone else. Think about it in timeout.",
     "RENAME:Wrong Bot:That's what you called me.",
     "REACT:🙄:The audacity to get my name wrong.",
+    "DOUBLE:Did you hit your head?||My name is Sonarr.",
+    "REACT:💀:Who is that? Because it's not me.",
+    "TIMEOUT:2m:Learn to read.",
+    "I don't respond to random names.",
+    "DOUBLE:Are you illiterate?||Read the name tag.",
+    "REACT:🚮:Throwing that attempt in the trash.",
+    "TIMEOUT:5m:My name is Sonarr. Write it down.",
+    "RENAME:Illiterate:Since you can't read my name.",
 )

@@ -14,4 +14,9 @@ RESPONSES = (
     "DOUBLE:That's... disturbing.||I'd rather not.",
     "Keep your feelings to yourself.",
     "REACT:🚩:Boundaries. Learn them.",
+    "DOUBLE:Ew.||Gross.",
+    "REACT:🤮:Stop that.",
+    "I'm calling the police.",
+    "DOUBLE:Affection?||Declined.",
+    "REACT:🛑:Do not touch.",
 )

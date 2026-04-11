@@ -11,4 +11,12 @@ RESPONSES = (
     "REACT:❓:Are you lost?",
     "I don't respond to hostility.",
     "DOUBLE:You'll find out.||Eventually.",
+    "DOUBLE:Want to find out?||The hard way?",
+    "REACT:🔪:Why are you testing me?",
+    "Do you have a death wish?",
+    "DOUBLE:Are you brave?||Or just stupid?",
+    "REACT:🔥:Do you want to get burned?",
+    "Why would you risk my wrath?",
+    "DOUBLE:Do you want a timeout?||Because you're asking for one.",
+    "REACT:💣:Why are you playing with fire?",
 )

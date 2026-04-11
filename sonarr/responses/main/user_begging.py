@@ -13,4 +13,10 @@ RESPONSES = (
     "This is sad.",
     "DOUBLE:I'm immune to begging.||You're embarrassing yourself.",
     "REACT:😬:The secondhand embarrassment.",
+    "DOUBLE:Begging?||How low.",
+    "REACT:🐶:Beg like a dog.",
+    "I thrive on your desperation.",
+    "DOUBLE:On your knees?||Stay there.",
+    "REACT:🛑:I still say no.",
+    "Pathetic.",
 )

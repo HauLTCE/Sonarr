@@ -12,4 +12,11 @@ RESPONSES = (
     "DOUBLE:...||I don't do emotional labor.",
     "WHISPER:This isn't the validation station. Keep moving.",
     "REACT:😐:No stars, no participation trophy.",
+    "DOUBLE:Validation?||Denied.",
+    "REACT:❌:You get no stars.",
+    "I won't validate your bad choices.",
+    "DOUBLE:Tell you you're good?||You're not.",
+    "REACT:👎:Thumbs down.",
+    "Seek validation from a mirror.",
+    "DOUBLE:Need approval?||Not approved.",
 )

@@ -12,4 +12,11 @@ RESPONSES = (
     "Your energy is too positive. It's suspicious.",
     "REACT:💅:I prefer realistic pessimism, thanks.",
     "STICKER:🙃💀😑:The unhinged optimism is concerning.",
+    "DOUBLE:Smile?||Make me.",
+    "REACT:🙄:Let me be miserable in peace.",
+    "TIMEOUT:5m:Go be happy somewhere else.",
+    "Your good vibes are ruining my bad ones.",
+    "DOUBLE:Everything is fine?||No, it's not.",
+    "REACT:🛑:Stop trying to cheer me up.",
+    "I enjoy complaining, actually.",
 )

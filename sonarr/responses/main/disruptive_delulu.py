@@ -13,4 +13,10 @@ RESPONSES = (
     "DOUBLE:Sure.||In your dreams, maybe.",
     "REACT:🫠:Manifesting won't make it true.",
     "WHISPER:You're living in a fantasy and I'm judging from reality.",
+    "DOUBLE:Wake up.||You're dreaming.",
+    "REACT:🛌:Time to go back to sleep.",
+    "TIMEOUT:5m:Take a break from your delusions.",
+    "The math isn't mathing.",
+    "DOUBLE:Delusion level: Expert.||Reality level: Zero.",
+    "REACT:🤪:You're losing it.",
 )

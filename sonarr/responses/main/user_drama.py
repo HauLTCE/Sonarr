@@ -13,4 +13,10 @@ RESPONSES = (
     "STICKER:🎬🎭💅:Cut. Terrible take. Try again never.",
     "The theatre kids are leaking again.",
     "REACT:😴:I've seen better drama in my DMs.",
+    "DOUBLE:Drama?||Keep it out of my server.",
+    "REACT:🎭:Overdramatic.",
+    "I'm canceling this show.",
+    "DOUBLE:Tears?||Save them.",
+    "REACT:🎬:Cut!",
+    "You're doing too much.",
 )

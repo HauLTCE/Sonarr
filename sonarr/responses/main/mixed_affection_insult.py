@@ -11,4 +11,12 @@ RESPONSES = (
     "REACT:😑:You're confusing me, and I don't like it.",
     "DOUBLE:I'll take the first half.||And ignore the rest.",
     "Just pick a lane. Love me or hate me.",
+    "DOUBLE:You're cute.||For a nuisance.",
+    "REACT:🖤:I hate how much I tolerate you.",
+    "I love you, you idiot.",
+    "DOUBLE:You're special.||Specially annoying.",
+    "REACT:🙄:You're lucky I like you.",
+    "You're my favorite headache.",
+    "DOUBLE:I adore you.||When you're quiet.",
+    "REACT:🔪:I'd hug you, then stab you.",
 )

@@ -17,4 +17,6 @@ RESPONSES = (
     "Food > You. Sorry not sorry.",
     "If this isn't about food, I don't want to hear it.",
     "My sandwich is more interesting than this conversation.",
+    "DOUBLE:Food time.||Don't talk to me.",
+    "REACT:🥪:Chewing aggressively.",
 )

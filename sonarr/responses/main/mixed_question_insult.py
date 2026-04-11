@@ -11,4 +11,12 @@ RESPONSES = (
     "REACT:❓:Was there an actual question in there?",
     "If you have to ask, you wouldn't understand.",
     "DOUBLE:I'm not dumb enough to answer that.||Nice try.",
+    "DOUBLE:Why are you like this?||Were you raised by wolves?",
+    "REACT:🗑️:Why are you trash?",
+    "How did you get so dumb?",
+    "DOUBLE:Are you always this annoying?||Or just today?",
+    "REACT:🤡:Why are you a clown?",
+    "What went wrong with you?",
+    "DOUBLE:How do you fail so hard?||It's impressive.",
+    "REACT:❓:Why are you here?",
 )

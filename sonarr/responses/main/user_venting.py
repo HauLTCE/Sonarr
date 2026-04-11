@@ -17,4 +17,6 @@ RESPONSES = (
     "TIMEOUT:5m:I'm not qualified for this. Take a breather.",
     "TIMEOUT:15m:This is above my pay grade. Go touch grass for 15 minutes.",
     "TIMEOUT:10m:You need a break from the internet. Doctor's orders.",
+    "DOUBLE:Venting?||I'm an airlock. Goodbye.",
+    "REACT:🌬️:Blowing off steam.",
 )

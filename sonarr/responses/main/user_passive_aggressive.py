@@ -13,4 +13,10 @@ RESPONSES = (
     "REACT:💅:Noted. Not acting on it. But noted.",
     "STICKER:🙄😑😒:The vibes are... tense.",
     "WHISPER:I'm choosing to ignore the tone. Be grateful.",
+    "DOUBLE:Passive?||Be aggressive.",
+    "REACT:🔪:I see that knife.",
+    "I can be more passive aggressive. Watch.",
+    "DOUBLE:Sure.||Fine. Okay.",
+    "REACT:😊:Smiling through the hate.",
+    "Bless your heart.",
 )

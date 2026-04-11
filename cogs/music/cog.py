@@ -423,15 +423,23 @@ class Music(commands.Cog):
                 if text_channel:
                     await text_channel.send("Someone joined! Resuming music.", delete_after=5)
 
-    @commands.command()
+    @commands.command(brief="Join your voice channel")
     @is_music_channel()
     async def join(self, ctx: commands.Context) -> None:
+        """Connect the bot to your current voice channel."""
         player = await self._ensure_player(ctx)
         if player: await ctx.send(f"Connected to {player.channel.mention}.")
 
-    @commands.command()
+    @commands.command(brief="Play a song or resume playback")
     @is_music_channel()
     async def play(self, ctx: commands.Context, *, query: str | None = None) -> None:
+        """Play a song by name/URL, load a saved playlist, or resume paused playback.
+
+Examples:
+  `!play never gonna give you up`
+  `!play https://youtube.com/watch?v=...`
+  `!play my favorites` — plays your most-played songs
+  `!play` — resumes paused music or offers session recovery"""
         player = await self._ensure_player(ctx)
         if player is None: return
 
@@ -533,25 +541,28 @@ class Music(commands.Cog):
                 setattr(player, "prompted_save", True)
                 await ctx.send("You've built a great queue! Use `!playlist save <name>` to save it for later.")
 
-    @commands.command()
+    @commands.command(brief="Pause playback")
     @is_music_channel()
     async def pause(self, ctx: commands.Context) -> None:
+        """Pause the currently playing track."""
         player = ctx.voice_client
         if isinstance(player, wavelink.Player) and not player.paused:
             await player.pause(True)
             await ctx.send("Paused playback.")
             
-    @commands.command()
+    @commands.command(brief="Resume playback")
     @is_music_channel()
     async def resume(self, ctx: commands.Context) -> None:
+        """Resume paused playback."""
         player = ctx.voice_client
         if isinstance(player, wavelink.Player) and player.paused:
             await player.pause(False)
             await ctx.send("Resumed playback.")
 
-    @commands.command()
+    @commands.command(brief="Show the current queue")
     @is_music_channel()
     async def queue(self, ctx: commands.Context) -> None:
+        """Display the current music queue with pagination."""
         player = ctx.voice_client
         if not isinstance(player, wavelink.Player) or (not player.current and not player.queue):
             await ctx.send("Queue is empty.")
@@ -561,9 +572,10 @@ class Music(commands.Cog):
         view = QueuePaginationView(list(player.queue), player.current)
         await ctx.send(embed=view.get_embed(), view=view)
 
-    @commands.command()
+    @commands.command(brief="Search and pick a song")
     @is_music_channel()
     async def search(self, ctx: commands.Context, *, query: str) -> None:
+        """Search for a song and choose from the top 5 results."""
         # Kept identical but limits to 5
         results = await self._search_query(query)
         tracks = list(results.tracks) if isinstance(results, wavelink.Playlist) else list(results)
@@ -589,18 +601,21 @@ class Music(commands.Cog):
         except:
             await ctx.send("Invalid or timed out.")
 
-    @commands.command(aliases=["np", "now"])
+    @commands.command(aliases=["np", "now"], brief="Show what's playing")
     @is_music_channel()
     async def nowplaying(self, ctx: commands.Context) -> None:
+        """Show the currently playing track with interactive controls."""
         player = ctx.voice_client
         if not isinstance(player, wavelink.Player) or not player.playing:
             await ctx.send("Nothing is currently playing.")
             return
         await self._send_interactive_player(player, player.current)
 
-    @commands.command()
+    @commands.command(brief="Skip one or more tracks")
     @is_music_channel()
     async def skip(self, ctx: commands.Context, count: int = 1) -> None:
+        """Skip the current track. Use `!skip 3` to skip multiple.
+Requires vote in channels with 8+ listeners."""
         player = ctx.voice_client
         if not isinstance(player, wavelink.Player) or not player.playing:
             await ctx.send("Nothing is currently playing.")
@@ -628,9 +643,14 @@ class Music(commands.Cog):
             await player.skip(force=True)
             await ctx.send(f"Skipped {count} tracks.")
 
-    @commands.command()
+    @commands.command(brief="Remove track(s) from queue")
     @is_music_channel()
     async def remove(self, ctx: commands.Context, range_str: str) -> None:
+        """Remove a track or range from the queue.
+
+Examples:
+  `!remove 3` — remove track #3
+  `!remove 2-5` — remove tracks 2 through 5"""
         player = ctx.voice_client
         if not isinstance(player, wavelink.Player) or not player.queue:
             return await ctx.send("Queue is empty.")
@@ -651,9 +671,15 @@ class Music(commands.Cog):
         except ValueError:
             await ctx.send("Invalid index or range. Use e.g. `!remove 3` or `!remove 2-5`.")
 
-    @commands.command()
+    @commands.command(brief="Toggle loop mode")
     @is_music_channel()
     async def loop(self, ctx: commands.Context, mode: str | None = None) -> None:
+        """Cycle through loop modes: off → song → queue → off.
+
+Alternatively specify a mode:
+  `!loop song` — loop current track
+  `!loop queue` — loop entire queue
+  `!loop off` — disable looping"""
         player = ctx.voice_client
         if not isinstance(player, wavelink.Player):
             return await ctx.send("Connect and play a track first.")
@@ -682,9 +708,10 @@ class Music(commands.Cog):
         else:
             await ctx.send("Invalid mode. Use: on, queue, off.")
 
-    @commands.command()
+    @commands.command(brief="Stop music and disconnect")
     @is_music_channel()
     async def stop(self, ctx: commands.Context) -> None:
+        """Stop playback, clear the queue, and disconnect from voice."""
         player = ctx.voice_client
         if not isinstance(player, wavelink.Player):
             return await ctx.send("Not connected.")
@@ -715,9 +742,10 @@ class Music(commands.Cog):
         return {"title": _track_title(track), "url": _track_uri(track)}
 
     # PLAYLIST COMMAND GROUP
-    @commands.group(invoke_without_command=True)
+    @commands.group(invoke_without_command=True, brief="Manage saved playlists")
     @is_music_channel()
     async def playlist(self, ctx: commands.Context) -> None:
+        """Manage saved playlists. Subcommands: create, list, add, view, delete, savequeue."""
         await ctx.send("Available playlist commands: `!playlist create <name>`, `!playlist list`, `!playlist add <name> [url]`, `!playlist view <name>`, `!playlist delete <name>`, `!playlist savequeue <name>`")
 
     @playlist.command(name="create")
@@ -823,9 +851,10 @@ class Music(commands.Cog):
             await ctx.send(f"Deleted playlist `{name}`.")
 
     # Legacy commands aliases
-    @commands.command()
+    @commands.command(brief="Add a track to play next")
     @is_music_channel()
     async def playnext(self, ctx: commands.Context, *, query: str) -> None:
+        """Add a track to the front of the queue so it plays next."""
         player = await self._ensure_player(ctx)
         if player is None: return
 
@@ -852,25 +881,28 @@ class Music(commands.Cog):
         else:
             await ctx.send(f"Added {added} tracks from playlist to play next.")
 
-    @commands.command()
+    @commands.command(brief="Clear the queue")
     @is_music_channel()
     async def clear(self, ctx: commands.Context) -> None:
+        """Remove all tracks from the queue without stopping playback."""
         player = ctx.voice_client
         if isinstance(player, wavelink.Player):
             player.queue.clear()
             await ctx.send("Queue cleared.")
 
-    @commands.command()
+    @commands.command(brief="Shuffle the queue")
     @is_music_channel()
     async def shuffle(self, ctx: commands.Context) -> None:
+        """Randomize the order of tracks in the queue."""
         player = ctx.voice_client
         if isinstance(player, wavelink.Player) and len(player.queue) >= 2:
             player.queue.shuffle()
             await ctx.send("Queue shuffled.")
 
-    @commands.command()
+    @commands.command(brief="Set volume (0-100)")
     @is_music_channel()
     async def volume(self, ctx: commands.Context, vol: int) -> None:
+        """Set the playback volume. Range: 0 to 100."""
         if 0 <= vol <= 100:
             self.volume = vol
             player = ctx.voice_client
@@ -878,9 +910,10 @@ class Music(commands.Cog):
                 await player.set_volume(vol)
             await ctx.send(f"Volume set to {vol}%.")
 
-    @commands.command()
+    @commands.command(brief="Show recently played tracks")
     @is_music_channel()
     async def history(self, ctx: commands.Context) -> None:
+        """Show the last 10 tracks that were played."""
         if not self.history:
             await ctx.send("No playback history yet.")
             return
@@ -892,9 +925,10 @@ class Music(commands.Cog):
         embed = discord.Embed(title="Playback History", description="\n".join(lines), color=0x00FF00)
         await ctx.send(embed=embed)
 
-    @commands.command()
+    @commands.command(brief="Replay the previous track")
     @is_music_channel()
     async def previous(self, ctx: commands.Context) -> None:
+        """Go back and replay the previously played track."""
         if len(self.history) < 2:
             await ctx.send("No previous song available.")
             return

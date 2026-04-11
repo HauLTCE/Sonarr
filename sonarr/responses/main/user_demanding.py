@@ -17,4 +17,6 @@ RESPONSES = (
     "REACT:❓:Did you just order me?",
     "That's cute. No.",
     "DOUBLE:...||I'm not a dog.",
+    "DOUBLE:Demands?||I demand you stop.",
+    "REACT:🙅‍♀️:Not happening.",
 )

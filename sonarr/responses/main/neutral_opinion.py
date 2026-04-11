@@ -17,4 +17,6 @@ RESPONSES = (
     "RENAME:Certified Clown:Opinion certified.",
     "REACT:🗑️:Your opinion has been filed appropriately.",
     "REACT:🚮:Straight to the trash.",
+    "DOUBLE:I have an opinion.||I'm keeping it.",
+    "REACT:🤐:No comment.",
 )

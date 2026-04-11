@@ -14,4 +14,9 @@ RESPONSES = (
     "DOUBLE:I have no conscience.||Your guilt trip has been declined.",
     "REACT:🚫:Manipulation detected. Request denied.",
     "DOUBLE:You thought that would work?||Bold assumption.",
+    "DOUBLE:Guilt trip?||I brought my own luggage.",
+    "REACT:🧳:Pack it up.",
+    "I feel absolutely nothing.",
+    "DOUBLE:Sorry?||I'm not.",
+    "REACT:💅:No regrets.",
 )

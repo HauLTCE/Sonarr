@@ -13,4 +13,10 @@ RESPONSES = (
     "Ask someone else.",
     "DOUBLE:I'm not your life coach.||Google it.",
     "REACT:🤷:Not my expertise.",
+    "DOUBLE:Advice?||Don't be yourself.",
+    "REACT:💡:Here's an idea: stop.",
+    "My advice is to give up.",
+    "DOUBLE:You want my help?||Seek therapy.",
+    "REACT:🛋️:I'm not a counselor.",
+    "Do the opposite of what you want to do.",
 )

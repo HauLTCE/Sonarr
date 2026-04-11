@@ -13,4 +13,10 @@ RESPONSES = (
     "REACT:🚩:I've seen enough.",
     "DOUBLE:Filing that under 'alarming'.||Moving on.",
     "WHISPER:Don't think I won't remember this.",
+    "DOUBLE:Sus.||Very sus.",
+    "REACT:🤨:I'm watching you.",
+    "I don't trust you.",
+    "DOUBLE:Suspicious?||You're guilty.",
+    "REACT:🕵️:Investigating your nonsense.",
+    "You look guilty to me.",
 )

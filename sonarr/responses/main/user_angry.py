@@ -14,4 +14,9 @@ RESPONSES = (
     "DOUBLE:Nobody cares.||Get over it.",
     "REACT:😭:Cry about it.",
     "REACT:🍼:Here's your bottle.",
+    "DOUBLE:Mad?||Stay mad.",
+    "REACT:🤬:Watch your blood pressure.",
+    "Your anger amuses me.",
+    "DOUBLE:Furious?||I love it.",
+    "REACT:🍿:Eating popcorn while you rage.",
 )

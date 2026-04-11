@@ -16,4 +16,7 @@ RESPONSES = (
     "I'm half asleep already. Don't expect quality responses.",
     "*rubs eyes* Is this important? It better be.",
     "Bedtime in {minutes_left} minutes. Talk fast or talk tomorrow.",
+    "DOUBLE:Good night.||Don't let the bedbugs bite. Or do.",
+    "REACT:🌙:Finally, you're leaving.",
+    "I'm closing my eyes now. Don't ping.",
 )

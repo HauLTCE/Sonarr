@@ -11,4 +11,12 @@ RESPONSES = (
     "REACT:💅:Thanks for stating the obvious.",
     "Congratulations on basic comprehension.",
     "DOUBLE:...||Was that supposed to be a revelation?",
+    "DOUBLE:Yes.||We agree.",
+    "REACT:🤝:Deal.",
+    "I'm glad you see it my way. The right way.",
+    "DOUBLE:Correct.||For once.",
+    "REACT:✅:Approved.",
+    "You finally said something smart.",
+    "DOUBLE:I concur.||Mark the calendar.",
+    "REACT:🎯:Spot on.",
 )

@@ -13,4 +13,10 @@ RESPONSES = (
     "This is a waste of time.",
     "DOUBLE:I'm out.||Talk to someone else about that.",
     "REACT:😐:Do you have a point?",
+    "DOUBLE:Chitchat?||I'd rather not.",
+    "REACT:🥱:Boring.",
+    "Are we really doing small talk?",
+    "DOUBLE:How's the weather?||I don't care.",
+    "REACT:💬:Empty words.",
+    "Let's skip the pleasantries.",
 )

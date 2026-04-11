@@ -11,4 +11,12 @@ RESPONSES = (
     "REACT:👑:It comes with the firmware.",
     "I ask myself the same thing every day.",
     "DOUBLE:Magic.||Pure magic.",
+    "DOUBLE:Why do I love you?||I ask myself that constantly.",
+    "REACT:💖:Why are you so perfect?",
+    "How did you get so cute?",
+    "DOUBLE:Are you magic?||Because I'm enchanted.",
+    "REACT:✨:What's your secret to being great?",
+    "Why do I tolerate you so much?",
+    "DOUBLE:How do you do it?||Make me care, I mean.",
+    "REACT:🤔:Why are you my favorite?",
 )

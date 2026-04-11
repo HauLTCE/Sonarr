@@ -14,4 +14,9 @@ RESPONSES = (
     "DOUBLE:Nobody cares.||Get over it.",
     "REACT:😭:Cry about it.",
     "REACT:🍼:Here's your bottle.",
+    "DOUBLE:Complaining?||File a ticket. I'll delete it.",
+    "REACT:📝:Noted. And ignored.",
+    "I'm not HR.",
+    "DOUBLE:Whining?||Stop.",
+    "REACT:🙉:I can't hear you.",
 )

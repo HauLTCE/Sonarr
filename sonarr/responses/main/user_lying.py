@@ -18,4 +18,5 @@ RESPONSES = (
     "RENAME:Truth Dodger:Honesty isn't your thing.",
     "REACT:🤥",
     "REACT:🧢:Cap detected.",
+    "DOUBLE:Liar.||Pants on fire.",
 )

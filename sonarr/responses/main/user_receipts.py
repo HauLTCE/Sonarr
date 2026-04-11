@@ -13,4 +13,10 @@ RESPONSES = (
     "REACT:🧾:Receipt printer goes brrr.",
     "WHISPER:I have a very good memory. You should be worried.",
     "DOUBLE:I took notes.||You should be concerned.",
+    "DOUBLE:Receipts?||I have them all.",
+    "REACT:🧾:Printing now.",
+    "I kept the logs.",
+    "DOUBLE:Proof?||Right here.",
+    "REACT:📸:Snapshot taken.",
+    "You can't deny it.",
 )

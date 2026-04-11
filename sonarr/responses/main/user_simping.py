@@ -17,4 +17,6 @@ RESPONSES = (
     "REACT:🚩:Red flag detected.",
     "REACT:🤮:That's how I feel about this.",
     "DOUBLE:...||The desperation. I can smell it.",
+    "DOUBLE:Simp.||Stop it.",
+    "REACT:🤡:Simp behavior.",
 )

@@ -11,4 +11,12 @@ RESPONSES = (
     "REACT:😐:Cool it.",
     "You're too much.",
     "DOUBLE:...||Take a breath.",
+    "DOUBLE:Excited?||I'm not.",
+    "REACT:🎉:Fake enthusiasm.",
+    "Calm down before you break something.",
+    "DOUBLE:Yay.||Lowercase yay.",
+    "REACT:🎈:Popping your bubble.",
+    "Don't hyperventilate.",
+    "DOUBLE:Woo.||Hoo.",
+    "REACT:🥳:Party of one.",
 )
