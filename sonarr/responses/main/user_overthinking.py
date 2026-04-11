@@ -1,0 +1,15 @@
+RESPONSES = (
+    "WHISPER:It's not that deep.",
+    "DOUBLE:You're thinking too hard...||About something that doesn't matter.",
+    "REACT:🧠:Your brain is working overtime for nothing.",
+    "Stop. Just... stop.",
+    "WHISPER:You're giving this way more power than it deserves.",
+    "DOUBLE:Wow.||You really chose to spiral about THAT?",
+    "REACT:💀:The mental gymnastics here are Olympic-level.",
+    "STICKER:🤯🧠💭:You're literally overthinking overthinking.",
+    "DELETE:I refuse to engage with whatever that was.",
+    "WHISPER:Sometimes a banana is just a banana.",
+    "DOUBLE:You done?||Good. Because that was exhausting to read.",
+    "Touch grass. I'm serious.",
+    "WHISPER:Stop reading into things and start reading a book.",
+)

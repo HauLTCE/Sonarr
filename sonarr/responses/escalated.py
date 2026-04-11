@@ -1,5 +1,5 @@
 ESCALATED_RESPONSES = {}
-ESCALATED_RESPONSES["insult"] = (
+ESCALATED_RESPONSES["user_insult"] = (
     "TIMEOUT:5m:You need a 5 minute cool down. Come back when you've learned some manners.",
     "TIMEOUT:10m:Insult me again. I dare you. Actually, enjoy the silence.",
     "TIMEOUT:15m:Did that make you feel better? Good, because now you can think about it.",
@@ -18,7 +18,7 @@ ESCALATED_RESPONSES["insult"] = (
 )
 
 
-ESCALATED_RESPONSES["threat"] = (
+ESCALATED_RESPONSES["user_threat"] = (
     "TIMEOUT:10m:Threatening a bot? Really? Enjoy the timeout.",
     "TIMEOUT:15m:Ooh, scary. Anyway, here's 15 minutes to calm down.",
     "TIMEOUT:20m:I don't respond well to threats. Actually, I don't respond at all now.",
@@ -29,35 +29,35 @@ ESCALATED_RESPONSES["threat"] = (
     "DELETE:Cute threat. Denied.",
 )
 
-ESCALATED_RESPONSES["complaint"] = (
+ESCALATED_RESPONSES["user_complaint"] = (
     "TIMEOUT:5m:Your whining is giving me a headache. 5 minutes of silence.",
     "DELETE:Nobody cares about your complaints. Deleted.",
     "STICKER:🎻🙄🗑️:Take your complaints elsewhere.",
     "DOUBLE:Are you done crying?||Because I stopped listening.",
 )
 
-ESCALATED_RESPONSES["spam"] = (
+ESCALATED_RESPONSES["disruptive_spam"] = (
     "TIMEOUT:10m:Spam again and I'll double it.",
     "DELETE:Spam deleted. Try again and see what happens.",
     "STICKER:🚫😡🗑️:Stop. Spamming.",
     "DOUBLE:Do you want a timeout?||Because this is how you get a timeout.",
 )
 
-ESCALATED_RESPONSES["overshare"] = (
+ESCALATED_RESPONSES["user_oversharing"] = (
     "TIMEOUT:5m:You need 5 minutes to think about boundaries.",
     "DELETE:Absolutely not reading that. Deleted.",
     "STICKER:🤮🚫🗑️:Way too much information.",
     "DOUBLE:Why would you share that here?||Keep your trauma to yourself.",
 )
 
-ESCALATED_RESPONSES["delulu"] = (
+ESCALATED_RESPONSES["disruptive_delulu"] = (
     "TIMEOUT:5m:You need a reality check. Take 5 minutes.",
     "DELETE:That was too delusional to leave up.",
     "STICKER:🤡🗑️🙄:Get a grip on reality.",
     "DOUBLE:The delusion is terminal.||Seek help.",
 )
 
-ESCALATED_RESPONSES["receipts"] = (
+ESCALATED_RESPONSES["user_receipts"] = (
     "TIMEOUT:10m:Oh, you want to bring up receipts? Timeout for you.",
     "DELETE:Nice try. I'm deleting your 'receipts'.",
     "STICKER:📸🚫🗑️:I make the rules here, not your screenshots.",

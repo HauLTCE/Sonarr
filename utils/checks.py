@@ -1,4 +1,5 @@
 from discord.ext import commands
+import os
 from datetime import datetime, timezone, timedelta
 
 class WrongChannelError(commands.CheckFailure):
@@ -19,6 +20,9 @@ def is_sleep_time():
 
 def is_lunch_break():
     """Check if bot is on lunch break (12PM - 1PM in UTC+7)"""
+    enabled = os.getenv("MIDDAY_BREAK_ENABLED", "True").lower() == "true"
+    if not enabled:
+        return False
     utc_plus_7 = timezone(timedelta(hours=7))
     now = datetime.now(utc_plus_7)
     return now.hour == 12

@@ -1,0 +1,16 @@
+RESPONSES = (
+    "WHISPER:That's suspicious.",
+    "REACT:🤨:Hmm.",
+    "DOUBLE:...||That was weird and you know it.",
+    "STICKER:🤨📸📎:Caught in 4K.",
+    "WHISPER:I'm keeping screenshots.",
+    "REACT:📸:Evidence collected.",
+    "DELETE:I'm going to pretend I didn't read that.",
+    "DOUBLE:Say that again?||Actually, please don't.",
+    "STICKER:😳🚨🚩:Red flags everywhere.",
+    "WHISPER:I'm watching you closely now.",
+    "That was... concerning.",
+    "REACT:🚩:I've seen enough.",
+    "DOUBLE:Filing that under 'alarming'.||Moving on.",
+    "WHISPER:Don't think I won't remember this.",
+)

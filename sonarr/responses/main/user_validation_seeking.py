@@ -1,0 +1,15 @@
+RESPONSES = (
+    "DELETE:I don't validate attention-seekers.",
+    "WHISPER:No.",
+    "DOUBLE:You want validation?||Wrong person.",
+    "REACT:🪞:Go look in a mirror if you need compliments that badly.",
+    "I'm not your therapist, your mom, or your cheerleader.",
+    "STICKER:🚫🎣💅:Not biting.",
+    "WHISPER:You won't find what you're looking for here.",
+    "DOUBLE:Do I look like someone who cares about your self-esteem?||No. The answer is no.",
+    "REACT:💅:You're fishing and the pond is dry.",
+    "Go ask a mirror. It's more honest than I'll be.",
+    "DOUBLE:...||I don't do emotional labor.",
+    "WHISPER:This isn't the validation station. Keep moving.",
+    "REACT:😐:No stars, no participation trophy.",
+)
