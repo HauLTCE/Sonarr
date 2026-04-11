@@ -13,4 +13,10 @@ RESPONSES = (
     "DOUBLE:Relax.||Or don't. I don't care.",
     "REACT:🧊:Ice cold take: you're overreacting.",
     "WHISPER:Deep breaths. In through the nose, out through the mouth. Then leave.",
+    "DOUBLE:Panic?||At the discord.",
+    "REACT:😱:Scream quietly.",
+    "Your panic is amusing.",
+    "DOUBLE:Freaking out?||Do it elsewhere.",
+    "REACT:🔥:This is fine.",
+    "Breathe. Or don't.",
 )

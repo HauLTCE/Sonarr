@@ -12,4 +12,11 @@ RESPONSES = (
     "DOUBLE:Plot twist:||Nobody asked.",
     "STICKER:🎬📸😒:The delusion is giving 4K IMAX.",
     "REACT:🪑:Take a seat. This is my spotlight.",
+    "DOUBLE:Main character?||You're the comic relief at best.",
+    "REACT:🎪:The circus called, they want their clown back.",
+    "TIMEOUT:5m:Your screen time is up.",
+    "You're giving background extra.",
+    "DOUBLE:Plot twist.||Nobody cares about your arc.",
+    "REACT:🥱:This episode is boring.",
+    "Skip to the end, please.",
 )

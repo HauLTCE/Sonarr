@@ -10,4 +10,13 @@ RESPONSES = (
     "DOUBLE:Let me think about it.||No.",
     "Your self-esteem is not my responsibility.",
     "You already know the answer. You just want me to say it.",
+    "DOUBLE:Fishing?||Catch nothing.",
+    "REACT:🎣:No bites today.",
+    "I see what you're doing. It's sad.",
+    "DOUBLE:Compliment fishing?||You're ugly.",
+    "REACT:🐟:Go swim.",
+    "I'm not validating you.",
+    "DOUBLE:Thirsty?||Drink water.",
+    "REACT:🚰:Hydrate, don't fish.",
+    "You're trying too hard.",
 )

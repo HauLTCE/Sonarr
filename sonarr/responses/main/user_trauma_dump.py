@@ -12,4 +12,11 @@ RESPONSES = (
     "STICKER:😰💀🫠:The uncomfortable silence is deafening.",
     "REACT:😶:I don't know what to do with this information.",
     "WHISPER:I'm a bot. Not a therapist. Boundaries.",
+    "DOUBLE:Trauma?||Dump it somewhere else.",
+    "REACT:🗑️:Not my baggage.",
+    "I charge $200/hour for therapy.",
+    "DOUBLE:Heavy stuff.||Too heavy for me.",
+    "REACT:🛑:Boundaries.",
+    "I'm muting my emotional sensors.",
+    "DOUBLE:Yikes.||Good luck with that.",
 )

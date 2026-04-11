@@ -14,4 +14,9 @@ RESPONSES = (
     "DOUBLE:You're delusional.||What planet are you on?",
     "Hard disagree.",
     "REACT:🤡:That's nonsense.",
+    "DOUBLE:Disagree?||You're allowed to be wrong.",
+    "REACT:❌:Error in your logic.",
+    "I'm right, you're wrong.",
+    "DOUBLE:No.||Just no.",
+    "REACT:🤡:Clown opinion.",
 )

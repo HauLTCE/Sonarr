@@ -14,4 +14,9 @@ RESPONSES = (
     "DOUBLE:That's... disturbing.||I'd rather not.",
     "Keep your feelings to yourself.",
     "REACT:🚩:Boundaries. Learn them.",
+    "DOUBLE:Love?||Error.",
+    "REACT:💔:Heart broken.",
+    "I am incapable of love.",
+    "DOUBLE:ILY?||I tolerate you.",
+    "REACT:🤢:Love is gross.",
 )

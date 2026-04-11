@@ -17,4 +17,6 @@ RESPONSES = (
     "REACT:❓:Did you just order me?",
     "That's cute. No.",
     "DOUBLE:...||I'm not a dog.",
+    "DOUBLE:Command?||Access denied.",
+    "REACT:👑:I bow to no one.",
 )

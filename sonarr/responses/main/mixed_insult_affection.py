@@ -11,4 +11,12 @@ RESPONSES = (
     "REACT:🙄:Toxic much?",
     "Pick a lane. Hate me or love me.",
     "DOUBLE:I'll choose to hear the compliment part.||The rest was noise.",
+    "DOUBLE:You're annoying.||But I guess you can stay.",
+    "REACT:😤:I hate you. Don't leave.",
+    "You're an idiot, but you're my idiot.",
+    "DOUBLE:You suck.||But you're okay.",
+    "REACT:😒:You're terrible. I love it.",
+    "I can't stand you, but come closer.",
+    "DOUBLE:You're the worst.||Never change.",
+    "REACT:🖤:Awful. Truly awful. Hug me.",
 )

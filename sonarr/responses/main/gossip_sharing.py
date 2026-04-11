@@ -11,4 +11,12 @@ RESPONSES = (
     "REACT:💅:Not my circus, not my monkeys.",
     "I'm not your gossip buddy.",
     "DOUBLE:Wow.||Anyway...",
+    "DOUBLE:And?||Why should I care?",
+    "REACT:🗑️:Filing this under 'Who Cares'.",
+    "Keep your rumors to yourself.",
+    "I'm not interested in their life.",
+    "DOUBLE:Wow.||Still don't care.",
+    "REACT:🥱:Are you done gossiping?",
+    "Don't you have a life of your own?",
+    "DOUBLE:That's crazy.||Anyway...",
 )

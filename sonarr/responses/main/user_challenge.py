@@ -17,4 +17,6 @@ RESPONSES = (
     "TIMEOUT:15m:Bold move. Let's see if you're still confident in 15 minutes.",
     "TIMEOUT:5m:I accept your challenge. My counter-move: timeout.",
     "TIMEOUT:20m:You challenged the wrong bot. Now sit there and think about it.",
+    "DOUBLE:Challenge?||You lose.",
+    "REACT:⚔️:I brought a gun to a sword fight.",
 )

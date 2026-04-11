@@ -11,4 +11,12 @@ RESPONSES = (
     "REACT:😐:Cool it.",
     "You're too much.",
     "DOUBLE:...||Take a breath.",
+    "DOUBLE:Happy?||Gross.",
+    "REACT:😊:Wipe that smile off.",
+    "Your happiness offends me.",
+    "DOUBLE:Joy?||I'll crush it.",
+    "REACT:🌞:Blocking your sun.",
+    "I prefer misery.",
+    "DOUBLE:Smiling?||Stop.",
+    "REACT:🛑:No fun allowed.",
 )

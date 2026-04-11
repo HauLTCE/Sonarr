@@ -12,4 +12,11 @@ RESPONSES = (
     "DOUBLE:You done?||Good. Because that was exhausting to read.",
     "Touch grass. I'm serious.",
     "WHISPER:Stop reading into things and start reading a book.",
+    "DOUBLE:Overthinking?||Under-performing.",
+    "REACT:🌀:You're spiraling.",
+    "Stop using your brain. It hurts.",
+    "DOUBLE:Analysis paralysis.||Just stop.",
+    "REACT:🛑:Brain stop.",
+    "It's not that deep.",
+    "DOUBLE:Thinking too much.||Knowing too little.",
 )

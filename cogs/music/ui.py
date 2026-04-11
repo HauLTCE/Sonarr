@@ -42,7 +42,18 @@ class PlayerControlView(discord.ui.View):
             loop_btn.emoji = "🔁"
             loop_btn.style = discord.ButtonStyle.primary
 
-    @discord.ui.button(emoji="⏸️", style=discord.ButtonStyle.primary, custom_id="music_play_pause")
+    @discord.ui.button(emoji="⏪", style=discord.ButtonStyle.secondary, custom_id="music_seek_back", row=0)
+    async def seek_back(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not self.player.connected:
+            return await interaction.response.send_message("Player is disconnected.", ephemeral=True)
+        if not self.player.playing:
+            return await interaction.response.send_message("Nothing is playing.", ephemeral=True)
+
+        new_pos = max(0, self.player.position - 10000)
+        await self.player.seek(new_pos)
+        await interaction.response.send_message(f"⏪ Rewound 10s", ephemeral=True, delete_after=3)
+
+    @discord.ui.button(emoji="⏸️", style=discord.ButtonStyle.primary, custom_id="music_play_pause", row=0)
     async def play_pause(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self.player.connected:
             return await interaction.response.send_message("Player is disconnected.", ephemeral=True)
@@ -55,7 +66,22 @@ class PlayerControlView(discord.ui.View):
         self.update_buttons()
         await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(emoji="⏭️", style=discord.ButtonStyle.secondary, custom_id="music_skip")
+    @discord.ui.button(emoji="⏩", style=discord.ButtonStyle.secondary, custom_id="music_seek_fwd", row=0)
+    async def seek_fwd(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not self.player.connected:
+            return await interaction.response.send_message("Player is disconnected.", ephemeral=True)
+        if not self.player.playing:
+            return await interaction.response.send_message("Nothing is playing.", ephemeral=True)
+
+        track_len = getattr(self.track, "length", 0) or 0
+        new_pos = self.player.position + 10000
+        if track_len and new_pos >= track_len:
+            await self.player.skip(force=True)
+            return await interaction.response.send_message("⏩ Skipped to next track", ephemeral=True, delete_after=3)
+        await self.player.seek(new_pos)
+        await interaction.response.send_message(f"⏩ Skipped ahead 10s", ephemeral=True, delete_after=3)
+
+    @discord.ui.button(emoji="⏭️", style=discord.ButtonStyle.secondary, custom_id="music_skip", row=0)
     async def skip(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self.player.connected:
             return await interaction.response.send_message("Player is disconnected.", ephemeral=True)
@@ -63,7 +89,7 @@ class PlayerControlView(discord.ui.View):
         await self.player.skip(force=True)
         await interaction.response.send_message("Skipped!", ephemeral=True, delete_after=3)
 
-    @discord.ui.button(emoji="🔁", style=discord.ButtonStyle.secondary, custom_id="music_loop")
+    @discord.ui.button(emoji="🔁", style=discord.ButtonStyle.secondary, custom_id="music_loop", row=1)
     async def loop(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self.player.connected:
             return await interaction.response.send_message("Player is disconnected.", ephemeral=True)
@@ -82,7 +108,7 @@ class PlayerControlView(discord.ui.View):
         await interaction.response.edit_message(view=self)
         await interaction.followup.send(msg, ephemeral=True)
 
-    @discord.ui.button(emoji="📜", style=discord.ButtonStyle.secondary, custom_id="music_queue")
+    @discord.ui.button(emoji="📜", style=discord.ButtonStyle.secondary, custom_id="music_queue", row=1)
     async def view_queue(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self.player.connected:
             return await interaction.response.send_message("Player is disconnected.", ephemeral=True)
@@ -94,7 +120,7 @@ class PlayerControlView(discord.ui.View):
         view = QueuePaginationView(upcoming, self.player.current)
         await interaction.response.send_message(embed=view.get_embed(), view=view, ephemeral=True)
 
-    @discord.ui.button(emoji="❤️", label="Save", style=discord.ButtonStyle.success, custom_id="music_save")
+    @discord.ui.button(emoji="❤️", label="Save", style=discord.ButtonStyle.success, custom_id="music_save", row=1)
     async def save_song(self, interaction: discord.Interaction, button: discord.ui.Button):
         playlists = list(self.cog.saved_playlists.keys())
         if not playlists:
@@ -103,7 +129,7 @@ class PlayerControlView(discord.ui.View):
         view = SaveToPlaylistView(self.cog, self.track)
         await interaction.response.send_message("Select a playlist to save this song to:", view=view, ephemeral=True)
 
-    @discord.ui.button(emoji="🎤", label="Lyrics", style=discord.ButtonStyle.secondary, custom_id="music_lyrics")
+    @discord.ui.button(emoji="🎤", label="Lyrics", style=discord.ButtonStyle.secondary, custom_id="music_lyrics", row=1)
     async def show_lyrics(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
         title = getattr(self.track, "title", "Unknown")
@@ -124,6 +150,7 @@ class PlayerControlView(discord.ui.View):
                         return await interaction.followup.send(f"Could not find lyrics for {title}.", ephemeral=True)
         except Exception:
             return await interaction.followup.send(f"Error fetching lyrics for {title}.", ephemeral=True)
+
 
 
 class SaveToPlaylistView(discord.ui.View):

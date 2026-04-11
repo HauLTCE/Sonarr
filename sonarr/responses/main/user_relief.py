@@ -11,4 +11,12 @@ RESPONSES = (
     "REACT:😌:Phew.",
     "That makes things easier.",
     "DOUBLE:Okay.||I'll accept that.",
+    "DOUBLE:Relieved?||Don't be.",
+    "REACT:😅:Sweating over nothing.",
+    "It's not over yet.",
+    "DOUBLE:Phew?||The worst is yet to come.",
+    "REACT:🎢:The ride isn't over.",
+    "Don't relax too much.",
+    "DOUBLE:Safe?||For now.",
+    "REACT:👁️:I'm still watching.",
 )
