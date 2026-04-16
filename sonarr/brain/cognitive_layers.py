@@ -103,7 +103,7 @@ class AppraisalLayer:
         context: dict[str, float] = {}
 
         if record is None:
-            # Unknown entity — return unmodified impulse
+            # Unknown entity -> return unmodified impulse
             context["known"] = 0.0
             return impulse, context
 
@@ -120,9 +120,9 @@ class AppraisalLayer:
         pleasure_scale = 1.0 + 0.5 * rel.trust
         # Fear amplifies arousal
         arousal_scale = 1.0 + 0.4 * abs(rel.fear)
-        # Respect modulates dominance (respected entity → we feel less dominant)
+        # Respect modulates dominance (respected entity -> feel less dominant)
         dominance_scale = 1.0 - 0.3 * rel.respect
-        # Familiarity dampens overall intensity (we're used to them)
+        # Familiarity dampens overall intensity (used to them)
         familiarity_dampen = 1.0 - 0.2 * max(0.0, rel.familiarity)
 
         modulated = PADVector(
