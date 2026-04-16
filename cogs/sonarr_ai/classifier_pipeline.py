@@ -33,7 +33,13 @@ class ClassifierMixin:
     # ================== AI RATE LIMITING ==================
 
     def check_user_ai_limit(self, user_id: str) -> bool:
-        """Check if user has exceeded AI rate limit (3 calls per hour)."""
+        """Check if user has exceeded AI rate limit."""
+        ai_rate_limit_enabled = os.getenv("AI_RATE_LIMIT_ENABLED", "True").lower() == "true"
+        if not ai_rate_limit_enabled:
+            return True
+
+        rate_limit = int(os.getenv("AI_RATE_LIMIT", "3"))
+
         now = datetime.now(timezone.utc).timestamp()
         one_hour_ago = now - 3600
 
@@ -44,7 +50,7 @@ class ClassifierMixin:
         else:
             self.user_ai_calls[user_id] = []
 
-        return len(self.user_ai_calls[user_id]) < 3
+        return len(self.user_ai_calls[user_id]) < rate_limit
 
     def record_user_ai_call(self, user_id: str):
         """Record an AI call for rate limiting."""
@@ -380,12 +386,16 @@ Reply with ONLY the SUB-CATEGORY name, nothing else."""
                     return (None, "misgendered", response)
 
         # Confidence thresholds by word count
-        if word_count <= 10:
-            min_confidence = 2
-        elif word_count <= 25:
-            min_confidence = 3
+        env_threshold = os.getenv("AI_CONFIDENCE_THRESHOLD")
+        if env_threshold is not None and env_threshold.strip().isdigit():
+            min_confidence = int(env_threshold)
         else:
-            min_confidence = 4
+            if word_count <= 10:
+                min_confidence = 2
+            elif word_count <= 25:
+                min_confidence = 3
+            else:
+                min_confidence = 4
 
         # Priority 5: Pattern match
         if pattern_result.get("category") and pattern_result.get("confidence", 0) >= min_confidence:
@@ -520,12 +530,16 @@ Reply with ONLY the SUB-CATEGORY name, nothing else."""
             # Use the SAME thresholding logic as the decision function.
             # If local classification already meets the required confidence,
             # don't block the response waiting for Gemini.
-            if word_count <= 10:
-                min_confidence = 2
-            elif word_count <= 25:
-                min_confidence = 3
+            env_threshold = os.getenv("AI_CONFIDENCE_THRESHOLD")
+            if env_threshold is not None and env_threshold.strip().isdigit():
+                min_confidence = int(env_threshold)
             else:
-                min_confidence = 4
+                if word_count <= 10:
+                    min_confidence = 2
+                elif word_count <= 25:
+                    min_confidence = 3
+                else:
+                    min_confidence = 4
 
             if cache_result.get("confidence", 0) >= 5:
                 need_ai = False

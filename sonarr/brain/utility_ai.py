@@ -60,7 +60,7 @@ class ResponseCurve:
             case CurveType.STEP:
                 y = 1.0 if x > self.shift else 0.0
             case CurveType.INVERSE:
-                # Inverse relationship: high input → low score
+                # Inverse relationship: high input -> low score
                 y = 1.0 - _clamp(self.slope * x + self.shift, 0.0, 1.0)
             case _:
                 y = x
