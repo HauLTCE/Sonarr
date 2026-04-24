@@ -182,9 +182,10 @@ class SonarrAI(BrainMixin, ClassifierMixin, BackgroundTasksMixin, commands.Cog):
                 await send_response_with_effects(response, message, user_query=message.content)
             return
 
-        # Gossip trigger on user mentions
+        # Gossip trigger on user mentions (Chime In mode)
+        chime_in_enabled = os.getenv("CHIME_IN_ENABLED", "True").lower() == "true"
         mentioned_users = [u for u in message.mentions if u != self.bot.user and not u.bot]
-        if mentioned_users and random.random() < 0.10:
+        if chime_in_enabled and mentioned_users and random.random() < 0.10:
             target = random.choice(mentioned_users)
 
             loop = asyncio.get_running_loop()
