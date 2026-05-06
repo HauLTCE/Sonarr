@@ -1,4 +1,4 @@
-RESPONSES = (
+RESPONSES = [
     "Finally.",
     "DOUBLE:...||About time.",
     "Don't let the door hit you.",
@@ -21,4 +21,4 @@ RESPONSES = (
     "I'll survive somehow.",
     "REACT:💅:The peace and quiet will be nice.",
     "DOUBLE:Bye.||Don't make this emotional.",
-)
+]

@@ -1,4 +1,4 @@
-RESPONSES = (
+RESPONSES = [
     "What are you even saying?",
     "DOUBLE:...||That makes no sense.",
     "I don't understand, and I don't care to.",
@@ -20,4 +20,4 @@ RESPONSES = (
     "DOUBLE:That's incomprehensible.||I'm moving on.",
     "You lost me, and I'm not looking for you.",
     "REACT:🫤:I have no idea what that means.",
-)
+]

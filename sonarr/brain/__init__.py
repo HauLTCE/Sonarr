@@ -26,8 +26,10 @@ from .emotion_engine import EmotionEngine
 from .cognitive_layers import CognitiveProcessor, TraitProfile
 from .utility_ai import UtilityAI, Action, Consideration, ResponseCurve, CurveType
 from .ai_brain import AIBrain
+from .integration import BrainMixin
 
 __all__ = [
+    "BrainMixin",
     "AIBrain",
     "Blackboard",
     "EntityRecord",
