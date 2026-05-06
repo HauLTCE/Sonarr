@@ -38,72 +38,33 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
-from sonarr.responses import COLD_RESPONSES
-from sonarr.responses.effects import process_response, send_response_with_effects
-from sonarr.keywords import NEGATIVE_KEYWORDS
-from sonarr.classification_logger import log_trigger, log_response, log_error
+# Import top-level sonarr package FIRST so sonarr.responses is fully initialized
+# before any direct sub-module imports. This prevents the circular import where
+# sonarr/__init__.py also imports from sonarr.responses.
 from sonarr import MessageClassifier, TimeManager, KEYWORD_MAP, STOPWORDS
-from sonarr.brain import AIBrain
+from sonarr.responses import COLD_RESPONSES, ResponseMixin
+from sonarr.responses.effects import process_response, send_response_with_effects
+from sonarr.input_check.keywords import NEGATIVE_KEYWORDS
+from sonarr.input_check.logger import log_trigger, log_response, log_error
+from sonarr.brain import AIBrain, BrainMixin
 from sonarr.brain.personality import SONARR_TRAITS, PAD_MAP, REACTIVITY, DECAY_RATE, MOOD_ALPHA
 from sonarr.brain.actions import build_sonarr_actions
 from sonarr.brain.persistence import BrainPersistence
-from sonarr.context import ContextEngine, MemoryStore
+from sonarr.systems.context import ContextEngine, MemoryStore
 
-from .brain_integration import BrainMixin
-from .classifier_pipeline import ClassifierMixin
-from .background_tasks import BackgroundTasksMixin
-
-warnings.filterwarnings("ignore", message=".*google.generativeai.*")
-
-try:
-    from google import genai
-except ImportError:
-    genai = None
+from sonarr.input_check.pipeline import ClassifierMixin
+from sonarr.systems.background_tasks import BackgroundTasksMixin
 
 load_dotenv()
-
-GEMINI_API_KEYS = [
-    os.getenv("GEMINI_API_KEY_MAIN"),
-    os.getenv("GEMINI_API_KEY_1"),
-    os.getenv("GEMINI_API_KEY_2"),
-    os.getenv("GEMINI_API_KEY_3"),
-]
-GEMINI_API_KEYS = [k for k in GEMINI_API_KEYS if k]
 
 logger = logging.getLogger("bot")
 
 
-class SonarrAI(BrainMixin, ClassifierMixin, BackgroundTasksMixin, commands.Cog):
+class SonarrAI(BrainMixin, ResponseMixin, ClassifierMixin, BackgroundTasksMixin, commands.Cog):
     """Main AI personality cog for the Sonarr bot."""
 
     def __init__(self, bot):
         self.bot = bot
-
-        # AI Model configuration
-        self.models = [
-            "gemini-2.5-flash",
-            "gemini-2.5-flash-lite",
-            "gemini-3-flash-preview",
-            "gemini-2.5-flash-preview-09-2025",
-        ]
-        self.current_model_index = 0
-        self.current_key_index = 0
-        self.ai_available = False
-        self._gemini_keys = GEMINI_API_KEYS  # Stored for classifier_pipeline access
-
-        # Initialize Gemini client
-        if GEMINI_API_KEYS and genai:
-            try:
-                self.genai_client = genai.Client(api_key=GEMINI_API_KEYS[0])
-                self.current_model = self.models[0]
-                self.ai_available = True
-                logger.info(f"[SonarrAI] Gemini initialized with key 1/{len(GEMINI_API_KEYS)}, model: {self.models[0]}")
-            except Exception as e:
-                logger.error(f"[SonarrAI] Failed to initialize Gemini: {e}")
-                self.genai_client = None
-        else:
-            self.genai_client = None
-            logger.warning("[SonarrAI] Gemini not available - no API keys found")
 
         # Initialize components
         self.classifier = MessageClassifier()
@@ -125,7 +86,7 @@ class SonarrAI(BrainMixin, ClassifierMixin, BackgroundTasksMixin, commands.Cog):
 
         # Context Engine
         self.context_engine = ContextEngine(max_history=15)
-        from sonarr.context.memory_store import memory_store
+        from sonarr.systems.context.memory_store import memory_store
         self.memory_store = memory_store
 
         # Tracking state
@@ -281,15 +242,19 @@ class SonarrAI(BrainMixin, ClassifierMixin, BackgroundTasksMixin, commands.Cog):
         
         # We pass chat_history and reply_msg_obj to the classifier, but we need to intercept
         # macro categories if they are memory intents (done inside classify_and_respond_with_ai)
-        response = await self.classify_and_respond_with_ai(
-            content_for_ai,
-            user_id=str(message.author.id),
-            guild_id=guild_id_int,
-            reply_context=reply_context,
-            chat_history=chat_history,
-            reply_msg_obj=reply_msg_obj,
-            channel_id=str(message.channel.id)
-        )
+        
+        # Trigger typing indicator while heavy models process the text
+        async with message.channel.typing():
+            response = await self.classify_and_respond_with_ai(
+                content_for_ai,
+                user_id=str(message.author.id),
+                guild_id=guild_id_int,
+                reply_context=reply_context,
+                chat_history=chat_history,
+                reply_msg_obj=reply_msg_obj,
+                channel_id=str(message.channel.id)
+            )
+            
         logger.debug(f"[OnMessage] Got response: '{response[:50] if response else 'None'}'")
 
         try:

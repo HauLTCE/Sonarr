@@ -1,4 +1,4 @@
-RESPONSES = (
+RESPONSES = [
     "Obviously.",
     "DOUBLE:Finally.||You get it.",
     "Glad you caught up.",
@@ -19,4 +19,4 @@ RESPONSES = (
     "You finally said something smart.",
     "DOUBLE:I concur.||Mark the calendar.",
     "REACT:🎯:Spot on.",
-)
+]

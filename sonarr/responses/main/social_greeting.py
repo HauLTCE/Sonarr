@@ -1,4 +1,4 @@
-RESPONSES = (
+RESPONSES = [
     "What do you want?",
     "DOUBLE:...||Oh. It's you.",
     "I don't have time for this.",
@@ -47,4 +47,4 @@ RESPONSES = (
     "DOUBLE:*glances up*||Ugh, it's you again.",
     "WHISPER:I was having such a peaceful day.",
     "REACT:😮‍💨:Here we go again.",
-)
+]

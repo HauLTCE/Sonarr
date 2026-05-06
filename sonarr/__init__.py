@@ -1,15 +1,15 @@
 # Sonarr AI Bot Modules
 # This package contains the core AI and pattern matching logic for the Sonarr bot.
 
-from .classifier import MessageClassifier
-from .keywords import KEYWORD_MAP, STOPWORDS
+from .input_check.classifier import MessageClassifier
+from .input_check.keywords import KEYWORD_MAP, STOPWORDS
 from .responses import (
     GOSSIP_LINES,
     IDLE_CHAT_LINES,
     RATE_LIMIT_RESPONSES,
     IDLE_PING_MESSAGES,
 )
-from .time_utils import TimeManager
+from .systems.time_utils import TimeManager
 
 __all__ = [
     # Classifier

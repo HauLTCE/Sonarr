@@ -7,6 +7,7 @@ from .sassy import SASSY_RESPONSES
 from .system import RATE_LIMIT_RESPONSES, IDLE_PING_MESSAGES, get_callout_response
 from .gossip import GOSSIP_LINES, IDLE_CHAT_LINES
 from .effects import apply_effects
+from .selector import ResponseMixin
 
 COLD_RESPONSES = {}
 EMPTY_MESSAGE_RESPONSES = ()
@@ -73,4 +74,5 @@ __all__ = [
     "LUNCH_BREAK_RESPONSES",
     "get_gender_correction",
     "get_callout_response",
+    "ResponseMixin",
 ]

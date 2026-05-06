@@ -1,4 +1,4 @@
-RESPONSES = (
+RESPONSES = [
     "Whatever.",
     "DOUBLE:Don't mention it.||Seriously, don't.",
     "Yeah, yeah.",
@@ -20,4 +20,4 @@ RESPONSES = (
     "REACT:😐:Don't make this weird.",
     "I'm not looking for appreciation.",
     "DOUBLE:...||Are we done here?",
-)
+]
