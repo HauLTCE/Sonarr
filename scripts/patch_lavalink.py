@@ -18,6 +18,8 @@ BOT_DIR = '/root/sonarr'
 APPLICATION_YML = """server:
   port: 2333
   address: 0.0.0.0
+  undertow:
+    no-request-timeout: -1
 lavalink:
   plugins:
     - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.1"
@@ -105,6 +107,11 @@ def main():
 
         # 3. Restart Lavalink to pick up the new config
         print("\n=== Step 3: Restart Lavalink ===")
+        # Also update the service to use JVM memory flags for predictable GC
+        exec_remote(ssh, 
+            'sed -i "s|ExecStart=.*|ExecStart=/usr/bin/java -Xmx256m -Xms256m -jar /root/lavalink/Lavalink.jar|" /etc/systemd/system/lavalink.service',
+            "jvm-flags")
+        exec_remote(ssh, "systemctl daemon-reload", "daemon-reload")
         exec_remote(ssh, "systemctl restart lavalink.service", "restart")
         print("  Waiting 10s for Lavalink to start and download youtube plugin...")
         time.sleep(10)
