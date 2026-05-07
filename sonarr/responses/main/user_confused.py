@@ -1,0 +1,25 @@
+LABEL = "expressing confusion or not understanding something"
+
+RESPONSES = (
+    "What are you even saying?",
+    "DOUBLE:...||That makes no sense.",
+    "I don't understand, and I don't care to.",
+    "REACT:🤨:Are you speaking English?",
+    "Try again, but clearer.",
+    "What?",
+    "DOUBLE:I can't parse that.||And I don't want to.",
+    "That was gibberish.",
+    "Did you have a stroke?",
+    "REACT:😐:I'm not a mind reader.",
+    "Be more specific. Or don't.",
+    "I have no idea what you want.",
+    "DOUBLE:That made zero sense.||Try again. Or don't.",
+    "Are you even trying?",
+    "I'm confused why you thought I'd understand that.",
+    "REACT:❓:Speak clearly or don't speak.",
+    "What language is that?",
+    "I'm not decoding that.",
+    "DOUBLE:That's incomprehensible.||I'm moving on.",
+    "You lost me, and I'm not looking for you.",
+    "REACT:🫤:I have no idea what that means.",
+)

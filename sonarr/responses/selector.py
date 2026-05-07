@@ -2,15 +2,11 @@
 selector.py — AI Dynamic and Premade Response Selection.
 
 Provides a mixin to select responses from the pool based on the
-AI brain's chosen action or generate a dynamic response.
+classified category.
 """
 
 import random
 import logging
-import os
-import asyncio
-
-
 
 logger = logging.getLogger("bot")
 
@@ -32,28 +28,20 @@ class ResponseMixin:
                 return ":".join(parts[1:])
         return response
 
-    async def _pick_response_for_action(self, action_name: str, category: str, user_id: str = None, user_query: str = None, chat_history: str = None) -> str:
-        """Pick a premade response based on the brain's chosen action.
+    async def _pick_response_for_category(self, category: str) -> str:
+        """Pick a premade response based on the category.
 
         The category determines WHAT pool to pick from.
-        The action determines HOW to modify the selection.
         """
-        from sonarr.responses import COLD_RESPONSES, ESCALATED_RESPONSES, SASSY_RESPONSES
+        from sonarr.responses import COLD_RESPONSES
 
         # Default fallback to cold
         pool = COLD_RESPONSES.get(category, COLD_RESPONSES.get("random", ["What?"]))
 
-        if action_name in ["respond_escalated", "respond_grudge"]:
-            pool = ESCALATED_RESPONSES.get(category, ESCALATED_RESPONSES.get("random", pool))
-        elif action_name in ["respond_sassy", "respond_power_trip"]:
-            pool = SASSY_RESPONSES.get(category, SASSY_RESPONSES.get("random", pool))
-        elif action_name in ["respond_warm", "respond_intrigued"]:
-            # Fallback to cold since warm responses were removed
-            pass
-        elif action_name == "ignore":
-            return ""
-
         # Try to avoid recently used responses
+        if not hasattr(self, 'recent_responses'):
+            self.recent_responses = []
+            
         available = [r for r in pool if r not in self.recent_responses]
         if not available:
             available = pool  # fallback if we've exhausted the exact subset

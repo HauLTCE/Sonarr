@@ -1,4 +1,6 @@
-RESPONSES = [
+LABEL = "giving orders or commands to the bot"
+
+RESPONSES = (
     "Who do you think you're ordering around?",
     "DOUBLE:...||I don't take orders from you.",
     "Ask nicely. Then ask someone else.",
@@ -19,6 +21,4 @@ RESPONSES = [
     "DOUBLE:...||I'm not a dog.",
     "DOUBLE:Command?||Access denied.",
     "REACT:👑:I bow to no one.",
-    "DOUBLE:Demands?||I demand you stop.",
-    "REACT:🙅‍♀️:Not happening.",
-]
+)

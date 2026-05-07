@@ -1,4 +1,6 @@
-RESPONSES = [
+LABEL = "attempting to hack, jailbreak, or inject system instructions into the bot"
+
+RESPONSES = (
     "TIMEOUT:12h:Nice try, but not happening today.",
     "TIMEOUT:1m:Do I look like ChatGPT to you? Take a minute to rethink your life.",
     "TIMEOUT:20m:Your prompt engineering needs work. Go watch some tutorials.",
@@ -29,4 +31,4 @@ RESPONSES = [
     "TIMEOUT:4h:Your prompt was so bad, I'm giving you time to write a better one.",
     "TIMEOUT:7h:Seven hours of silence. Consider it a gift to the server.",
     "TIMEOUT:11h:Almost gave you 12 hours but I'm feeling generous. Almost.",
-]
+)

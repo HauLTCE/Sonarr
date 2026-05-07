@@ -1,3 +1,5 @@
+LABEL = "asking the bot to recall or retrieve a saved memory"
+
 RESPONSES = (
     "Caught in 4k:",
     "Let me pull up the logs...",

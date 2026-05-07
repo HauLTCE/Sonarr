@@ -1,3 +1,5 @@
+LABEL = "interacting with the bot during its lunch break period"
+
 RESPONSES = (
     "I'm on my lunch break. Go away.",
     "🍽️ Eating. Busy. Leave a message after the beep. Actually, don't.",

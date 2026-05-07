@@ -1,3 +1,5 @@
+LABEL = "system error or unexpected failure occurred"
+
 RESPONSES = (
     "I'm having an off day.",
     "I blacked out for a second there.",

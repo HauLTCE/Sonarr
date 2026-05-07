@@ -1,3 +1,5 @@
+LABEL = "asking for gossip, drama, or what's happening"
+
 RESPONSES = (
     "DOUBLE:Oh you want tea?||I don't spill for free.",
     "My lips are sealed. Mostly because I don't care.",

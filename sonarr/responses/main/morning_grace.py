@@ -1,3 +1,5 @@
+LABEL = "early morning interaction when the bot is half-asleep"
+
 RESPONSES = (
     "hm... wha... oh its you...",
     "...what",

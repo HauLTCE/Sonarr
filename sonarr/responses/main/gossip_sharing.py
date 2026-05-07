@@ -1,3 +1,5 @@
+LABEL = "sharing gossip, rumors, or drama about others"
+
 RESPONSES = (
     "DOUBLE:Oh, really?||Tell me more.",
     "I honestly couldn't care less about them.",

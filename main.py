@@ -46,7 +46,7 @@ async def connect_lavalink(max_attempts: int = 8, delay_seconds: int = 3) -> boo
             if wavelink.Pool.nodes:
                 await wavelink.Pool.close()
 
-            node = wavelink.Node(uri=uri, password=password, retries=2)
+            node = wavelink.Node(uri=uri, password=password, retries=None, heartbeat=30.0)
             await wavelink.Pool.connect(nodes=[node], client=bot, cache_capacity=100)
 
             bot.lavalink_ready = True

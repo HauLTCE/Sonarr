@@ -1,4 +1,6 @@
-RESPONSES = [
+LABEL = "disagreeing, saying no, or denying something"
+
+RESPONSES = (
     "You're wrong.",
     "DOUBLE:...||That's not how it works.",
     "Incorrect.",
@@ -17,5 +19,6 @@ RESPONSES = [
     "DOUBLE:Disagree?||You're allowed to be wrong.",
     "REACT:❌:Error in your logic.",
     "I'm right, you're wrong.",
+    "DOUBLE:No.||Just no.",
     "REACT:🤡:Clown opinion.",
-]
+)

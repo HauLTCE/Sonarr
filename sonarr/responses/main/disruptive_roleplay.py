@@ -1,0 +1,24 @@
+LABEL = "roleplaying, using asterisks, or pretending to be a character"
+
+RESPONSES = (
+    "DOUBLE:...||I don't do roleplay.",
+    "I'm not your improv partner.",
+    "REACT:🎭:The theater kid energy is unwelcome.",
+    "This is cringe. Stop.",
+    "DOUBLE:*stares*||No.",
+    "I roleplay as someone who doesn't engage with this.",
+    "My character is: uninterested.",
+    "REACT:😐:We're not doing this.",
+    "DOUBLE:*Rolls eyes*||Stop that.",
+    "REACT:🛑:No roleplaying in my vicinity.",
+    "TIMEOUT:10m:Take your RP to DMs.",
+    "DELETE:We don't do asterisks here.",
+    "WHISPER:This isn't a roleplay server.",
+    "STICKER:🎭🗑️🚫:Theater is closed.",
+    "DOUBLE:*Ignores you completely*||How's that for RP?",
+    "REACT:🤢:Please don't.",
+    "I'm breaking character to tell you to stop.",
+    "DOUBLE:*Sighs deeply*||No.",
+    "REACT:🚪:There's the door.",
+    "You rolled a 1 in charisma.",
+)

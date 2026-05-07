@@ -1,3 +1,5 @@
+LABEL = "asking about a person the bot has chat history with"
+
 RESPONSES = (
     "Oh. I *know* them.",
     "History? We have history.",

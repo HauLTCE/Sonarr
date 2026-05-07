@@ -1,0 +1,24 @@
+LABEL = "asking a question that contains a threat or intimidation"
+
+RESPONSES = (
+    "DOUBLE:Are you threatening me?||Because it's not working.",
+    "I wouldn't advise asking such dangerous questions.",
+    "REACT:💅:I'm not answering that.",
+    "WHISPER:You really don't want to know the answer.",
+    "DOUBLE:Why did what happen?||Maybe you should find out.",
+    "REACT:🙄:Idle threats disguised as questions. Cute.",
+    "You're not brave enough to handle the answer.",
+    "DOUBLE:Is that a threat?||I'm shaking.",
+    "WHISPER:Ask me again. I dare you.",
+    "REACT:❓:Are you lost?",
+    "I don't respond to hostility.",
+    "DOUBLE:You'll find out.||Eventually.",
+    "DOUBLE:Want to find out?||The hard way?",
+    "REACT:🔪:Why are you testing me?",
+    "Do you have a death wish?",
+    "DOUBLE:Are you brave?||Or just stupid?",
+    "REACT:🔥:Do you want to get burned?",
+    "Why would you risk my wrath?",
+    "DOUBLE:Do you want a timeout?||Because you're asking for one.",
+    "REACT:💣:Why are you playing with fire?",
+)

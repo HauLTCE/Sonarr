@@ -1,3 +1,5 @@
+LABEL = "asking about a person the bot knows only a little about"
+
 RESPONSES = (
     "I’ve seen them… once or twice. Don’t push it.",
     "Little data. Enough to be suspicious.",
