@@ -5,6 +5,7 @@ import shlex
 import copy
 import logging
 import random
+import wavelink
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
 
@@ -24,10 +25,51 @@ intents.members = True
 
 bot = commands.Bot(command_prefix='!', intents=intents, help_command=PrettyHelp())
 bot.server_config = load_config()
+bot.lavalink_ready = False
 
+
+async def connect_lavalink(max_attempts: int = 8, delay_seconds: int = 3) -> bool:
+    uri = os.getenv("LAVALINK_URI", "http://127.0.0.1:2333")
+    password = os.getenv("LAVALINK_PASSWORD", "youshallnotpass")
+
+    for attempt in range(1, max_attempts + 1):
+        try:
+            connected_nodes = [
+                node for node in wavelink.Pool.nodes.values()
+                if node.status is wavelink.NodeStatus.CONNECTED
+            ]
+
+            if connected_nodes:
+                bot.lavalink_ready = True
+                return True
+
+            if wavelink.Pool.nodes:
+                await wavelink.Pool.close()
+
+            node = wavelink.Node(uri=uri, password=password, retries=2)
+            await wavelink.Pool.connect(nodes=[node], client=bot, cache_capacity=100)
+
+            bot.lavalink_ready = True
+            logger.info("Connected to Lavalink at %s", uri)
+            return True
+        except Exception as e:
+            logger.warning(
+                "Lavalink connect attempt %s/%s failed: %s",
+                attempt,
+                max_attempts,
+                e,
+            )
+            await asyncio.sleep(delay_seconds)
+
+    bot.lavalink_ready = False
+    logger.error("Unable to connect to Lavalink after %s attempts", max_attempts)
+    return False
 
 @bot.event
 async def on_ready():
+    if not bot.lavalink_ready:
+        await connect_lavalink()
+
     logger.info(f"Logged in as {bot.user} (ID: {bot.user.id})")
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="for !help"))
 
