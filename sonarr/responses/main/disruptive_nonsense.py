@@ -1,7 +1,7 @@
 LABEL = "typing gibberish, word salad, or incoherent text"
 
 RESPONSES = (
-    "What?",
+    "I'm sorry?",
     "DOUBLE:...||That's random.",
     "I don't have time for this.",
     "Did you mean to say something useful?",
@@ -13,13 +13,9 @@ RESPONSES = (
     "What am I supposed to do with that?",
     "REACT:😐:That's nonsense.",
     "I'm not following your logic.",
-    "Please make sense.",
-    "DOUBLE:That was pointless.||Like this conversation.",
-    "Why did you say that?",
-    "I don't care about that.",
-    "REACT:💅:That's irrelevant.",
-    "Can we not?",
-    "I have no response to that.",
-    "That's just noise.",
+    "DOUBLE:That was pointless.||Just like your life.",
+    "I don't speak animal noises.",
+    "Can you not?",
     "DOUBLE:...||Okay?",
+    "DOUBLE:...||You good?",
 )

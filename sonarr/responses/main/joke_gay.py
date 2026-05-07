@@ -13,4 +13,6 @@ RESPONSES = (
     "DOUBLE:Haha, so funny.||You should try stand-up. In traffic.",
     "REACT:🤡:Clown behavior detected.",
     "WHISPER:It's giving middle school energy. Grow up.",
+    "I'm pretty sure that's not even how jokes work.",
+    "REACT:😐",
 )
