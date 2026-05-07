@@ -1,3 +1,5 @@
+LABEL = "asking about a person the bot has detailed information on"
+
 RESPONSES = (
     "Yeah, I’ve got data on them.",
     "I’ve got notes. Don’t make me read them out loud.",

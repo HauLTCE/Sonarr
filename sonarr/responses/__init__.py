@@ -10,6 +10,7 @@ from .effects import apply_effects
 from .selector import ResponseMixin
 
 COLD_RESPONSES = {}
+COLD_LABELS = {}  # Maps category name -> LABEL description for classifier auto-discovery
 EMPTY_MESSAGE_RESPONSES = ()
 EVENING_GRACE_RESPONSES = ()
 MORNING_GRACE_RESPONSES = ()
@@ -25,7 +26,11 @@ if os.path.exists(main_dir):
         if filename.endswith(".py") and filename != "__init__.py":
             mod_name = filename[:-3]
             mod = importlib.import_module(f".main.{mod_name}", package=__name__)
-            
+
+            # Collect LABEL metadata for classifier auto-discovery
+            if hasattr(mod, "LABEL"):
+                COLD_LABELS[mod_name] = mod.LABEL
+
             if mod_name == "error":
                 ERROR_RESPONSES = getattr(mod, "RESPONSES", ())
             elif mod_name == "empty_message":
@@ -61,6 +66,7 @@ def get_all_categories():
 
 __all__ = [
     "COLD_RESPONSES",
+    "COLD_LABELS",
     "ESCALATED_RESPONSES",
     "SASSY_RESPONSES",
     "RATE_LIMIT_RESPONSES",

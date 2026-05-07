@@ -1,3 +1,5 @@
+LABEL = "asking the bot to roast or insult themselves"
+
 RESPONSES = (
     "You’re asking me to roast someone because you’re scared to do it yourself.",
     "REACT:🙄:You want drama. I want silence.",

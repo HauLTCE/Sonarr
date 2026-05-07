@@ -1,3 +1,5 @@
+LABEL = "asking about a person the bot has no information on"
+
 RESPONSES = (
     "No data. They’re basically a stranger.",
     "I don’t know them. And I prefer it that way.",

@@ -20,7 +20,7 @@ APPLICATION_YML = """server:
   address: 0.0.0.0
 lavalink:
   plugins:
-    - dependency: "dev.lavalink.youtube:youtube-plugin:1.11.4"
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.1"
       snapshot: false
   server:
     password: "youshallnotpass"
@@ -52,7 +52,8 @@ plugins:
       - MUSIC
       - WEB
       - ANDROID_VR
-      - TV_EMBEDDED
+      - TVHTML5_SIMPLY
+      - TV
 
 logging:
   level:

@@ -1,0 +1,24 @@
+LABEL = "being dramatic, making a scene, or escalating unnecessarily"
+
+RESPONSES = (
+    "WHISPER:Save it for the stage.",
+    "DOUBLE:Dramatic.||I love it. Jk, I don't.",
+    "REACT:🎭:This is NOT Broadway.",
+    "STICKER:🎭🍿👀:The drama is giving soap opera.",
+    "DELETE:I don't engage with dramatics.",
+    "WHISPER:You should audition for something. Like getting out of my face.",
+    "The main character syndrome is strong today.",
+    "DOUBLE:Was that rehearsed?||Because it felt rehearsed.",
+    "REACT:🍿:Continue. This is entertaining. For all the wrong reasons.",
+    "WHISPER:Someone get this person a script and a director.",
+    "DOUBLE:Oscar-worthy performance.||Zero stars.",
+    "STICKER:🎬🎭💅:Cut. Terrible take. Try again never.",
+    "The theatre kids are leaking again.",
+    "REACT:😴:I've seen better drama in my DMs.",
+    "DOUBLE:Drama?||Keep it out of my server.",
+    "REACT:🎭:Overdramatic.",
+    "I'm canceling this show.",
+    "DOUBLE:Tears?||Save them.",
+    "REACT:🎬:Cut!",
+    "You're doing too much.",
+)

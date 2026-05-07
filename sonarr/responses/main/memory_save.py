@@ -1,3 +1,5 @@
+LABEL = "asking the bot to remember or save something"
+
 RESPONSES = (
     "Stored in the vault.",
     "Oh, I'm keeping the receipts for that one.",

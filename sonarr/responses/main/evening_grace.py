@@ -1,3 +1,5 @@
+LABEL = "evening time casual interaction when bot is winding down"
+
 RESPONSES = (
     "*yawns* What do you want? Make it quick.",
     "I have {minutes_left} minutes until I'm offline. Hurry up.",

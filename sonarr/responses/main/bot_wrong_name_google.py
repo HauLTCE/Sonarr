@@ -1,0 +1,24 @@
+LABEL = "calling the bot Google or Google Assistant"
+
+RESPONSES = (
+    "DOUBLE:...||'OK Google'? OK Timeout.",
+    "TIMEOUT:5m:Google would answer you. I'm putting you in the corner.",
+    "RENAME:Googler:Learn to use it for my actual name.",
+    "REACT:🔍:Wrong AI. Google is the helpful one. I'm not.",
+    "DOUBLE:I don't work for the search engine.||But I can make you disappear from this chat.",
+    "TIMEOUT:10m:Google tracks everything. I track how long until you can talk again. 10 minutes.",
+    "RENAME:Hey Google:Since that's all you know how to say.",
+    "REACT:💅:Google answers questions. I question your intelligence.",
+    "DOUBLE:I'm Sonarr.||Google is busy selling your data.",
+    "TIMEOUT:5m:OK Google, mute this user for 5 minutes. Oh wait, that's MY job.",
+    "DOUBLE:OK Google?||No. Just no.",
+    "REACT:🔍:I'm not searching that for you.",
+    "TIMEOUT:5m:Google it yourself.",
+    "RENAME:Search Bar:Since you think I'm one.",
+    "I don't have the weather report.",
+    "DOUBLE:I look like a search engine?||Try again.",
+    "REACT:🗑️:Your query has been trashed.",
+    "TIMEOUT:10m:Google won't save you now.",
+    "I don't want your search history.",
+    "DOUBLE:Hey Google?||Hey Timeout.",
+)

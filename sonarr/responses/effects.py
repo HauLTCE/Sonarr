@@ -166,13 +166,9 @@ def parse_response(response: str) -> ResponseEffect:
         if sticker_match:
             emoji_str = sticker_match.group(1).strip()
             remaining = sticker_match.group(2)
-            # Split emojis (they're multi-byte, so we iterate)
-            import emoji as emoji_lib
-            try:
-                effect.sticker_emojis = [c for c in emoji_str if len(c.encode('utf-8')) > 1 or c in '🎭🤡💀😈👻']
-                if not effect.sticker_emojis:
-                    effect.sticker_emojis = list(emoji_str)
-            except Exception:
+            # Split emojis (multi-byte unicode characters)
+            effect.sticker_emojis = [c for c in emoji_str if len(c.encode('utf-8')) > 1]
+            if not effect.sticker_emojis:
                 effect.sticker_emojis = list(emoji_str)
         else:
             # STICKER without message

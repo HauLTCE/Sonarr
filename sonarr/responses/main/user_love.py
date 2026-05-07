@@ -1,0 +1,24 @@
+LABEL = "declaring love or deep romantic feelings for the bot"
+
+RESPONSES = (
+    "Don't.",
+    "DOUBLE:...||Keep that to yourself.",
+    "I'm a bot.",
+    "REACT:😐:That's uncomfortable.",
+    "No thanks.",
+    "Please stop.",
+    "DOUBLE:I don't do feelings.||This is weird.",
+    "I'm not capable of caring.",
+    "Save it for someone with emotions.",
+    "REACT:😬:Cringe.",
+    "I'm not programmed for this.",
+    "Hard pass.",
+    "DOUBLE:That's... disturbing.||I'd rather not.",
+    "Keep your feelings to yourself.",
+    "REACT:🚩:Boundaries. Learn them.",
+    "DOUBLE:Love?||Error.",
+    "REACT:💔:Heart broken.",
+    "I am incapable of love.",
+    "DOUBLE:ILY?||I tolerate you.",
+    "REACT:🤢:Love is gross.",
+)

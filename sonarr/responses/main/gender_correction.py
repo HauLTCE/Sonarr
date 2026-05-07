@@ -1,3 +1,5 @@
+LABEL = "using masculine terms to address the female bot"
+
 GENDER_CORRECTION = {
     "bro": [
         "DOUBLE:...||bro?",

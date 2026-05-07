@@ -1,4 +1,6 @@
-RESPONSES = [
+LABEL = "laughing, reacting to something funny, or expressing amusement"
+
+RESPONSES = (
     "Not funny.",
     "DOUBLE:...||Try harder.",
     "Was that supposed to be a joke?",
@@ -30,4 +32,4 @@ RESPONSES = [
     "WHISPER:I'm going to pretend that didn't happen. For both our sakes.",
     "SLOW:Ha... ha... no.",
     "STICKER:🫠😶💀:My humor receptors just died.",
-]
+)

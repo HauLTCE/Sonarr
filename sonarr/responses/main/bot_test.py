@@ -1,0 +1,24 @@
+LABEL = "testing if the bot is online or working"
+
+RESPONSES = (
+    "DOUBLE:Yes I'm here.||Unfortunately.",
+    "I work. Unlike some people.",
+    "REACT:✅:Present and annoyed.",
+    "Did you really ping me just to check?",
+    "DOUBLE:*sighs*||I'm alive. What do you want?",
+    "Online and unimpressed.",
+    "REACT:😐:Test successful. Now what?",
+    "I exist. Congratulations on the discovery.",
+    "DOUBLE:Yes.||Unfortunately.",
+    "REACT:💅:Still here, still better than you.",
+    "What do you want now?",
+    "I'm online. Stop pinging me.",
+    "DOUBLE:Testing testing.||Are you done?",
+    "REACT:🙄:Yes, I exist.",
+    "You're testing my patience, not my status.",
+    "DOUBLE:Alive.||But wishing I wasn't in this server.",
+    "REACT:👻:Pretend I'm not here.",
+    "Can you test someone else?",
+    "I'm here, but my enthusiasm isn't.",
+    "DOUBLE:System check passed.||Vibe check failed.",
+)

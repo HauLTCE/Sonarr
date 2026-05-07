@@ -1,172 +1,145 @@
 """
 cog.py — Main SonarrAI cog class.
 
-This is the thin shell that inherits from all mixins and handles:
-- Initialization (Gemini, Brain, Classifier, TimeManager)
-- The on_message event listener
-- Cog lifecycle (load/unload)
-
-All heavy logic is delegated to mixins:
-- BrainMixin:        _brain_select_response, _pick_response_for_action
-- ClassifierMixin:   classify_and_respond_with_ai, _classify_*, _decide_*
-- BackgroundTasksMixin: idle_chat_task, memory_cleanup_task, gossip
+A simplified AI cog that relies purely on NLP classification to generate responses.
+Includes sleep mode, user mention cleaning, and full effect support.
 """
 
+import os
+import re
 import random
 import logging
-import os
 import asyncio
-import warnings
-from datetime import datetime, timezone
-
-# google-genai internally uses aiohttp and (in some versions) expects certain
-# connector exceptions to be exposed at the top-level `aiohttp` module.
-# Some aiohttp releases only expose them via `aiohttp.client_exceptions`.
-# To keep prod stable, we provide a tiny compatibility shim.
-try:
-    import aiohttp  # type: ignore
-    from aiohttp import client_exceptions as _aiohttp_exc  # type: ignore
-
-    if not hasattr(aiohttp, "ClientConnectorDNSError") and hasattr(_aiohttp_exc, "ClientConnectorDNSError"):
-        aiohttp.ClientConnectorDNSError = _aiohttp_exc.ClientConnectorDNSError  # type: ignore[attr-defined]
-except Exception:
-    # If aiohttp isn't installed for some reason, let the normal import error
-    # surface where it's actually used.
-    pass
+from datetime import datetime, timezone, timedelta
 
 import discord
 from discord.ext import commands
-from dotenv import load_dotenv
 
-# Import top-level sonarr package FIRST so sonarr.responses is fully initialized
-# before any direct sub-module imports. This prevents the circular import where
-# sonarr/__init__.py also imports from sonarr.responses.
-from sonarr import MessageClassifier, TimeManager, KEYWORD_MAP, STOPWORDS
-from sonarr.responses import COLD_RESPONSES, ResponseMixin
-from sonarr.responses.effects import process_response, send_response_with_effects
-from sonarr.input_check.keywords import NEGATIVE_KEYWORDS
-from sonarr.input_check.logger import log_trigger, log_response, log_error
-from sonarr.brain import AIBrain, BrainMixin
-from sonarr.brain.personality import SONARR_TRAITS, PAD_MAP, REACTIVITY, DECAY_RATE, MOOD_ALPHA
-from sonarr.brain.actions import build_sonarr_actions
-from sonarr.brain.persistence import BrainPersistence
-from sonarr.systems.context import ContextEngine, MemoryStore
-
+from sonarr import MessageClassifier
+from sonarr.responses.effects import parse_response, apply_effects
 from sonarr.input_check.pipeline import ClassifierMixin
-from sonarr.systems.background_tasks import BackgroundTasksMixin
-
-load_dotenv()
+from sonarr.responses.selector import ResponseMixin
 
 logger = logging.getLogger("bot")
 
+# Server timezone (UTC+7)
+SERVER_TZ = timezone(timedelta(hours=7))
 
-class SonarrAI(BrainMixin, ResponseMixin, ClassifierMixin, BackgroundTasksMixin, commands.Cog):
+
+def get_sleep_state():
+    """
+    Determine the bot's sleep state based on server time (UTC+7).
+    
+    Returns one of:
+      - "asleep"        (22:00 - 06:00, hard sleep)
+      - "evening_grace"  (21:30 - 22:00, probability ramp from 0% to 100%)
+      - "morning_grace"  (06:00 - 06:30, probability ramp from 100% to 0%)
+      - "awake"          (06:30 - 21:30, fully awake)
+    
+    For grace periods, also returns a probability (0.0-1.0) of using grace response.
+    """
+    now = datetime.now(SERVER_TZ)
+    hour = now.hour
+    minute = now.minute
+    time_minutes = hour * 60 + minute  # minutes since midnight
+
+    # Hard sleep: 22:00 (1320) to 06:00 (360)
+    if time_minutes >= 1320 or time_minutes < 360:
+        return "asleep", 1.0
+
+    # Evening grace: 21:30 (1290) to 22:00 (1320)
+    # Probability ramps from 0% at 21:30 to 100% at 22:00
+    if 1290 <= time_minutes < 1320:
+        progress = (time_minutes - 1290) / 30.0  # 0.0 at 21:30 → 1.0 at 22:00
+        return "evening_grace", progress
+
+    # Morning grace: 06:00 (360) to 06:30 (390)
+    # Probability ramps from 100% at 06:00 to 0% at 06:30
+    if 360 <= time_minutes < 390:
+        progress = 1.0 - ((time_minutes - 360) / 30.0)  # 1.0 at 06:00 → 0.0 at 06:30
+        return "morning_grace", progress
+
+    return "awake", 0.0
+
+
+class SonarrAI(ResponseMixin, ClassifierMixin, commands.Cog):
     """Main AI personality cog for the Sonarr bot."""
+
+    # Sleep responses (hard refusal)
+    SLEEP_RESPONSES = (
+        "zzz... go away...",
+        "im sleeping. leave.",
+        "REACT:😴:Do not disturb.",
+        "DOUBLE:...||i said i'm sleeping.",
+        "*snores aggressively*",
+        "who dares wake me... go away.",
+        "REACT:💤:Sleeping. Come back later.",
+        "no. it's sleepy time. go away.",
+        "DOUBLE:*yawns*||no.",
+        "i will timeout you if you wake me again.",
+        "TIMEOUT:5m:Don't wake me up. 5 minute penalty.",
+        "im literally unconscious rn leave me alone",
+        "REACT:🛏️:Offline. Mentally and emotionally.",
+        "it is past my bedtime. and yours. go sleep.",
+        "DOUBLE:zzz||zzzzzzz",
+        "i dont work nights. im not customer service.",
+    )
 
     def __init__(self, bot):
         self.bot = bot
-
-        # Initialize components
         self.classifier = MessageClassifier()
-        self.time_manager = TimeManager()
+        self.sleep_mode_enabled = os.getenv("SLEEP_MODE_ENABLED", "False").lower() == "true"
+        logger.info(f"[SonarrAI] Initialized (sleep_mode={'ON' if self.sleep_mode_enabled else 'OFF'})")
 
-        # Initialize AI Brain (state machine)
-        self.brain = AIBrain(
-            traits=SONARR_TRAITS,
-            reactivity=REACTIVITY,
-            decay_rate=DECAY_RATE,
-            mood_alpha=MOOD_ALPHA,
-        )
-        self.brain.emotion_engine._pad_map = PAD_MAP
-        for action in build_sonarr_actions():
-            self.brain.utility.register_action(action)
-        self.brain_persistence = BrainPersistence()
-        self._last_brain_tick = datetime.now(timezone.utc)
-        logger.info(f"[SonarrAI] Brain initialized: {len(self.brain.utility.action_names)} actions")
+    def _clean_mentions(self, content: str) -> str:
+        """
+        Strip all user/role/channel mentions from message content.
+        Discord mentions look like <@123456789>, <@!123456789>, <#123456789>, <@&123456789>
+        """
+        # Remove bot mention specifically
+        content = content.replace(f"<@{self.bot.user.id}>", "").replace(f"<@!{self.bot.user.id}>", "")
+        # Replace other user mentions with a generic "someone"
+        content = re.sub(r"<@!?\d+>", "someone", content)
+        # Remove role mentions
+        content = re.sub(r"<@&\d+>", "", content)
+        # Remove channel mentions
+        content = re.sub(r"<#\d+>", "", content)
+        # Clean up extra whitespace
+        content = re.sub(r"\s+", " ", content).strip()
+        return content
 
-        # Context Engine
-        self.context_engine = ContextEngine(max_history=15)
-        from sonarr.systems.context.memory_store import memory_store
-        self.memory_store = memory_store
+    async def _send_with_effects(self, response: str, message):
+        """
+        Parse and apply all effects from a response string, then send.
+        Handles DELETE properly by sending to channel instead of replying.
+        """
+        effect = parse_response(response)
 
-        # Tracking state
-        self.last_idle_chat = datetime.now(timezone.utc)
-        self.last_user_chat_time = {}
-        self.user_ai_calls = {}
-        self.user_mention_times = {}
-        self.recent_responses = []
+        # Apply side-effects (timeout, rename, reactions, delete, etc.)
+        main_msg, followup = await apply_effects(effect, message, user_query=message.content)
 
-        # Start background tasks
-        self.idle_chat_task.start()
-        self.memory_cleanup_task.start()
+        if main_msg is not None and main_msg.strip():
+            if effect.delete_user_msg:
+                # Message was deleted, can't reply to it — send to channel instead
+                await message.channel.send(main_msg)
+            else:
+                await message.reply(main_msg, mention_author=False)
 
-    def cog_unload(self):
-        """Clean up tasks when cog is unloaded."""
-        self.idle_chat_task.cancel()
-        self.memory_cleanup_task.cancel()
-
-    # ================== MESSAGE EVENT ==================
+            if followup:
+                await asyncio.sleep(1.5)
+                await message.channel.send(followup)
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        """Bot responds using AI classification and premade cold answers."""
-        logger.debug(f"[OnMessage] Received: {message.author}: {message.content[:50]}")
+        """Bot responds using NLP classification."""
         if message.author.bot or not message.guild:
             return
-
-        guild_id = str(message.guild.id)
-        config = self.bot.server_config.get(guild_id, {})
-        general_id = config.get("general_channel")
-
-        # Track chat activity
-        if general_id and message.channel.id == general_id:
-            self.last_user_chat_time[guild_id] = datetime.now(timezone.utc)
 
         # Check if bot is mentioned or replied to
         is_bot_mentioned = (
             self.bot.user in message.mentions or
             (message.reference and message.reference.resolved and
              message.reference.resolved.author == self.bot.user)
-        )
-
-        # ========== SLEEP TIME (10PM - 6AM) ==========
-        sleep_enabled = os.getenv("SLEEP_MODE_ENABLED", "True").lower() == "true"
-        if sleep_enabled and self.time_manager.is_sleep_time():
-            if is_bot_mentioned:
-                await message.reply("The bot is asleep.", mention_author=False)
-            return
-
-        # ========== LUNCH BREAK (12PM - 1PM) ==========
-        if self.time_manager.is_lunch_break():
-            if is_bot_mentioned:
-                response = self.time_manager.get_grace_response()
-                await send_response_with_effects(response, message, user_query=message.content)
-            return
-
-        # Gossip trigger on user mentions (Chime In mode)
-        chime_in_enabled = os.getenv("CHIME_IN_ENABLED", "True").lower() == "true"
-        mentioned_users = [u for u in message.mentions if u != self.bot.user and not u.bot]
-        if chime_in_enabled and mentioned_users and random.random() < 0.10:
-            target = random.choice(mentioned_users)
-
-            loop = asyncio.get_running_loop()
-            gossip = await loop.run_in_executor(
-                None,
-                lambda: self.get_status_gossip(str(target.id)).format(target=target.display_name)
-            )
-
-            logger.debug(f"[Gossip] Trigger: {message.author} mentioned {target.display_name}")
-            logger.debug(f"[Gossip] Response: '{gossip}'")
-            await message.channel.send(gossip)
-            return
-
-        # Add to context engine
-        self.context_engine.add_message(
-            channel_id=str(message.channel.id),
-            author_id=str(message.author.id),
-            author_name=message.author.display_name,
-            content=message.content,
-            is_bot=False
         )
 
         # Only respond if bot is mentioned
@@ -177,131 +150,67 @@ class SonarrAI(BrainMixin, ResponseMixin, ClassifierMixin, BackgroundTasksMixin,
         if message.content.startswith("!"):
             return
 
-        # Spam detection
-        user_id = str(message.author.id)
-        now = datetime.now(timezone.utc).timestamp()
-        thirty_seconds_ago = now - 30
+        # --- SLEEP MODE CHECK ---
+        if self.sleep_mode_enabled:
+            state, probability = get_sleep_state()
 
-        if user_id not in self.user_mention_times:
-            self.user_mention_times[user_id] = []
+            if state == "asleep":
+                # Hard sleep: always send sleep response
+                response = random.choice(self.SLEEP_RESPONSES)
+                async with message.channel.typing():
+                    await asyncio.sleep(random.uniform(1.0, 2.5))
+                await self._send_with_effects(response, message)
+                return
 
-        self.user_mention_times[user_id] = [
-            t for t in self.user_mention_times[user_id] if t > thirty_seconds_ago
-        ]
-        self.user_mention_times[user_id].append(now)
+            elif state == "evening_grace":
+                # Ramp toward sleep — probability increases toward 10PM
+                if random.random() < probability:
+                    from sonarr.responses import EVENING_GRACE_RESPONSES
+                    if EVENING_GRACE_RESPONSES:
+                        response = random.choice(EVENING_GRACE_RESPONSES)
+                        async with message.channel.typing():
+                            await asyncio.sleep(random.uniform(1.0, 2.0))
+                        await self._send_with_effects(response, message)
+                        return
+                # else: fall through to normal response
 
-        if len(self.user_mention_times[user_id]) >= 5:
-            logger.warning(f"[SPAM] User {message.author} mentioned bot {len(self.user_mention_times[user_id])} times in 30s")
-            response = await self._brain_select_response("disruptive_spam", user_id, message.guild.id, message.content)
-            try:
-                await send_response_with_effects(response, message, user_query=None)
-                logger.debug(f"[OnMessage] Spam response triggered")
-            except Exception as e:
-                logger.error(f"Error sending spam response: {e}")
-            return
+            elif state == "morning_grace":
+                # Just waking up — probability decreases toward 6:30AM
+                if random.random() < probability:
+                    from sonarr.responses import MORNING_GRACE_RESPONSES
+                    if MORNING_GRACE_RESPONSES:
+                        response = random.choice(MORNING_GRACE_RESPONSES)
+                        async with message.channel.typing():
+                            await asyncio.sleep(random.uniform(1.5, 3.0))
+                        await self._send_with_effects(response, message)
+                        return
 
-        content_for_ai = message.content.replace(
-            f"<@{self.bot.user.id}>", ""
-        ).replace(
-            f"<@!{self.bot.user.id}>", ""
-        ).strip()
-
-        # ========== GRACE PERIODS ==========
-        content_lower = content_for_ai.lower()
-        has_curse = any(word in content_lower for word in NEGATIVE_KEYWORDS)
-
-        if (self.time_manager.is_evening_grace() or self.time_manager.is_morning_grace()) and not has_curse:
-            if self.time_manager.should_trigger_grace():
-                grace_response = self.time_manager.get_grace_response()
-                try:
-                    grace_type = "Evening" if self.time_manager.is_evening_grace() else "Morning"
-                    chance = self.time_manager.get_grace_chance()
-                    logger.debug(f"[{grace_type}Grace] Triggered at {chance:.0%} chance: {message.author} said '{content_for_ai[:60]}'")
-                    await send_response_with_effects(grace_response, message, user_query=content_for_ai)
-                    return
-                except Exception as e:
-                    logger.error(f"[GracePeriod] Error: {e}")
-        elif has_curse and (self.time_manager.is_evening_grace() or self.time_manager.is_morning_grace()):
-            logger.debug(f"[Grace] Bypassed due to curse words in: '{content_for_ai[:60]}'")
+        # --- NORMAL RESPONSE FLOW ---
+        content_for_ai = self._clean_mentions(message.content)
 
         # Get reply context
-        reply_context = None
         reply_msg_obj = None
         if message.reference and message.reference.resolved:
-            ref_msg = message.reference.resolved
-            reply_msg_obj = ref_msg
-            reply_context = f"{ref_msg.author.display_name}: {ref_msg.content[:200]}"
-            logger.debug(f"[OnMessage] Reply context: '{reply_context[:50]}...'")
-
-        # Get chat history for AI
-        chat_history = self.context_engine.get_history_string(str(message.channel.id))
+            reply_msg_obj = message.reference.resolved
 
         # Classify and respond
         guild_id_int = message.guild.id if message.guild else None
-        logger.debug(f"[OnMessage] Calling classify_and_respond_with_ai for: '{content_for_ai}'")
-        
-        # We pass chat_history and reply_msg_obj to the classifier, but we need to intercept
-        # macro categories if they are memory intents (done inside classify_and_respond_with_ai)
-        
-        # Trigger typing indicator while heavy models process the text
+
         async with message.channel.typing():
             response = await self.classify_and_respond_with_ai(
                 content_for_ai,
                 user_id=str(message.author.id),
                 guild_id=guild_id_int,
-                reply_context=reply_context,
-                chat_history=chat_history,
+                reply_context=None,
+                chat_history="",
                 reply_msg_obj=reply_msg_obj,
                 channel_id=str(message.channel.id)
             )
-            
-        logger.debug(f"[OnMessage] Got response: '{response[:50] if response else 'None'}'")
 
-        try:
-            main_msg, followup = await process_response(response, message, user_query=content_for_ai)
+        if response and response.strip():
+            logger.debug(f"[OnMessage] Response: '{response[:100]}'")
+            await self._send_with_effects(response, message)
 
-            if main_msg is not None and main_msg.strip():
-                logger.debug(f"[OnMessage] Trigger: {message.author} said '{content_for_ai[:60]}'")
-                logger.debug(f"[OnMessage] Response: '{main_msg[:100]}'")
 
-                log_trigger(
-                    content_for_ai,
-                    str(message.author),
-                    str(message.author.id),
-                    guild_id=str(guild_id_int) if guild_id_int else None,
-                    channel_id=str(message.channel.id)
-                )
-                log_response(
-                    content_for_ai,
-                    main_msg,
-                    user_id=str(message.author.id),
-                    guild_id=str(guild_id_int) if guild_id_int else None
-                )
-
-                await message.reply(main_msg, mention_author=False)
-                
-                # Add bot response to context engine
-                self.context_engine.add_message(
-                    channel_id=str(message.channel.id),
-                    author_id=str(self.bot.user.id),
-                    author_name=self.bot.user.display_name,
-                    content=main_msg,
-                    is_bot=True
-                )
-
-                if followup:
-                    await asyncio.sleep(1.5)
-                    await message.channel.send(followup)
-                    logger.debug(f"[OnMessage] Followup: '{followup[:100]}'")
-                    self.context_engine.add_message(
-                        channel_id=str(message.channel.id),
-                        author_id=str(self.bot.user.id),
-                        author_name=self.bot.user.display_name,
-                        content=followup,
-                        is_bot=True
-                    )
-            else:
-                logger.debug("[OnMessage] Skipping reply (reaction-only or empty response)")
-        except Exception as e:
-            logger.error(f"Error sending message: {e}")
-            log_error(content_for_ai, str(e), context="on_message", user_id=str(message.author.id))
+async def setup(bot):
+    await bot.add_cog(SonarrAI(bot))
