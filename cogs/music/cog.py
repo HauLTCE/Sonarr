@@ -127,8 +127,13 @@ class Music(commands.Cog):
             return await ctx.send("Join a voice channel first.")
 
         player = await self._get_or_create_player(ctx)
-        await player.connect(ctx.author.voice.channel)
-        await ctx.send(f"Connected to {ctx.author.voice.channel.mention}.")
+        try:
+            await player.connect(ctx.author.voice.channel)
+            await ctx.send(f"Connected to {ctx.author.voice.channel.mention}.")
+        except asyncio.TimeoutError:
+            await ctx.send("Connection timed out. Discord's voice servers might be unreachable.")
+        except Exception as e:
+            await ctx.send(f"Failed to connect to voice: {e}")
 
     @commands.command()
     @is_music_channel()
@@ -137,7 +142,12 @@ class Music(commands.Cog):
             return await ctx.send("Join a voice channel first.")
             
         player = await self._get_or_create_player(ctx)
-        await player.connect(ctx.author.voice.channel)
+        try:
+            await player.connect(ctx.author.voice.channel)
+        except asyncio.TimeoutError:
+            return await ctx.send("Connection timed out. Discord's voice servers might be unreachable.")
+        except Exception as e:
+            return await ctx.send(f"Failed to connect to voice: {e}")
 
         # No query: resume if paused
         if not query:
