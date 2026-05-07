@@ -952,7 +952,4 @@ Alternatively specify a mode:
 
         await ctx.send(f"Replaying previous track: **{_track_title(track)}**")
 
-async def setup(bot: commands.Bot) -> None:
-    await bot.add_cog(Music(bot))
-
 

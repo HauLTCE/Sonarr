@@ -1,39 +1,21 @@
-import math
 import discord
 import wavelink
+from typing import Any, Callable
+import math
+import aiohttp
+import logging
 
-def _format_duration(seconds: int | float) -> str:
-    """Format seconds (or milliseconds if very large) as MM:SS or HH:MM:SS."""
-    # Wavelink lengths are in milliseconds
-    if seconds > 10000:
-        seconds = seconds // 1000
-    if seconds <= 0:
+logger = logging.getLogger("bot")
+
+def _format_duration(milliseconds: int | None) -> str:
+    if not milliseconds:
         return "Live"
-    m, s = divmod(int(seconds), 60)
-    h, m = divmod(m, 60)
-    if h > 0:
-        return f"{h:02d}:{m:02d}:{s:02d}"
-    return f"{m:02d}:{s:02d}"
-
-class PromptView(discord.ui.View):
-    def __init__(self, on_yes, on_no):
-        super().__init__(timeout=60)
-        self.on_yes_callback = on_yes
-        self.on_no_callback = on_no
-
-    @discord.ui.button(label="Yes", style=discord.ButtonStyle.success)
-    async def yes_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        for child in self.children: child.disabled = True
-        await interaction.response.edit_message(view=self)
-        await self.on_yes_callback(interaction)
-        self.stop()
-
-    @discord.ui.button(label="No", style=discord.ButtonStyle.danger)
-    async def no_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        for child in self.children: child.disabled = True
-        await interaction.response.edit_message(view=self)
-        await self.on_no_callback(interaction)
-        self.stop()
+    total_seconds = int(milliseconds / 1000)
+    minutes, seconds = divmod(total_seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    if hours > 0:
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    return f"{minutes:02d}:{seconds:02d}"
 
 class PlayerControlView(discord.ui.View):
     def __init__(self, cog, player: wavelink.Player, track: wavelink.Playable):
@@ -41,109 +23,232 @@ class PlayerControlView(discord.ui.View):
         self.cog = cog
         self.player = player
         self.track = track
+        self.update_buttons()
+
+    def update_buttons(self):
+        # Update Play/Pause
+        play_btn = [c for c in self.children if getattr(c, "custom_id", "") == "music_play_pause"][0]
+        play_btn.emoji = "▶️" if self.player.paused else "⏸️"
+        
+        # Update Loop
+        loop_btn = [c for c in self.children if getattr(c, "custom_id", "") == "music_loop"][0]
+        if self.player.queue.mode == wavelink.QueueMode.normal:
+            loop_btn.emoji = "🔁"
+            loop_btn.style = discord.ButtonStyle.secondary
+        elif self.player.queue.mode == wavelink.QueueMode.loop:
+            loop_btn.emoji = "🔂"
+            loop_btn.style = discord.ButtonStyle.primary
+        else:
+            loop_btn.emoji = "🔁"
+            loop_btn.style = discord.ButtonStyle.primary
+
+    @discord.ui.button(emoji="⏪", style=discord.ButtonStyle.secondary, custom_id="music_seek_back", row=0)
+    async def seek_back(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not self.player.connected:
+            return await interaction.response.send_message("Player is disconnected.", ephemeral=True)
+        if not self.player.playing:
+            return await interaction.response.send_message("Nothing is playing.", ephemeral=True)
+
+        new_pos = max(0, self.player.position - 10000)
+        await self.player.seek(new_pos)
+        await interaction.response.send_message(f"⏪ Rewound 10s", ephemeral=True, delete_after=3)
 
     @discord.ui.button(emoji="⏸️", style=discord.ButtonStyle.primary, custom_id="music_play_pause", row=0)
     async def play_pause(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self.player.connected:
-            return await interaction.response.send_message("Player disconnected.", ephemeral=True)
+            return await interaction.response.send_message("Player is disconnected.", ephemeral=True)
+            
         if self.player.paused:
             await self.player.pause(False)
-            button.emoji = "⏸️"
         else:
             await self.player.pause(True)
-            button.emoji = "▶️"
+            
+        self.update_buttons()
         await interaction.response.edit_message(view=self)
+
+    @discord.ui.button(emoji="⏩", style=discord.ButtonStyle.secondary, custom_id="music_seek_fwd", row=0)
+    async def seek_fwd(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not self.player.connected:
+            return await interaction.response.send_message("Player is disconnected.", ephemeral=True)
+        if not self.player.playing:
+            return await interaction.response.send_message("Nothing is playing.", ephemeral=True)
+
+        track_len = getattr(self.track, "length", 0) or 0
+        new_pos = self.player.position + 10000
+        if track_len and new_pos >= track_len:
+            await self.player.skip(force=True)
+            return await interaction.response.send_message("⏩ Skipped to next track", ephemeral=True, delete_after=3)
+        await self.player.seek(new_pos)
+        await interaction.response.send_message(f"⏩ Skipped ahead 10s", ephemeral=True, delete_after=3)
 
     @discord.ui.button(emoji="⏭️", style=discord.ButtonStyle.secondary, custom_id="music_skip", row=0)
     async def skip(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self.player.connected:
-            return await interaction.response.send_message("Player disconnected.", ephemeral=True)
+            return await interaction.response.send_message("Player is disconnected.", ephemeral=True)
+            
         await self.player.skip(force=True)
-        await interaction.response.send_message("Skipped.", ephemeral=True, delete_after=5)
+        await interaction.response.send_message("Skipped!", ephemeral=True, delete_after=3)
 
-    @discord.ui.button(emoji="🔁", style=discord.ButtonStyle.secondary, custom_id="music_loop", row=0)
+    @discord.ui.button(emoji="🔁", style=discord.ButtonStyle.secondary, custom_id="music_loop", row=1)
     async def loop(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self.player.connected:
-            return await interaction.response.send_message("Player disconnected.", ephemeral=True)
-        queue = self.player.queue
-        if queue.mode == wavelink.QueueMode.normal:
-            queue.mode = wavelink.QueueMode.loop
-            button.emoji = "🔂"
-            button.style = discord.ButtonStyle.primary
+            return await interaction.response.send_message("Player is disconnected.", ephemeral=True)
+            
+        if self.player.queue.mode == wavelink.QueueMode.normal:
+            self.player.queue.mode = wavelink.QueueMode.loop
             msg = "Looping current song."
-        elif queue.mode == wavelink.QueueMode.loop:
-            queue.mode = wavelink.QueueMode.loop_all
-            button.emoji = "🔁"
-            button.style = discord.ButtonStyle.primary
+        elif self.player.queue.mode == wavelink.QueueMode.loop:
+            self.player.queue.mode = wavelink.QueueMode.loop_all
             msg = "Looping entire queue."
         else:
-            queue.mode = wavelink.QueueMode.normal
-            button.emoji = "🔁"
-            button.style = discord.ButtonStyle.secondary
+            self.player.queue.mode = wavelink.QueueMode.normal
             msg = "Looping disabled."
+            
+        self.update_buttons()
         await interaction.response.edit_message(view=self)
         await interaction.followup.send(msg, ephemeral=True)
 
-    @discord.ui.button(emoji="📜", style=discord.ButtonStyle.secondary, custom_id="music_queue", row=0)
+    @discord.ui.button(emoji="📜", style=discord.ButtonStyle.secondary, custom_id="music_queue", row=1)
     async def view_queue(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not self.player.queue and not self.player.current:
+        if not self.player.connected:
+            return await interaction.response.send_message("Player is disconnected.", ephemeral=True)
+            
+        upcoming = list(self.player.queue)
+        if not upcoming:
             return await interaction.response.send_message("Queue is empty.", ephemeral=True)
-        view = QueuePaginationView(list(self.player.queue), self.player.current)
+            
+        view = QueuePaginationView(upcoming, self.player.current)
         await interaction.response.send_message(embed=view.get_embed(), view=view, ephemeral=True)
 
-    @discord.ui.button(emoji="🔀", style=discord.ButtonStyle.secondary, custom_id="music_shuffle", row=1)
-    async def shuffle(self, interaction: discord.Interaction, button: discord.ui.Button):
-        self.player.queue.shuffle()
-        await interaction.response.send_message("🔀 Queue shuffled.", ephemeral=True, delete_after=5)
+    @discord.ui.button(emoji="❤️", label="Save", style=discord.ButtonStyle.success, custom_id="music_save", row=1)
+    async def save_song(self, interaction: discord.Interaction, button: discord.ui.Button):
+        playlists = list(self.cog.saved_playlists.keys())
+        if not playlists:
+            return await interaction.response.send_message("You don't have any saved playlists! Use `/playlist create <name>` first.", ephemeral=True)
+            
+        view = SaveToPlaylistView(self.cog, self.track)
+        await interaction.response.send_message("Select a playlist to save this song to:", view=view, ephemeral=True)
 
-    @discord.ui.button(emoji="⏹️", style=discord.ButtonStyle.danger, custom_id="music_stop", row=1)
-    async def stop(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if self.player.connected:
-            self.player.queue.clear()
-            await self.player.disconnect()
-        for child in self.children:
-            child.disabled = True
-        await interaction.response.edit_message(view=self)
+    @discord.ui.button(emoji="🎤", label="Lyrics", style=discord.ButtonStyle.secondary, custom_id="music_lyrics", row=1)
+    async def show_lyrics(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
+        title = getattr(self.track, "title", "Unknown")
+        author = getattr(self.track, "author", "")
+        
+        query = f"{title} {author}".strip()
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"https://some-random-api.com/lyrics?title={query}") as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        lyrics = data.get("lyrics", "No lyrics found.")
+                        
+                        embed = discord.Embed(title=f"Lyrics: {title}", description=lyrics[:4096], color=0x00FF00)
+                        return await interaction.followup.send(embed=embed, ephemeral=True)
+                    else:
+                        return await interaction.followup.send(f"Could not find lyrics for {title}.", ephemeral=True)
+        except Exception:
+            return await interaction.followup.send(f"Error fetching lyrics for {title}.", ephemeral=True)
+
+
+
+class SaveToPlaylistView(discord.ui.View):
+    def __init__(self, cog, track: wavelink.Playable):
+        super().__init__(timeout=60)
+        self.cog = cog
+        self.track = track
+        
+        options = []
+        for name in list(self.cog.saved_playlists.keys())[:25]:
+            options.append(discord.SelectOption(label=name, value=name))
+            
+        self.select = discord.ui.Select(placeholder="Choose a playlist...", min_values=1, max_values=1, options=options)
+        self.select.callback = self.select_callback
+        self.add_item(self.select)
+        
+    async def select_callback(self, interaction: discord.Interaction):
+        name = self.select.values[0]
+        playlist = self.cog.saved_playlists[name]
+        
+        serialized = self.cog._serialize_track(self.track)
+        playlist.append(serialized)
+        
+        if self.cog._save_playlists_atomic():
+            await interaction.response.edit_message(content=f"✅ Saved **{serialized['title']}** to playlist `{name}`!", view=None)
+        else:
+            await interaction.response.edit_message(content="❌ Failed to save playlist.", view=None)
 
 class QueuePaginationView(discord.ui.View):
-    def __init__(self, queue: list, current=None):
+    def __init__(self, queue: list[wavelink.Playable], current: wavelink.Playable | None = None):
         super().__init__(timeout=180)
         self.queue = queue
         self.current = current
         self.page = 0
         self.per_page = 10
         self.max_page = max(0, math.ceil(len(self.queue) / self.per_page) - 1)
+        self.update_buttons()
+
+    def update_buttons(self):
+        self.prev_btn.disabled = self.page == 0
+        self.next_btn.disabled = self.page == self.max_page
 
     def get_embed(self) -> discord.Embed:
-        embed = discord.Embed(title="🎵 Music Queue", color=0x00FF00)
+        embed = discord.Embed(title="Music Queue", color=0x00FF00)
         lines = []
-
         if self.page == 0 and self.current:
-            title = getattr(self.current, "title", "Unknown")
-            lines.append(f"**Now Playing:** {title}\n")
-
+            title = getattr(self.current, 'title', 'Unknown')
+            uri = getattr(self.current, 'uri', '')
+            lines.append(f"**Now Playing:** [{title}]({uri})\n")
+            
         start = self.page * self.per_page
         end = start + self.per_page
-
+        
         if self.queue:
             lines.append("**Up Next:**")
             for i, track in enumerate(self.queue[start:end], start=start + 1):
-                title = getattr(track, "title", "Unknown")
-                dur = _format_duration(getattr(track, "length", 0))
-                lines.append(f"`{i}.` {title} | `{dur}`")
+                title = getattr(track, 'title', 'Unknown')
+                uri = getattr(track, 'uri', '')
+                dur = _format_duration(getattr(track, 'length', 0))
+                lines.append(f"`{i}.` [{title}]({uri}) | `{dur}`")
         else:
             lines.append("Queue is empty.")
-
+            
         embed.description = "\n".join(lines)
-        embed.set_footer(text=f"Page {self.page + 1}/{self.max_page + 1} | {len(self.queue)} tracks")
+        embed.set_footer(text=f"Page {self.page + 1}/{self.max_page + 1} | Total Tracks: {len(self.queue)}")
         return embed
 
     @discord.ui.button(emoji="◀", style=discord.ButtonStyle.secondary)
     async def prev_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        self.page = max(0, self.page - 1)
+        self.page -= 1
+        self.update_buttons()
         await interaction.response.edit_message(embed=self.get_embed(), view=self)
 
     @discord.ui.button(emoji="▶", style=discord.ButtonStyle.secondary)
     async def next_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        self.page = min(self.max_page, self.page + 1)
+        self.page += 1
+        self.update_buttons()
         await interaction.response.edit_message(embed=self.get_embed(), view=self)
+
+
+class PromptView(discord.ui.View):
+    def __init__(self, on_yes: Callable, on_no: Callable):
+        super().__init__(timeout=60)
+        self.on_yes = on_yes
+        self.on_no = on_no
+
+    @discord.ui.button(label="Yes", style=discord.ButtonStyle.success)
+    async def yes_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        for child in self.children:
+            child.disabled = True
+        await interaction.response.edit_message(view=self)
+        await self.on_yes(interaction)
+        self.stop()
+
+    @discord.ui.button(label="No", style=discord.ButtonStyle.danger)
+    async def no_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        for child in self.children:
+            child.disabled = True
+        await interaction.response.edit_message(view=self)
+        await self.on_no(interaction)
+        self.stop()

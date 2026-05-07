@@ -1,7 +1,15 @@
 """
 cogs.music — Music playback cog package.
+
+Bundles the music cog with its utilities:
+- cog.py:     Music commands and Wavelink integration
+- player.py:  YTDLSource (yt-dlp audio source)
+- queue.py:   Music queue management
+- cache.py:   YouTube metadata/search caching
 """
 
-from .cog import Music, setup
+from .cog import Music
 
-__all__ = ["Music", "setup"]
+
+async def setup(bot):
+    await bot.add_cog(Music(bot))
