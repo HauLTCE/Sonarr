@@ -48,7 +48,7 @@ class MessageClassifier:
     """
 
     # ── Configuration ────────────────────────────────────────────────
-    TIER1_TOP_N = 5                # Number of candidates from embedding retrieval
+    TIER1_TOP_N = 10                # Number of candidates from embedding retrieval
     TIER2_MIN_SCORE = 0.3          # Minimum verifier score to be considered
     TIER2_OVERRIDE_SCORE = 0.5     # Verifier must beat this to override embedding
     EMBED_ONLY_THRESHOLD = 0.35    # Min embedding score when no verifier is available
