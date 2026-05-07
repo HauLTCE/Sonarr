@@ -2,11 +2,10 @@ LABEL = "evening time casual interaction when bot is winding down"
 
 RESPONSES = (
     "*yawns* What do you want? Make it quick.",
-    "I have {minutes_left} minutes until I'm offline. Hurry up.",
     "Can this wait until tomorrow? Actually, don't answer that.",
     "My bed is calling.",
-    "You have {minutes_left} minutes. Go.",
-    "I'm running on fumes here. State your business.",
+    "You have {minutes_left} minutes left.",
+    "State. Your. Business.",
     "Ugh, you caught me right before bed. What?",
     "Do you know what time it is? I'm about to crash.",
     "{minutes_left} minutes until I stop caring. Well, caring less.",

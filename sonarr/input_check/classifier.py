@@ -22,8 +22,9 @@ import nltk
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import spacy
 import numpy as np
-from sentence_transformers import SentenceTransformer, util
+from sentence_transformers import SentenceTransformer, CrossEncoder, util
 from transformers import pipeline as hf_pipeline
+from rank_bm25 import BM25Okapi
 
 from .keywords import STOPWORDS
 
@@ -48,9 +49,9 @@ class MessageClassifier:
     """
 
     # ── Configuration ────────────────────────────────────────────────
-    TIER1_TOP_N = 5                # Number of candidates from embedding retrieval
+    TIER1_TOP_N = 5               # Number of candidates from embedding retrieval
     TIER2_MIN_SCORE = 0.3          # Minimum verifier score to be considered
-    TIER2_OVERRIDE_SCORE = 0.5     # Verifier must beat this to override embedding
+    TIER2_OVERRIDE_SCORE = 0.7     # Verifier must beat this to override embedding
     EMBED_ONLY_THRESHOLD = 0.35    # Min embedding score when no verifier is available
     EMBED_EARLY_EXIT = 0.55        # Skip Tier 2 entirely if embedding is this confident
     TIER2_CANDIDATE_FLOOR = 0.2    # Don't send candidates below this to verifiers
@@ -67,6 +68,8 @@ class MessageClassifier:
         self.label_embeddings = None
         self.label_names = []
         self.label_descriptions = []
+        self.bm25 = None
+        self.cross_encoder = None
 
         # Tier 2: Verifier models (list — supports multiple)
         self._verifiers = []  # List of (name, callable) pairs
@@ -102,16 +105,28 @@ class MessageClassifier:
         except Exception as e:
             logger.error(f"Failed to load spaCy model: {e}")
 
-        # Tier 1: Sentence embeddings
+        # Tier 1: Sentence embeddings & BM25
         try:
             self.embedder = SentenceTransformer('all-MiniLM-L6-v2')
             if self.label_descriptions:
                 self.label_embeddings = self.embedder.encode(
                     self.label_descriptions, convert_to_tensor=True
                 )
-            logger.info("Loaded sentence-transformers embedder and pre-computed label embeddings.")
+                
+                # Initialize BM25
+                tokenized_corpus = [doc.lower().split() for doc in self.label_descriptions]
+                self.bm25 = BM25Okapi(tokenized_corpus)
+                
+            logger.info("Loaded sentence-transformers embedder, BM25, and pre-computed label embeddings.")
         except Exception as e:
-            logger.error(f"Failed to load sentence-transformers: {e}")
+            logger.error(f"Failed to load sentence-transformers or BM25: {e}")
+
+        # Tier 1.5: Cross-Encoder
+        try:
+            self.cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
+            logger.info("Loaded Cross-Encoder (ms-marco-MiniLM-L-6-v2).")
+        except Exception as e:
+            logger.error(f"Failed to load Cross-Encoder: {e}")
 
         # Tier 2: Load all three verifier models
         tier2_models = [
@@ -225,15 +240,28 @@ class MessageClassifier:
         # Keyword scores (instant string matching)
         kw_scores = self._keyword_scores(message)
 
-        # Blend: hybrid = 0.7 × embedding + 0.3 × keyword
-        KEYWORD_WEIGHT = 0.3
-        hybrid_scores = np.copy(scores_np)
+        # BM25 scores
+        bm25_scores = np.zeros(len(self.label_names))
+        if self.bm25:
+            tokenized_query = message.lower().split()
+            raw_bm25 = self.bm25.get_scores(tokenized_query)
+            max_bm25 = np.max(raw_bm25) if len(raw_bm25) > 0 else 0
+            if max_bm25 > 0:
+                bm25_scores = raw_bm25 / max_bm25
+
+        # Blend: hybrid = 0.5 × embedding + 0.3 × bm25 + 0.2 × keyword
+        EMBED_WEIGHT = 0.5
+        BM25_WEIGHT = 0.3
+        KEYWORD_WEIGHT = 0.2
+        
+        hybrid_scores = np.zeros(len(self.label_names))
         for i, name in enumerate(self.label_names):
-            if name in kw_scores:
-                hybrid_scores[i] = (
-                    (1 - KEYWORD_WEIGHT) * scores_np[i]
-                    + KEYWORD_WEIGHT * kw_scores[name]
-                )
+            kw = kw_scores.get(name, 0.0)
+            hybrid_scores[i] = (
+                EMBED_WEIGHT * scores_np[i]
+                + BM25_WEIGHT * bm25_scores[i]
+                + KEYWORD_WEIGHT * kw
+            )
 
         # Pick top N by hybrid score
         top_indices = np.argsort(hybrid_scores)[::-1][:self.TIER1_TOP_N]
@@ -242,6 +270,41 @@ class MessageClassifier:
         for idx in top_indices:
             results.append((self.label_names[idx], float(hybrid_scores[idx])))
         return results
+
+    def _cross_encoder_rerank(self, message: str, candidates: list) -> list:
+        """
+        Tier 1.5: Cross-Encoder Re-ranking.
+        Takes top N from Tier 1, pairs them with the query, and scores them.
+        Returns re-ranked candidates with sigmoid normalized scores.
+        """
+        if not self.cross_encoder or not candidates:
+            return candidates
+
+        try:
+            # Prepare pairs: (message, category_description)
+            pairs = []
+            for name, _ in candidates:
+                idx = self.label_names.index(name)
+                desc = self.label_descriptions[idx]
+                pairs.append((message, desc))
+
+            # Score pairs (returns logits)
+            logits = self.cross_encoder.predict(pairs)
+            
+            # Apply sigmoid to normalize to 0.0 - 1.0
+            sigmoid_scores = 1 / (1 + np.exp(-np.array(logits)))
+
+            # Reconstruct and sort candidates
+            reranked = []
+            for i, (name, _) in enumerate(candidates):
+                reranked.append((name, float(sigmoid_scores[i])))
+
+            reranked.sort(key=lambda x: x[1], reverse=True)
+            # Return top 5 to keep Tier 2 fast
+            return reranked[:5]
+        except Exception as e:
+            logger.error(f"Cross-encoder error: {e}")
+            return candidates
 
     # ── Tier 2: Verifier Models ──────────────────────────────────────
 
@@ -315,22 +378,20 @@ class MessageClassifier:
 
         return results
 
-    def _resolve_tier2_votes(self, embed_category: str, embed_score: float,
-                             verifier_results: list) -> tuple:
+    def _resolve_tier2_votes(self, top_candidates: list, verifier_results: list) -> tuple:
         """
-        Merge Tier 2 verifier votes with Tier 1 embedding result.
+        Merge Tier 2 verifier votes with Tier 1/1.5 embedding/cross-encoder result.
         
-        Strategy:
-          1. Filter verifiers to those with score > TIER2_MIN_SCORE
-          2. If any verifier agrees with embedding → high confidence, use it
-          3. If verifiers agree with each other (but not embedding) and score >= OVERRIDE → use verifier
-          4. If single verifier disagrees with embedding:
-             - score >= OVERRIDE → trust verifier
-             - score < OVERRIDE → trust embedding
-          5. No verifiers passed threshold → trust embedding
+        Strategy: Weighted Final Score
+        Final Score = (Embedder Score * 0.4) + (Verifier Confidence * 0.6)
         
         Returns (category, confidence, log_reason).
         """
+        embed_category = top_candidates[0][0]
+        embed_score = top_candidates[0][1]
+        
+        embed_scores_dict = {name: score for name, score in top_candidates}
+
         # Filter to viable results
         viable = [(name, cat, score) for name, cat, score in verifier_results
                    if cat and score > self.TIER2_MIN_SCORE]
@@ -339,36 +400,20 @@ class MessageClassifier:
             # No verifier had a strong opinion → trust embedding
             return (embed_category, embed_score, "no verifier above threshold")
 
-        # Check if any verifier agrees with embedding
-        agreeing = [(name, cat, score) for name, cat, score in viable if cat == embed_category]
-        if agreeing:
-            best_agree = max(agreeing, key=lambda x: x[2])
-            reason = f"AGREE ({best_agree[0]}): embed={embed_score:.3f}, verifier={best_agree[2]:.2f}"
-            return (embed_category, max(embed_score, best_agree[2]), reason)
+        best_final_score = embed_score * 0.4
+        best_category = embed_category
+        best_reason = f"Embed wins (no strong verifier blend): {embed_category} ({best_final_score:.3f})"
 
-        # No agreement with embedding — check verifier consensus
-        if len(viable) >= 2:
-            # Multiple verifiers: do they agree with each other?
-            categories = [cat for _, cat, _ in viable]
-            if len(set(categories)) == 1 and viable[0][2] >= self.TIER2_OVERRIDE_SCORE:
-                # All verifiers agree on a different category with high confidence
-                best = max(viable, key=lambda x: x[2])
-                reason = (f"VERIFIER CONSENSUS ({', '.join(n for n, _, _ in viable)}): "
-                          f"{best[1]} ({best[2]:.2f}) over embed {embed_category} ({embed_score:.3f})")
-                return (best[1], best[2], reason)
+        for v_name, v_cat, v_score in viable:
+            e_score = embed_scores_dict.get(v_cat, 0.0)
+            blended = (e_score * 0.4) + (v_score * 0.6)
+            
+            if blended > best_final_score:
+                best_final_score = blended
+                best_category = v_cat
+                best_reason = f"BLENDED ({v_name}): {v_cat} | embed={e_score:.3f}, verifier={v_score:.3f} -> final={blended:.3f}"
 
-        # Single verifier or disagreement among verifiers
-        best_verifier = max(viable, key=lambda x: x[2])
-        v_name, v_cat, v_score = best_verifier
-
-        if v_score >= self.TIER2_OVERRIDE_SCORE:
-            reason = (f"{v_name} override: {v_cat} ({v_score:.2f}) "
-                      f"over embed {embed_category} ({embed_score:.3f})")
-            return (v_cat, v_score, reason)
-        else:
-            reason = (f"Embed wins: {embed_category} ({embed_score:.3f}) "
-                      f"| {v_name} wanted {v_cat} ({v_score:.2f}) but low confidence")
-            return (embed_category, embed_score, reason)
+        return (best_category, best_final_score, best_reason)
 
     # ── Main Classification ──────────────────────────────────────────
 
@@ -458,6 +503,12 @@ class MessageClassifier:
             )
 
             if top_candidates:
+                # 2.5: Tier 1.5 Cross-Encoder re-ranking
+                if self.cross_encoder:
+                    top_candidates = await loop.run_in_executor(
+                        _ml_executor, self._cross_encoder_rerank, processed_message, top_candidates
+                    )
+
                 embed_category = top_candidates[0][0]
                 embed_score = top_candidates[0][1]
 
@@ -482,7 +533,7 @@ class MessageClassifier:
 
                     if verifier_results:
                         final_cat, final_score, reason = self._resolve_tier2_votes(
-                            embed_category, embed_score, verifier_results
+                            top_candidates, verifier_results
                         )
                         logger.info(f"[Classify] {reason}")
                         return (final_cat, 3, modifiers)
@@ -535,6 +586,8 @@ class MessageClassifier:
         # Embedding only
         if self.embedder and self.label_embeddings is not None:
             candidates = self._embedding_retrieve(processed_message)
+            if self.cross_encoder and candidates:
+                candidates = self._cross_encoder_rerank(processed_message, candidates)
             if candidates and candidates[0][1] > self.EMBED_ONLY_THRESHOLD:
                 logger.info(f"[Classify] Sync fallback: {candidates[0][0]} ({candidates[0][1]:.3f})")
                 return (candidates[0][0], 3, {})

@@ -1,7 +1,7 @@
 LABEL = "sending an empty or blank message with no content"
 
 RESPONSES = (
-    "REACT:❓:I'm an AI, not a mind reader.",
+    "REACT:❓:I'm not a mind reader.",
     "Really? Nothing?",
     "Did you forget how to type?",
     "Words. Use them.",

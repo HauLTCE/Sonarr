@@ -21,4 +21,5 @@ RESPONSES = (
     "REACT:🔌:Pulling my own plug.",
     "Task failed successfully.",
     "I'd fix this, but I don't want to.",
+    "@haultce Hey something broke.",
 )
