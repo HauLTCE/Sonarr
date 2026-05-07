@@ -20,21 +20,16 @@ MAX_PLAYLIST_ADD = 100
 MAX_QUEUE_PREVIEW = 20
 
 
-
 class LavalinkPlayer(wavelink.Player):
-    """Custom player that injects channelId into voice updates.
-
-    Lavalink v4 requires channelId in the voice payload to connect to
-    Discord's voice server, but wavelink 3.4.1 does not send it.
-    """
-
-    async def _dispatch_voice_update(self) -> None:
+    async def _dispatch_voice_update(self) -> None:  # pragma: no cover
+        # Wavelink currently sends session/token/endpoint only. Lavalink v4.2.1
+        # on this setup requires channelId as well.
         assert self.guild is not None
-        data = self._voice_state["voice"]
 
-        session_id: str | None = data.get("session_id", None)
-        token: str | None = data.get("token", None)
-        endpoint: str | None = data.get("endpoint", None)
+        data = self._voice_state["voice"]
+        session_id = data.get("session_id")
+        token = data.get("token")
+        endpoint = data.get("endpoint")
         channel_id = str(self.channel.id) if self.channel else None
 
         if not session_id or not token or not endpoint or not channel_id:
@@ -200,7 +195,7 @@ class Music(commands.Cog):
         try:
             if wavelink.Pool.nodes:
                 await wavelink.Pool.close()
-            node = wavelink.Node(uri=uri, password=password, retries=None, heartbeat=30.0)
+            node = wavelink.Node(uri=uri, password=password, retries=2)
             await wavelink.Pool.connect(nodes=[node], client=self.bot, cache_capacity=100)
         except Exception as exc:
             logger.warning("Unable to (re)connect Lavalink node: %s", exc)
