@@ -1,4 +1,4 @@
-LABEL = "simping, worshipping, or being overly devoted to the bot"
+LABEL = "simping, worshipping, or being overly devoted"
 
 RESPONSES = (
     "No.",

@@ -1,4 +1,4 @@
-LABEL = "expressing love, affection, or emotional attachment to the bot"
+LABEL = "expressing love, affection, or emotional attachment"
 
 RESPONSES = (
     "Don't.",

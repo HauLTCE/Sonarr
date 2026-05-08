@@ -1,4 +1,4 @@
-LABEL = "asking the bot to relay a message, act as a messenger, or tell someone something"
+LABEL = "asking to relay a message or act as a messenger"
 
 RESPONSES = (
     "Not enough data to care.",

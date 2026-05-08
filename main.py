@@ -1,5 +1,11 @@
 import discord
 import os
+
+# Force math libraries and PyTorch to utilize 10 threads (leaving 2 for OS)
+os.environ["OMP_NUM_THREADS"] = "10"
+os.environ["MKL_NUM_THREADS"] = "10"
+os.environ["OPENBLAS_NUM_THREADS"] = "10"
+
 import asyncio
 import shlex
 import copy

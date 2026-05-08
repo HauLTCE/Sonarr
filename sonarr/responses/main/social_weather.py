@@ -1,4 +1,4 @@
-LABEL = "talking about the weather or asking about climate"
+LABEL = "talking about the weather or climate"
 
 RESPONSES = (
     "DOUBLE:...||Did you really just ask about the weather?",

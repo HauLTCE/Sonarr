@@ -1,4 +1,4 @@
-LABEL = "early morning interaction when the bot is half-asleep"
+LABEL = "greeting or chatting casually in the early morning"
 
 RESPONSES = (
     "hm... wha... oh its you...",

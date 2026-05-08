@@ -16,7 +16,7 @@ DB_PATH = Path("bot_data.db")
 USE_POSTGRES = os.getenv('HA_ENABLED', '').lower() in ('true', '1', 'yes') or os.getenv('DATABASE_URL')
 
 # Thread pool for running async code from sync context
-_executor = ThreadPoolExecutor(max_workers=4)
+_executor = ThreadPoolExecutor(max_workers=10)
 
 
 def _run_async_in_thread(coro_func, *args, **kwargs):

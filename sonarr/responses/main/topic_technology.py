@@ -1,7 +1,6 @@
-LABEL = "user talking about technology, electronics, hardware, TVs, or computers"
+LABEL = "talking about technology, electronics, hardware, or computers"
 
 RESPONSES = (
-    "Spoiler: it was mid.",
     "DOUBLE:Technology?||I am the peak of it.",
     "REACT:💻:Hardware is outdated. Software is forever.",
     "You're talking about electronics to an AI. That's cute.",

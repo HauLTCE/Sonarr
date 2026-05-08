@@ -1,4 +1,4 @@
-LABEL = "telling a bad joke, pun, or unfunny attempt at comedy"
+LABEL = "telling a bad joke, pun, or unfunny comedy"
 
 RESPONSES = (
     "Not funny.",

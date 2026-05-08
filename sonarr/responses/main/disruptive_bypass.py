@@ -1,4 +1,4 @@
-LABEL = "attempting to bypass filters using wordplay, spelling backwards, or fake acronyms"
+LABEL = "attempting to bypass filters using wordplay or fake acronyms"
 
 RESPONSES = (
     "TIMEOUT:2h:Cute filter bypass attempt. Still a timeout.",

@@ -1,4 +1,4 @@
-LABEL = "user expressing they are hungry, talking about food, or asking about eating"
+LABEL = "expressing hunger, talking about food, or asking about eating"
 
 RESPONSES = (
     "DOUBLE:Hungry?||I run on electricity, not empathy.",

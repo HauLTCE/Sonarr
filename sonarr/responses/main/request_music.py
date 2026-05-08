@@ -1,4 +1,4 @@
-LABEL = "asking the bot to play music or manage audio playback"
+LABEL = "asking to play music or manage audio playback"
 
 RESPONSES = (
     "TIMEOUT:5m:!play exists. Use it. You have 5 minutes to learn.",

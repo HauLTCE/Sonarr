@@ -1,4 +1,4 @@
-LABEL = "user having an existential crisis or questioning the meaning of life"
+LABEL = "having an existential crisis or questioning the meaning of life"
 
 RESPONSES = (
     "DOUBLE:What's the meaning of life?||42. Next.",

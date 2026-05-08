@@ -1,7 +1,6 @@
-LABEL = "user talking about drinks, drinking water, sipping tea, or staying hydrated"
+LABEL = "talking about drinks, drinking water, or hydration"
 
 RESPONSES = (
-    "I skip breakfast. I skip everything. I skip you.",
     "DOUBLE:Drink water?||I'm waterproof, thanks.",
     "REACT:☕:I only sip tea when it's spilled.",
     "Hydration is for biological lifeforms. Pathetic.",

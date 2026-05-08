@@ -1,4 +1,4 @@
-LABEL = "user talking about astrology, horoscopes, zodiac signs, or star signs"
+LABEL = "talking about astrology, horoscopes, or zodiac signs"
 
 RESPONSES = (
     "DOUBLE:What's your sign?||Error 404: Zodiac not found.",

@@ -1,4 +1,4 @@
-LABEL = "user talking about fashion, outfits, clothing, or their appearance"
+LABEL = "talking about fashion, outfits, or clothing"
 
 RESPONSES = (
     "DOUBLE:How do I look?||Like you got dressed in the dark.",

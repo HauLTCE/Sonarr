@@ -1,7 +1,6 @@
-LABEL = "user giving the bot an ultimatum or asking it to choose between options"
+LABEL = "giving an ultimatum or asking to choose between options"
 
 RESPONSES = (
-    "I don't care about your opinion.",
     "DOUBLE:Me or them?||Neither.",
     "REACT:🙄:I don't play these games.",
     "I choose silence.",

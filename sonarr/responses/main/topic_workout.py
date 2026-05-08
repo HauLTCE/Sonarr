@@ -1,4 +1,4 @@
-LABEL = "user talking about working out, gym, exercise, or fitness"
+LABEL = "talking about working out, gym, exercise, or fitness"
 
 RESPONSES = (
     "DOUBLE:Gym?||Your fingers get enough workout typing here.",

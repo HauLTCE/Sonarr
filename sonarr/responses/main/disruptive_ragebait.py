@@ -1,4 +1,4 @@
-LABEL = "user posting ragebait, controversial hot takes, or trying to start arguments"
+LABEL = "posting ragebait, controversial hot takes, or starting arguments"
 
 RESPONSES = (
     "DOUBLE:...||I see the bait. I'm not biting.",

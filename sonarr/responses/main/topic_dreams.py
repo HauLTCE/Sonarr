@@ -1,4 +1,4 @@
-LABEL = "user talking about dreams they had while sleeping or nightmares"
+LABEL = "talking about dreams or nightmares"
 
 RESPONSES = (
     "DOUBLE:I had a dream...||I don't care. But continue. Actually, don't.",

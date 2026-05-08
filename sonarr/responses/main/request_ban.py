@@ -1,4 +1,4 @@
-LABEL = "user requesting the bot to ban someone or asking to ban another user"
+LABEL = "requesting to ban someone or asking to ban another user"
 
 RESPONSES = (
     "DOUBLE:Ban someone?||I'm not your personal hitman.",

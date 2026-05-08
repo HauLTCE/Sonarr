@@ -1,4 +1,4 @@
-LABEL = "user talking about lunch, midday meal, or what to eat for lunch"
+LABEL = "talking about lunch or midday meals"
 
 RESPONSES = (
     "DOUBLE:Lunch?||I'm on a diet of silence and disdain.",

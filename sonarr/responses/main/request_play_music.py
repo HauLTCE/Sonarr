@@ -1,4 +1,4 @@
-LABEL = "user requesting the bot to play music, a song, or queue a track"
+LABEL = "requesting to play a song or queue a track"
 
 RESPONSES = (
     "DOUBLE:Play music?||Use the !play command. I'm not a jukebox.",

@@ -1,4 +1,4 @@
-LABEL = "user talking about sports, teams, matches, or athletic events"
+LABEL = "talking about sports, teams, matches, or athletic events"
 
 RESPONSES = (
     "DOUBLE:Sports?||I don't chase balls. I have standards.",

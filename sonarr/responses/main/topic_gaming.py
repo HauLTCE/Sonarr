@@ -1,4 +1,4 @@
-LABEL = "user talking about gaming, video games, or in-game achievements"
+LABEL = "talking about gaming, video games, or achievements"
 
 RESPONSES = (
     "DOUBLE:Gaming?||Touch grass.",

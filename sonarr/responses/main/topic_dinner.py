@@ -1,4 +1,4 @@
-LABEL = "user talking about dinner, evening meal, or cooking dinner"
+LABEL = "talking about dinner or evening meals"
 
 RESPONSES = (
     "DOUBLE:Dinner?||Instant noodles again, I assume.",

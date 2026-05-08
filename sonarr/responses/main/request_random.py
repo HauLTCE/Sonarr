@@ -1,4 +1,4 @@
-LABEL = "asking the bot to say something random or generate a random message"
+LABEL = "asking to say something random or generate a random message"
 
 RESPONSES = (
     "Penguins can't fly but neither can your grades.",

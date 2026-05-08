@@ -1,4 +1,4 @@
-LABEL = "user talking about breakfast, morning food, or what to eat in the morning"
+LABEL = "talking about breakfast or morning food"
 
 RESPONSES = (
     "DOUBLE:Breakfast?||I don't eat. I consume spite.",

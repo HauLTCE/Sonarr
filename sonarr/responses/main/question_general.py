@@ -1,4 +1,4 @@
-LABEL = "a general knowledge question seeking information or answers"
+LABEL = "asking a general knowledge question seeking information"
 
 RESPONSES = (
     "I have the answer, but I don't like you enough to give it.",

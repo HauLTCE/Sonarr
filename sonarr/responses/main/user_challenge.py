@@ -1,4 +1,4 @@
-LABEL = "challenging the bot to a competition or duel"
+LABEL = "challenging to a competition or duel"
 
 RESPONSES = (
     "Try me.",

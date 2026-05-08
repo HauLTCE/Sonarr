@@ -1,4 +1,4 @@
-LABEL = "user talking about cooking, recipes, or learning to cook"
+LABEL = "talking about cooking, recipes, or making food"
 
 RESPONSES = (
     "DOUBLE:Cooking?||You burn water. Let's not.",

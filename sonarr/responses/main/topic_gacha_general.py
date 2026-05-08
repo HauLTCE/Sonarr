@@ -1,4 +1,4 @@
-LABEL = "discussing gacha games, pulls, pity, banners, rerolling, or gacha addiction"
+LABEL = "discussing gacha games, pulls, pity, or banners"
 
 RESPONSES = (
     "DOUBLE:Gacha?||You mean gambling with anime characters.",

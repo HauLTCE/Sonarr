@@ -1,4 +1,4 @@
-LABEL = "user feeling nostalgic or talking about the past, old times, or memories"
+LABEL = "feeling nostalgic or talking about the past or memories"
 
 RESPONSES = (
     "DOUBLE:The good old days...||They weren't that good. You just had lower standards.",

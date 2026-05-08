@@ -1,4 +1,4 @@
-LABEL = "user talking about being tired, wanting to sleep, or being exhausted"
+LABEL = "talking about being tired, wanting to sleep, or being exhausted"
 
 RESPONSES = (
     "DOUBLE:Tired?||Then sleep instead of talking to me.",

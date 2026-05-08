@@ -1,4 +1,4 @@
-LABEL = "evening time casual interaction when bot is winding down"
+LABEL = "greeting or chatting casually in the evening"
 
 RESPONSES = (
     "*yawns* What do you want? Make it quick.",

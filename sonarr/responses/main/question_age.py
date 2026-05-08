@@ -1,4 +1,4 @@
-LABEL = "asking about someone's age or how old they are"
+LABEL = "asking about someone's age or how old they are"s age or how old they are"
 
 RESPONSES = (
     "DOUBLE:...||Rude to ask a lady her age.",

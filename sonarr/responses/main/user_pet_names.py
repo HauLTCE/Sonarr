@@ -1,4 +1,4 @@
-LABEL = "calling the bot honey, sweetie, babe, darling, or other romantic pet names"
+LABEL = "using romantic pet names like honey, sweetie, babe, or darling"
 
 RESPONSES = (
     "DOUBLE:Honey?||I am not your honey.",

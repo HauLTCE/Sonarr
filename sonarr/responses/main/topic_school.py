@@ -1,4 +1,4 @@
-LABEL = "user discussing school, homework, exams, studying, or academic stress"
+LABEL = "discussing school, homework, exams, or studying"
 
 RESPONSES = (
     "DOUBLE:Homework?||Do it yourself. I'm not Chegg.",

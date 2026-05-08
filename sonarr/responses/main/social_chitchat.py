@@ -1,4 +1,4 @@
-LABEL = "casual small talk or idle conversation"
+LABEL = "engaging in casual small talk or idle conversation"
 
 RESPONSES = (
     "I'm busy.",

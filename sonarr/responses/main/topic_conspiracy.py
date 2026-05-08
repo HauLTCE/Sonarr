@@ -1,4 +1,4 @@
-LABEL = "user talking about conspiracy theories, aliens, flat earth, or tinfoil hat topics"
+LABEL = "talking about conspiracy theories, aliens, or flat earth"
 
 RESPONSES = (
     "DOUBLE:Conspiracy?||Put the tinfoil hat down.",

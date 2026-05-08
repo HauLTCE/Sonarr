@@ -1,4 +1,4 @@
-LABEL = "trying to guilt-trip or emotionally manipulate the bot"
+LABEL = "trying to guilt-trip or emotionally manipulate"
 
 RESPONSES = (
     "Not going to work.",

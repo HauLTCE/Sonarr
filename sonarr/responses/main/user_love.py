@@ -1,4 +1,4 @@
-LABEL = "declaring love or deep romantic feelings for the bot"
+LABEL = "declaring love or deep romantic feelings"
 
 RESPONSES = (
     "Don't.",

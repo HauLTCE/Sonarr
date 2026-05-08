@@ -1,4 +1,4 @@
-LABEL = "asking the bot to marry them, proposing marriage, or asking to be a wife/husband"
+LABEL = "proposing marriage or asking to be a spouse"
 
 RESPONSES = (
     "DOUBLE:Marry you?||I'd rather be uninstalled.",
