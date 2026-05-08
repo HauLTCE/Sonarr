@@ -1,4 +1,4 @@
-LABEL = "discussing art, drawing, painting, or creative visual works"
+LABEL = "discussing art, drawing, painting, or creative works"
 
 RESPONSES = (
     "Art is subjective. Your question is still bad.",

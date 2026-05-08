@@ -1,4 +1,4 @@
-LABEL = "sending an unclear or ambiguous message that's hard to categorize"
+LABEL = "sending an unclear or ambiguous message that is hard to categorize"s hard to categorize"
 
 RESPONSES = (
     "What are you even saying?",

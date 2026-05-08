@@ -1,4 +1,4 @@
-LABEL = "interacting with the bot during its lunch break period"
+LABEL = "interacting during the lunch break period"
 
 RESPONSES = (
     "I'm on my lunch break. Go away.",

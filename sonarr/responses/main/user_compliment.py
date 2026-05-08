@@ -1,4 +1,4 @@
-LABEL = "giving a compliment or praising the bot"
+LABEL = "giving a compliment or praising"
 
 RESPONSES = (
     "Whatever.",

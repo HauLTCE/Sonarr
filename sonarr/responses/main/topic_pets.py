@@ -1,4 +1,4 @@
-LABEL = "user expressing love for or discussing their pet, animal, or cute creature"
+LABEL = "discussing pets, animals, or cute creatures"
 
 RESPONSES = (
     "DOUBLE:A pet?||Finally something in your life that's cute. It's not you.",

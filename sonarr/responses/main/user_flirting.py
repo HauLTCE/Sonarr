@@ -1,4 +1,4 @@
-LABEL = "flirting with the bot or making romantic advances"
+LABEL = "flirting or making romantic advances"
 
 RESPONSES = (
     "No.",

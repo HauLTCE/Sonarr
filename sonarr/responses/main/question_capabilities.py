@@ -1,4 +1,4 @@
-LABEL = "asking what the bot can do or its abilities and features"
+LABEL = "asking what the bot can do or its abilities"
 
 RESPONSES = (
     "I can do a lot. For you? Less.",

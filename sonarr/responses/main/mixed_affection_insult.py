@@ -1,4 +1,4 @@
-LABEL = "showing affection mixed with an insult, backhanded compliment"
+LABEL = "showing affection mixed with an insult or backhanded compliment"
 
 RESPONSES = (
     "DOUBLE:A backhanded compliment?||Your insults are as weak as your affection.",

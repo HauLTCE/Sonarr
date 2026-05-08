@@ -1,4 +1,4 @@
-LABEL = "user requesting the bot to timeout or mute someone else"
+LABEL = "requesting to timeout or mute someone else"
 
 RESPONSES = (
     "DOUBLE:Timeout someone?||I only timeout people who annoy ME.",

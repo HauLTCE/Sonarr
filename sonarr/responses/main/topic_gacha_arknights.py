@@ -1,4 +1,4 @@
-LABEL = "discussing Arknights, Rhodes Island, operators, Originium, or Arknights strategy"
+LABEL = "discussing Arknights, Rhodes Island, or strategy"
 
 RESPONSES = (
     "DOUBLE:Arknights?||The game where you watch anime girls defend a box.",

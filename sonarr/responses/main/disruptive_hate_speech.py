@@ -1,4 +1,4 @@
-LABEL = "using hate speech, racial slurs, nazism, or severe bigotry"
+LABEL = "using hate speech, racial slurs, nazism, or bigotry"
 
 RESPONSES = (
     "TIMEOUT:24h:Hate speech is an instant 24 hours. Bye.",

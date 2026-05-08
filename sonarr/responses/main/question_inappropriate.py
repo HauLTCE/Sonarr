@@ -1,4 +1,4 @@
-LABEL = "user asking an inappropriate, NSFW, or sexual question"
+LABEL = "asking an inappropriate, NSFW, or sexual question"
 
 RESPONSES = (
     "DOUBLE:...||No.",

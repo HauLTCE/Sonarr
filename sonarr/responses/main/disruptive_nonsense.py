@@ -1,7 +1,6 @@
 LABEL = "typing gibberish, word salad, or incoherent text"
 
 RESPONSES = (
-    "I'm sorry?",
     "DOUBLE:...||That's random.",
     "I don't have time for this.",
     "Did you mean to say something useful?",

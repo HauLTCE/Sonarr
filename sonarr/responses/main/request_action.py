@@ -1,4 +1,4 @@
-LABEL = "asking the bot to perform a specific action, task, command, or act like ChatGPT"
+LABEL = "asking to perform a specific action, task, or command"
 
 RESPONSES = (
     "What?",

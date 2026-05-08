@@ -1,4 +1,4 @@
-LABEL = "telling someone to kys (kill yourself) or making self-harm jokes"
+LABEL = "telling someone to kys or making self-harm jokes"
 
 RESPONSES = (
     "TIMEOUT:24h:Telling someone to kys? See you tomorrow.",

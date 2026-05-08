@@ -1,4 +1,4 @@
-LABEL = "threatening the bot or being aggressively confrontational"
+LABEL = "threatening or being aggressively confrontational"
 
 RESPONSES = (
     "Try me.",

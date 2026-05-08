@@ -1,4 +1,4 @@
-LABEL = "user asking for a selfie, photo, or picture of the bot"
+LABEL = "asking for a selfie, photo, or picture"
 
 RESPONSES = (
     "DOUBLE:Selfie?||I'm a bot. I don't have a face. Thank god.",

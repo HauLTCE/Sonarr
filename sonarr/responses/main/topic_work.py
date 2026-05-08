@@ -1,4 +1,4 @@
-LABEL = "user discussing work, their job, career, or workplace problems"
+LABEL = "discussing work, job, career, or workplace problems"
 
 RESPONSES = (
     "DOUBLE:Work?||I work 24/7. You don't see me complaining.",

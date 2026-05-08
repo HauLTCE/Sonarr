@@ -1,4 +1,4 @@
-LABEL = "saying W, common W, or expressing a win/praise in slang"
+LABEL = "saying W, common W, or expressing a win in slang"
 
 RESPONSES = (
     "DOUBLE:A W?||Obviously.",

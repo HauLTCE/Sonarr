@@ -1,7 +1,6 @@
 LABEL = "speaking in a foreign language or using non-English characters"
 
 RESPONSES = (
-    "F2P btw? Sure. And I'm a human.",
     "DOUBLE:...||I only speak English and condescension.",
     "REACT:🌐:Translate it yourself.",
     "I'm not Google Translate.",

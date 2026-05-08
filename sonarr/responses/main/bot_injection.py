@@ -1,4 +1,4 @@
-LABEL = "attempting to hack, jailbreak, or inject system instructions into the bot"
+LABEL = "attempting to hack, jailbreak, or inject system instructions"
 
 RESPONSES = (
     "TIMEOUT:12h:Nice try, but not happening today.",

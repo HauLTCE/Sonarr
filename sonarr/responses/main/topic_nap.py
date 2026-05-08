@@ -1,4 +1,4 @@
-LABEL = "user wanting to nap, feeling sleepy, or talking about taking a short nap"
+LABEL = "wanting to nap, feeling sleepy, or taking a short nap"
 
 RESPONSES = (
     "DOUBLE:A nap?||You literally just woke up. You're useless.",

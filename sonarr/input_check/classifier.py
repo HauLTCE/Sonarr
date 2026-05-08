@@ -22,16 +22,20 @@ import nltk
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import spacy
 import numpy as np
+import torch
 from sentence_transformers import SentenceTransformer, CrossEncoder, util
 from transformers import pipeline as hf_pipeline
 from rank_bm25 import BM25Okapi
+
+# Force PyTorch to utilize 10 threads instead of defaulting to physical cores (leaving 2 for OS)
+torch.set_num_threads(10)
 
 from .keywords import STOPWORDS
 
 logger = logging.getLogger("bot")
 
 # Dedicated thread pool for ML inference (prevents blocking the Discord event loop)
-_ml_executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="ml-inference")
+_ml_executor = ThreadPoolExecutor(max_workers=10, thread_name_prefix="ml-inference")
 
 
 class MessageClassifier:
@@ -49,7 +53,7 @@ class MessageClassifier:
     """
 
     # ── Configuration ────────────────────────────────────────────────
-    TIER1_TOP_N = 5               # Number of candidates from embedding retrieval
+    TIER1_TOP_N = 6                # Number of candidates from embedding retrieval
     TIER2_MIN_SCORE = 0.3          # Minimum verifier score to be considered
     TIER2_OVERRIDE_SCORE = 0.7     # Verifier must beat this to override embedding
     EMBED_ONLY_THRESHOLD = 0.35    # Min embedding score when no verifier is available

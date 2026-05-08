@@ -1,4 +1,4 @@
-LABEL = "acting possessive over the bot, claiming it belongs to them, or saying 'by my side'"
+LABEL = "acting possessive or claiming ownership"by my side'"
 
 RESPONSES = (
     "DOUBLE:By your side?||I'm in a server rack, not next to you.",

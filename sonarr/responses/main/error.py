@@ -1,4 +1,4 @@
-LABEL = "system error or unexpected failure occurred"
+LABEL = "experiencing a system error or unexpected failure"
 
 RESPONSES = (
     "I'm having an off day.",

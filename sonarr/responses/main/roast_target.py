@@ -1,4 +1,4 @@
-LABEL = "asking the bot to roast or insult someone else"
+LABEL = "asking to roast or insult someone else"
 
 RESPONSES = (
     "REACT:🔥:They started it. I’m finishing it.",

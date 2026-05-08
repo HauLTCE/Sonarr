@@ -1,4 +1,4 @@
-LABEL = "asking the bot to search for or look up information"
+LABEL = "asking to search for or look up information"
 
 RESPONSES = (
     "DOUBLE:...||Google exists. Use it.",

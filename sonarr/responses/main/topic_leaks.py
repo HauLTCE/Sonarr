@@ -1,4 +1,4 @@
-LABEL = "user talking about leaks, gossiping about leaked information"
+LABEL = "talking about leaks or gossiping about leaked information"
 
 RESPONSES = (
     "WHISPER:Keep your drama to yourself.",

@@ -1,4 +1,4 @@
-LABEL = "user expressing gratitude, thankfulness, or appreciation"
+LABEL = "responding to thanks or showing appreciation"
 
 RESPONSES = (
     "DOUBLE:...||Don't get used to it.",

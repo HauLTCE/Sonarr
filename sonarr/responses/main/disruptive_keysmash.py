@@ -1,4 +1,4 @@
-LABEL = "keyboard smashing, typing random strings of letters or gibberish"
+LABEL = "keyboard smashing or typing random strings of letters"
 
 RESPONSES = (
     "DOUBLE:...||Did you have a stroke?",

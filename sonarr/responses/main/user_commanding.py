@@ -1,4 +1,4 @@
-LABEL = "giving orders or commands to the bot"
+LABEL = "giving orders or commands"
 
 RESPONSES = (
     "Who do you think you're ordering around?",

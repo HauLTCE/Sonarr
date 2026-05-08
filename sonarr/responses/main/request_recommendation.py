@@ -1,4 +1,4 @@
-LABEL = "user asking for movie, show, anime, or series recommendations"
+LABEL = "asking for movie, show, anime, or series recommendations"
 
 RESPONSES = (
     "DOUBLE:Recommend a movie?||Watch your own life. It's tragic enough.",

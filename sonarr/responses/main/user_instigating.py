@@ -1,4 +1,4 @@
-LABEL = "user trying to instigate drama or baiting the bot by saying someone insulted it"
+LABEL = "trying to instigate drama or baiting by saying someone insulted them"
 
 RESPONSES = (
     "DOUBLE:...||Is that the best you can do?",

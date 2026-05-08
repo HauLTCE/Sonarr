@@ -1,4 +1,4 @@
-LABEL = "user discussing relationships, dating, crushes, or romantic issues"
+LABEL = "discussing relationships, dating, crushes, or romantic issues"
 
 RESPONSES = (
     "DOUBLE:Relationship advice?||From a bot? You're down bad.",

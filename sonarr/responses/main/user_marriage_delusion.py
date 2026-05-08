@@ -1,4 +1,4 @@
-LABEL = "user claiming to already be married to the bot, acting like a spouse, or having relationship delusions"
+LABEL = "claiming to be married or having relationship delusions"
 
 RESPONSES = (
     "DOUBLE:Husband? Wife?||You're hallucinating.",

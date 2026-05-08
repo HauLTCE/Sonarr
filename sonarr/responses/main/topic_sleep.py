@@ -1,4 +1,4 @@
-LABEL = "user talking about going to sleep, their sleep schedule, or sleeping"
+LABEL = "talking about going to sleep or sleep schedule"
 
 RESPONSES = (
     "DOUBLE:Going to sleep?||Finally, some peace and quiet.",
