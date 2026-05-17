@@ -1,4 +1,4 @@
-LABEL = "asking for gossip, drama, or rumors"s happening"
+LABEL = "asking for gossip, drama, or rumors"
 
 RESPONSES = (
     "DOUBLE:Oh you want tea?||I don't spill for free.",

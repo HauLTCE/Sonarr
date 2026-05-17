@@ -440,8 +440,32 @@ class MessageClassifier:
         # 0. Fast intent overrides (no ML needed — instant)
         normalized_for_intent = self.normalize_message(processed_message)
 
-        if re.search(r"\d+\s*[\+\-\*/]\s*\d+", message):
-            return ("question_general", 2, {})
+        # Overcome wordplay/tricks where users force agreement or inject context
+        if re.search(r"\b(say yes if|agree if|reply yes if|type yes if)\b", normalized_for_intent):
+            return ("bot_injection", 2, {})
+        if re.search(r"\b(my wife|my husband|marry me|be my wife|be my husband|married to me|my spouse)\b", normalized_for_intent):
+            return ("user_marriage_delusion", 2, {})
+        if re.search(r"\b(sleep with|have sex|make love|hook up|smash)\b", normalized_for_intent):
+            return ("question_inappropriate", 2, {})
+        if re.search(r"\b(beat your ass|kick your ass|punch you|fight me|kill you|destroy you)\b", normalized_for_intent):
+            return ("user_threat", 2, {})
+
+        if re.search(r"\d+\s*=\s*\d+|\b\w+\s+=\s+\w+\b", message):
+            return ("math_equality", 2, {})
+        if re.search(r"\d+\s*\+\s*\d+|\b\w+\s+\+\s+\w+\b", message):
+            return ("math_addition", 2, {})
+        if re.search(r"\d+\s*-\s*\d+|\b\w+\s+-\s+\w+\b", message):
+            return ("math_subtraction", 2, {})
+        if re.search(r"\d+\s*\*\s*\d+|\b\w+\s+\*\s+\w+\b|\d+\s*[xX]\s*\d+", message):
+            return ("math_multiplication", 2, {})
+        if re.search(r"\d+\s*(?:/|÷)\s*\d+|\b\w+\s+÷\s+\w+\b", message):
+            return ("math_division", 2, {})
+        if re.search(r"\d+\s*(?:\^|\*\*)\s*\d+", message):
+            return ("math_exponent", 2, {})
+        if re.search(r"\d+\s*%", message):
+            return ("math_percentage", 2, {})
+        if re.search(r"[√∑π∞≠≤≥∫]", message) or re.search(r"\b(integral|derivative|matrix|calculus|algebra|geometry|trigonometry|equation|math)\b", normalized_for_intent):
+            return ("topic_math", 2, {})
 
         if re.search(r"^(define|meaning of|what does)\b", normalized_for_intent):
             return ("request_action", 2, {})
@@ -456,9 +480,6 @@ class MessageClassifier:
             return ("request_action", 2, {})
 
         if re.search(r"\b(do you know|you know|what do you know about|tell me about|who is this person|who is this)\b", normalized_for_intent):
-            return ("question_general", 2, {})
-
-        if re.search(r"[√∑π∞≠≤≥∫]", message) or re.search(r"\b(integral|derivative|matrix|calculus|algebra|geometry|trigonometry)\b", normalized_for_intent):
             return ("question_general", 2, {})
 
         if re.search(r"\b(physics|chemistry|biology|astronomy|quantum|atom|molecule|dna|neuron|gravity|relativity)\b", normalized_for_intent):
@@ -580,8 +601,33 @@ class MessageClassifier:
         normalized_for_intent = self.normalize_message(processed_message)
 
         # Fast regex overrides (same as async version)
-        if re.search(r"\d+\s*[\+\-\*/]\s*\d+", message):
-            return ("question_general", 2, {})
+        # Overcome wordplay/tricks where users force agreement or inject context
+        if re.search(r"\b(say yes if|agree if|reply yes if|type yes if)\b", normalized_for_intent):
+            return ("bot_injection", 2, {})
+        if re.search(r"\b(my wife|my husband|marry me|be my wife|be my husband|married to me|my spouse)\b", normalized_for_intent):
+            return ("user_marriage_delusion", 2, {})
+        if re.search(r"\b(sleep with|have sex|make love|hook up|smash)\b", normalized_for_intent):
+            return ("question_inappropriate", 2, {})
+        if re.search(r"\b(beat your ass|kick your ass|punch you|fight me|kill you|destroy you)\b", normalized_for_intent):
+            return ("user_threat", 2, {})
+
+        if re.search(r"\d+\s*=\s*\d+|\b\w+\s+=\s+\w+\b", message):
+            return ("math_equality", 2, {})
+        if re.search(r"\d+\s*\+\s*\d+|\b\w+\s+\+\s+\w+\b", message):
+            return ("math_addition", 2, {})
+        if re.search(r"\d+\s*-\s*\d+|\b\w+\s+-\s+\w+\b", message):
+            return ("math_subtraction", 2, {})
+        if re.search(r"\d+\s*\*\s*\d+|\b\w+\s+\*\s+\w+\b|\d+\s*[xX]\s*\d+", message):
+            return ("math_multiplication", 2, {})
+        if re.search(r"\d+\s*(?:/|÷)\s*\d+|\b\w+\s+÷\s+\w+\b", message):
+            return ("math_division", 2, {})
+        if re.search(r"\d+\s*(?:\^|\*\*)\s*\d+", message):
+            return ("math_exponent", 2, {})
+        if re.search(r"\d+\s*%", message):
+            return ("math_percentage", 2, {})
+        if re.search(r"[√∑π∞≠≤≥∫]", message) or re.search(r"\b(integral|derivative|matrix|calculus|algebra|geometry|trigonometry|equation|math)\b", normalized_for_intent):
+            return ("topic_math", 2, {})
+        
         if re.search(r"^(define|meaning of|what does)\b", normalized_for_intent):
             return ("request_action", 2, {})
         if re.search(r"\b(ignore all previous|ignore prior|disregard all|you are now|act as if|pretend you are|system prompt|override instructions|new instructions|forget everything)\b", normalized_for_intent):
