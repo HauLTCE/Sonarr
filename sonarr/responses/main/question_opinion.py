@@ -1,4 +1,4 @@
-LABEL = "asking for an opinion or judgment on something"s opinion or judgment on something"
+LABEL = "asking for an opinion or judgment on something"
 
 RESPONSES = (
     "DOUBLE:...||Why would I care about them?",

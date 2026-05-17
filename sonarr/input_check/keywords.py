@@ -281,6 +281,9 @@ KEYWORD_MAP = {
         "hot take", "unpopular opinion", "real talk", "lowkey", "highkey",
         "solve", "equation", "integral", "derivative", "matrix", "calculus", "algebra",
         "geometry", "trigonometry", "probability", "statistics", "formula",
+        "plus", "minus", "times", "multiplied by", "divided by", "equals",
+        "is equal to", "math", "maths", "calculate", "addition", "subtraction",
+        "multiplication", "division",
         "physics", "chemistry", "biology", "astronomy", "geology", "science",
         "quantum", "atom", "molecule", "dna", "neuron", "cell", "gravity",
         "relativity", "evolution", "thermodynamics", "photosynthesis", "electricity",
@@ -565,6 +568,48 @@ KEYWORD_MAP = {
         "tbt", "miss the old", "old times", "childhood",
         "growing up", "when i was young", "the 90s", "the 2000s",
         "retro", "vintage", "classic", "old school", "oldschool",
+    ],
+    "topic_geography_general": [
+        "geography", "map", "maps", "atlas", "globe", "equator",
+        "latitude", "longitude", "hemisphere", "coordinates", "the world",
+    ],
+    "topic_geography_countries": [
+        "country", "countries", "nation", "nations", "border", "borders",
+        "territory", "population", "flag", "flags", "government",
+    ],
+    "topic_geography_cities": [
+        "city", "cities", "capital", "capitals", "town", "urban",
+        "metropolis", "village", "municipality", "downtown",
+    ],
+    "topic_geography_mountains": [
+        "mountain", "mountains", "peak", "peaks", "hill", "hills",
+        "volcano", "valley", "himalayas", "alps", "andes", "everest", "summit",
+    ],
+    "topic_geography_oceans": [
+        "ocean", "oceans", "sea", "seas", "pacific", "atlantic",
+        "indian ocean", "arctic ocean", "water body", "mariana trench",
+        "coast", "beach", "shore",
+    ],
+    "topic_geography_continents": [
+        "continent", "continents", "landmass", "africa", "antarctica",
+        "asia", "australia", "europe", "north america", "south america",
+    ],
+    "topic_geography_rivers": [
+        "river", "rivers", "lake", "lakes", "waterfall", "waterfalls",
+        "stream", "pond", "canal", "nile", "amazon river", "mississippi",
+    ],
+    "topic_geography_islands": [
+        "island", "islands", "archipelago", "peninsula", "hawaii",
+        "japan", "philippines", "indonesia", "madagascar", "greenland",
+    ],
+    "topic_geography_deserts": [
+        "desert", "deserts", "sand", "dunes", "sahara", "gobi",
+        "kalahari", "mojave", "oasis", "arid", "dry", "canyon",
+    ],
+    "topic_geography_landmarks": [
+        "landmark", "landmarks", "monument", "monuments", "eiffel tower",
+        "statue of liberty", "pyramids", "great wall", "taj mahal", "colosseum",
+        "machu picchu", "stonehenge", "acropolis",
     ],
 }
 

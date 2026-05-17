@@ -1,4 +1,4 @@
-LABEL = "asking about their own identity or who they are"who am i'"
+LABEL = "asking about their own identity or who they are"
 
 RESPONSES = (
     "DOUBLE:Who are you?||Nobody important.",

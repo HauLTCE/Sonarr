@@ -1,4 +1,4 @@
-LABEL = "asking about the bot's identity, nature, or creator"s identity, nature, or creator"
+LABEL = "asking about the bot's identity, nature, or creator"
 
 RESPONSES = (
     "DOUBLE:...||Read my bio.",
