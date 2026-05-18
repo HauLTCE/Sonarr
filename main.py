@@ -143,6 +143,17 @@ async def on_command_error(ctx, error):
         return
 
     if isinstance(error, commands.CommandNotFound):
+        # Fuzzy "did you mean?" suggestions
+        invoked = ctx.invoked_with.lower()
+        if not invoked or len(invoked) < 2:
+            return
+        
+        suggestion = _fuzzy_suggest(invoked)
+        if suggestion:
+            await ctx.send(
+                f"That's not a command. Did you mean **`!{suggestion}`**?",
+                delete_after=8
+            )
         return
     elif isinstance(error, commands.MissingRequiredArgument):
         logger.warning(f"Missing argument for command {ctx.command} invoked by {ctx.author.display_name}: {error.param}")
@@ -162,18 +173,37 @@ async def on_command_error(ctx, error):
         logger.critical(f"Unhandled error in command {ctx.command} invoked by {ctx.author.display_name}: {error}", exc_info=True)
         await ctx.send("❌ An unexpected error occurred.", delete_after=5)
 
-def _find_command_by_prefix(cmd_name):
-    """Find commands matching a prefix."""
-    matches = []
-    for c in bot.commands:
-        if c.name.startswith(cmd_name):
-            matches.append(c)
-            continue
-        for a in c.aliases:
-            if a.startswith(cmd_name):
-                matches.append(c)
-                break
-    return matches
+
+def _fuzzy_suggest(invoked: str) -> str | None:
+    """Find the closest matching command name using fuzzy matching."""
+    import difflib
+    
+    # Build a list of all command names + aliases
+    all_names = []
+    for cmd in bot.commands:
+        all_names.append(cmd.name)
+        all_names.extend(cmd.aliases)
+        # Include subcommands for groups
+        if isinstance(cmd, commands.Group):
+            for sub in cmd.commands:
+                all_names.append(f"{cmd.name} {sub.name}")
+                all_names.extend(f"{cmd.name} {a}" for a in sub.aliases)
+    
+    # Also add help-related keywords
+    all_names.extend(["help", "help games", "help dungeon", "help economy", "help music",
+                       "help adventure", "dungeon_guide", "dguide", "advguide"])
+    
+    matches = difflib.get_close_matches(invoked, all_names, n=1, cutoff=0.6)
+    if matches:
+        return matches[0]
+    
+    # Fallback: prefix match
+    for name in all_names:
+        if name.startswith(invoked) or invoked.startswith(name):
+            return name
+    
+    return None
+
 
 @bot.event
 async def on_message(message):
@@ -300,10 +330,10 @@ async def load_extensions():
         os.makedirs('./cogs')
     
     # Package-based cogs (directories with __init__.py)
-    package_cogs = ['sonarr_ai', 'music']
+    package_cogs = ['sonarr_ai', 'music', 'games', 'adventure']
     
     # File-based cogs to ignore (old files superseded by packages, or view-only files)
-    ignored_files = ['views.py', 'pokemon_views.py', 'sonarr_ai.py', 'music.py']
+    ignored_files = ['views.py', 'sonarr_ai.py', 'music.py']
     
     cog_names = []
     

@@ -539,7 +539,7 @@ Examples:
         if not getattr(player, "session_playlist", None) and len(player.queue) >= 5:
             if not getattr(player, "prompted_save", False):
                 setattr(player, "prompted_save", True)
-                await ctx.send("You've built a great queue! Use `!playlist save <name>` to save it for later.")
+                await ctx.send("You've built a great queue! Use `!playlist savequeue <name>` to save it for later.")
 
     @commands.command(brief="Pause playback")
     @is_music_channel()

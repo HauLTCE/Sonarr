@@ -55,43 +55,29 @@ class Database:
             self.connection.commit()
             
 
-            # Legacy table migrations (may not exist on fresh deploy)
-            try:
-                self.cursor.execute("PRAGMA table_info(economy)")
-                columns = {row[1] for row in self.cursor.fetchall()}
-                if columns and "daily_streak" not in columns:
-                    self.cursor.execute("ALTER TABLE economy ADD COLUMN daily_streak INTEGER DEFAULT 0")
-                    self.connection.commit()
-            except sqlite3.OperationalError:
-                pass  # Table doesn't exist on fresh deploy
-            
-            try:
-                self.cursor.execute("PRAGMA table_info(pokemon_owned)")
-                pokemon_owned_columns = {row[1] for row in self.cursor.fetchall()}
-                if pokemon_owned_columns:
-                    if "ivs_json" not in pokemon_owned_columns:
-                        self.cursor.execute("ALTER TABLE pokemon_owned ADD COLUMN ivs_json TEXT DEFAULT '{}'")
-                    if "trait" not in pokemon_owned_columns:
-                        self.cursor.execute("ALTER TABLE pokemon_owned ADD COLUMN trait TEXT")
-                    if "current_hp" not in pokemon_owned_columns:
-                        self.cursor.execute("ALTER TABLE pokemon_owned ADD COLUMN current_hp INTEGER DEFAULT 0")
-                    if "is_fainted" not in pokemon_owned_columns:
-                        self.cursor.execute("ALTER TABLE pokemon_owned ADD COLUMN is_fainted INTEGER DEFAULT 0")
-            except sqlite3.OperationalError:
-                pass
-
-            try:
-                self.cursor.execute("PRAGMA table_info(pokemon_encounters)")
-                encounter_columns = {row[1] for row in self.cursor.fetchall()}
-                if encounter_columns:
-                    if "current_hp" not in encounter_columns:
-                        self.cursor.execute("ALTER TABLE pokemon_encounters ADD COLUMN current_hp INTEGER DEFAULT 0")
-                    if "max_hp" not in encounter_columns:
-                        self.cursor.execute("ALTER TABLE pokemon_encounters ADD COLUMN max_hp INTEGER DEFAULT 0")
-                    if "zone_id" not in encounter_columns:
-                        self.cursor.execute("ALTER TABLE pokemon_encounters ADD COLUMN zone_id TEXT")
-            except sqlite3.OperationalError:
-                pass
+            # Economy table
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS economy (
+                    user_id TEXT PRIMARY KEY,
+                    wallet INTEGER DEFAULT 0,
+                    bank INTEGER DEFAULT 0,
+                    bank_cap INTEGER DEFAULT 5000,
+                    gems INTEGER DEFAULT 0,
+                    total_earned INTEGER DEFAULT 0,
+                    total_lost INTEGER DEFAULT 0,
+                    total_gambled INTEGER DEFAULT 0,
+                    daily_streak INTEGER DEFAULT 0,
+                    last_daily REAL DEFAULT 0,
+                    last_work REAL DEFAULT 0,
+                    last_rob REAL DEFAULT 0,
+                    last_cashout REAL DEFAULT 0,
+                    times_robbed INTEGER DEFAULT 0,
+                    active_title TEXT DEFAULT NULL,
+                    prestige INTEGER DEFAULT 0,
+                    created_at REAL NOT NULL
+                )
+            ''')
+            self.connection.commit()
 
             
             self.cursor.execute('''
@@ -146,15 +132,6 @@ class Database:
                 logger.info("[Database] Migrating message_cache: adding words_json column for fuzzy search")
                 self.cursor.execute('ALTER TABLE message_cache ADD COLUMN words_json TEXT')
             
-            # ========== LOAN SHARK SYSTEM ==========
-            
-            
-            
-            # ========== STOCK MARKET SYSTEM ==========
-            
-            
-            
-            
             # ========== MISGENDERING MEMORY SYSTEM ==========
             self.cursor.execute('''
                 CREATE TABLE IF NOT EXISTS misgendering_memory (
@@ -166,14 +143,180 @@ class Database:
                 )
             ''')
             
+            # ========== PROGRESSION SYSTEM ==========
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS achievements (
+                    user_id TEXT NOT NULL,
+                    achievement_id TEXT NOT NULL,
+                    unlocked_at REAL NOT NULL,
+                    PRIMARY KEY (user_id, achievement_id)
+                )
+            ''')
             
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS gambling_stats (
+                    user_id TEXT NOT NULL,
+                    game_type TEXT NOT NULL,
+                    games_played INTEGER DEFAULT 0,
+                    games_won INTEGER DEFAULT 0,
+                    total_wagered INTEGER DEFAULT 0,
+                    total_won INTEGER DEFAULT 0,
+                    total_lost INTEGER DEFAULT 0,
+                    biggest_win INTEGER DEFAULT 0,
+                    biggest_loss INTEGER DEFAULT 0,
+                    current_streak INTEGER DEFAULT 0,
+                    best_streak INTEGER DEFAULT 0,
+                    PRIMARY KEY (user_id, game_type)
+                )
+            ''')
+
+            # ========== ADVENTURE SYSTEM ==========
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS adventure_character (
+                    user_id TEXT PRIMARY KEY,
+                    current_floor INTEGER DEFAULT 1,
+                    deepest_floor INTEGER DEFAULT 1,
+                    hp INTEGER DEFAULT 100,
+                    max_hp INTEGER DEFAULT 100,
+                    base_attack INTEGER DEFAULT 10,
+                    base_defense INTEGER DEFAULT 5,
+                    base_speed INTEGER DEFAULT 10,
+                    base_luck INTEGER DEFAULT 5,
+                    bosses_killed INTEGER DEFAULT 0,
+                    total_deaths INTEGER DEFAULT 0,
+                    skill_cooldown INTEGER DEFAULT 0,
+                    dungeon_level INTEGER DEFAULT 1,
+                    dungeon_xp INTEGER DEFAULT 0
+                )
+            ''')
+
+            # Migration: add dungeon_level/xp columns if missing
+            self.cursor.execute("PRAGMA table_info(adventure_character)")
+            adv_columns = {row[1] for row in self.cursor.fetchall()}
+            if "dungeon_level" not in adv_columns:
+                logger.info("[Database] Migrating adventure_character: adding dungeon_level column")
+                self.cursor.execute('ALTER TABLE adventure_character ADD COLUMN dungeon_level INTEGER DEFAULT 1')
+            if "dungeon_xp" not in adv_columns:
+                logger.info("[Database] Migrating adventure_character: adding dungeon_xp column")
+                self.cursor.execute('ALTER TABLE adventure_character ADD COLUMN dungeon_xp INTEGER DEFAULT 0')
             
-            
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS adventure_inventory (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT NOT NULL,
+                    item_id TEXT NOT NULL,
+                    slot TEXT,
+                    rarity TEXT DEFAULT 'common',
+                    stats_json TEXT DEFAULT '{}',
+                    equipped INTEGER DEFAULT 0,
+                    quantity INTEGER DEFAULT 1
+                )
+            ''')
+            # ========== CONSUMABLE SYSTEM ==========
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS consumable_inventory (
+                    user_id TEXT NOT NULL,
+                    item_id TEXT NOT NULL,
+                    quantity INTEGER DEFAULT 0,
+                    PRIMARY KEY (user_id, item_id)
+                )
+            ''')
+
+
+            # ========== LEVELS SYSTEM (migrated from JSON) ==========
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS levels (
+                    user_id TEXT NOT NULL,
+                    guild_id TEXT NOT NULL DEFAULT 'global',
+                    xp INTEGER DEFAULT 0,
+                    level INTEGER DEFAULT 1,
+                    PRIMARY KEY (user_id, guild_id)
+                )
+            ''')
+
+            # ========== GUILD CONFIG (migrated from JSON) ==========
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS guild_config (
+                    guild_id TEXT NOT NULL,
+                    config_key TEXT NOT NULL,
+                    config_value TEXT,
+                    PRIMARY KEY (guild_id, config_key)
+                )
+            ''')
+
+            # ========== TITLE ROLES ==========
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS title_roles (
+                    guild_id TEXT NOT NULL,
+                    role_name TEXT NOT NULL,
+                    role_id TEXT NOT NULL,
+                    category TEXT DEFAULT 'economy',
+                    color INTEGER DEFAULT 0,
+                    PRIMARY KEY (guild_id, role_name)
+                )
+            ''')
+
             self.connection.commit()
+
+            # ========== ONE-TIME MIGRATIONS ==========
+            self._migrate_levels_json()
+            self._migrate_config_json()
+
             logger.info("[Database] SQLite initialized successfully")
         except Exception as e:
             logger.error(f"[Database] Initialization error: {e}")
             raise
+
+    def _migrate_levels_json(self):
+        """One-time migration from levels.json to DB."""
+        levels_file = Path("levels.json")
+        if not levels_file.exists():
+            return
+        try:
+            with open(levels_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not data:
+                return
+            count = 0
+            for user_id, info in data.items():
+                xp = info.get("xp", 0)
+                level = info.get("level", 1)
+                self.cursor.execute(
+                    "INSERT OR IGNORE INTO levels (user_id, guild_id, xp, level) VALUES (?, 'global', ?, ?)",
+                    (str(user_id), xp, level)
+                )
+                count += 1
+            self.connection.commit()
+            # Rename to prevent re-import
+            levels_file.rename("levels.json.migrated")
+            logger.info(f"[Database] Migrated {count} users from levels.json to DB")
+        except Exception as e:
+            logger.warning(f"[Database] levels.json migration failed: {e}")
+
+    def _migrate_config_json(self):
+        """One-time migration from server_config.json to DB."""
+        config_file = Path("server_config.json")
+        if not config_file.exists():
+            return
+        try:
+            with open(config_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not data:
+                return
+            count = 0
+            for guild_id, config in data.items():
+                for key, value in config.items():
+                    self.cursor.execute(
+                        "INSERT OR IGNORE INTO guild_config (guild_id, config_key, config_value) VALUES (?, ?, ?)",
+                        (str(guild_id), key, str(value))
+                    )
+                    count += 1
+            self.connection.commit()
+            # Rename to prevent re-import
+            config_file.rename("server_config.json.migrated")
+            logger.info(f"[Database] Migrated {count} config entries from server_config.json to DB")
+        except Exception as e:
+            logger.warning(f"[Database] server_config.json migration failed: {e}")
     
     def get_cached_category(self, msg_hash: str, guild_id: int = None):
         """Get cached category. Returns None if not found or expired (7 days)."""
@@ -474,8 +617,6 @@ class Database:
         ''', (cutoff,))
         self.connection.commit()
 
-    # ========== LOAN SHARK METHODS ==========
-    
 # ============================================================
 # PostgreSQL Wrapper for HA Mode
 # ============================================================
