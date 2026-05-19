@@ -356,7 +356,7 @@ class Economy(commands.Cog):
         
         await ctx.send(f"You paid {user.mention} {net_amount} 🪙. ({tax} 🪙 taken as tax.)")
 
-    @commands.command()
+    @commands.command(aliases=['dep'])
     async def deposit(self, ctx, amount: str):
         """Move coins from wallet to bank"""
         bal = get_balance(ctx.author.id)

@@ -88,7 +88,7 @@ async def send_to_log_channel(bot, guild, message: str):
 class RestartView(discord.ui.View):
     """View with a single Restart button, sent after timeout."""
     def __init__(self, cog, user):
-        super().__init__(timeout=60)
+        super().__init__(timeout=None)  # Persistent — no auto-expiry
         self.cog = cog
         self.user = user
 
@@ -96,9 +96,12 @@ class RestartView(discord.ui.View):
     async def restart(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.user.id:
             return
+        # Clean up old timeout message
+        self.cog._timeout_messages.pop(self.user.id, None)
         self.cog.active_adventures.add(self.user.id)
-        await interaction.response.defer()
-        await interaction.delete_original_response()
+        for c in self.children:
+            c.disabled = True
+        await interaction.response.edit_message(content="🔄 Restarting...", view=self)
         ctx = SimpleContext(self.user)
         await self.cog.show_main_menu(interaction.channel, ctx)
         self.stop()
@@ -106,29 +109,41 @@ class RestartView(discord.ui.View):
 
 class AdventureView(discord.ui.View):
     def __init__(self, cog, ctx, char):
-        super().__init__(timeout=180)
+        super().__init__(timeout=120)
         self.cog = cog
         self.ctx = ctx
         self.char = char
-        self._message = None  # Set after sending, used for timeout edit
+        self._message = None
+        self._left = False  # Set True when user leaves voluntarily
 
     async def on_timeout(self):
-        """Delete the old message and send a restart prompt."""
+        """Delete old message, send one persistent restart prompt."""
         self.cog.active_adventures.discard(self.ctx.author.id)
+        if self._left:
+            return
+        # Delete the old game message
         try:
             if self._message:
                 await self._message.delete()
         except Exception:
             pass
+        # Send ONE restart message (persistent, no auto-delete)
         try:
             ch = self._message.channel if self._message else None
             if ch:
+                old_msg = self.cog._timeout_messages.pop(self.ctx.author.id, None)
+                if old_msg:
+                    try:
+                        await old_msg.delete()
+                    except Exception:
+                        pass
                 view = RestartView(self.cog, self.ctx.author)
                 msg = await ch.send(
                     f"⏰ {self.ctx.author.mention} Your adventure session timed out.\n"
                     f"Click below to restart or type `!adventure`.",
-                    view=view, delete_after=60
+                    view=view
                 )
+                self.cog._timeout_messages[self.ctx.author.id] = msg
         except Exception:
             pass
 
@@ -207,7 +222,7 @@ class AdventureView(discord.ui.View):
 
 class CombatView(discord.ui.View):
     def __init__(self, cog, ctx, char, enemy, bonuses):
-        super().__init__(timeout=1800)  # 30 minutes — combat stays active
+        super().__init__(timeout=120)
         self.cog = cog
         self.ctx = ctx
         self.char = char
@@ -219,25 +234,37 @@ class CombatView(discord.ui.View):
         self.max_potions = 10
         self.shield_active = False  # Shield Scroll flag
         self._message = None
+        self._left = False  # Set True when superseded or user leaves
 
     async def on_timeout(self):
-        """Delete combat message and send restart prompt."""
+        """Delete old message, send one persistent restart prompt."""
         self.cog.active_combats.pop(self.ctx.author.id, None)
         self.cog.active_adventures.discard(self.ctx.author.id)
+        if self._left:
+            return
+        # Delete the old combat message
         try:
             if self._message:
                 await self._message.delete()
         except Exception:
             pass
+        # Send ONE restart message (persistent, no auto-delete)
         try:
             ch = self._message.channel if self._message else None
             if ch:
+                old_msg = self.cog._timeout_messages.pop(self.ctx.author.id, None)
+                if old_msg:
+                    try:
+                        await old_msg.delete()
+                    except Exception:
+                        pass
                 view = RestartView(self.cog, self.ctx.author)
-                await ch.send(
-                    f"⏰ {self.ctx.author.mention} Combat timed out (30 min AFK).\n"
+                msg = await ch.send(
+                    f"⏰ {self.ctx.author.mention} Combat timed out.\n"
                     f"Type `!adventure` to re-enter.",
-                    view=view, delete_after=60
+                    view=view
                 )
+                self.cog._timeout_messages[self.ctx.author.id] = msg
         except Exception:
             pass
 
@@ -463,6 +490,7 @@ class CombatView(discord.ui.View):
 
         embed.description = "\n".join(lines)
         for c in self.children: c.disabled = True
+        self._left = True  # Prevent timeout message since combat ended normally
         await interaction.edit_original_response(embed=embed, view=self)
 
         # Floor milestone check
@@ -472,7 +500,7 @@ class CombatView(discord.ui.View):
                 if guild:
                     await send_to_log_channel(
                         self.cog.bot, guild,
-                        f"🏔️ **{self.ctx.author.display_name}** reached Floor {milestone}!"
+                        f"🏔️ **{self.ctx.author.display_name}** cleared Floor {milestone}!"
                     )
 
         await asyncio.sleep(2)
@@ -547,6 +575,7 @@ class CombatView(discord.ui.View):
                     f"*Type `!adventure` to try again.*"
                 )
             for c in self.children: c.disabled = True
+            self._left = True  # Prevent timeout message since combat ended (death)
             await interaction.edit_original_response(embed=death_embed, view=self)
             # Kill feed
             guild = interaction.guild
@@ -576,6 +605,7 @@ class CombatView(discord.ui.View):
             embed = discord.Embed(title="🏃 Fled!", color=0xF1C40F)
             embed.description = f"{self.ctx.author.mention} escaped from **{self.enemy['name']}**."
             for c in self.children: c.disabled = True
+            self._left = True  # Prevent timeout message since combat ended (fled)
             await interaction.edit_original_response(embed=embed, view=self)
             await asyncio.sleep(2)
             self.cog.active_combats.pop(self.ctx.author.id, None)
@@ -640,6 +670,8 @@ class Adventure(commands.Cog):
         self.bot = bot
         self.active_adventures = set()
         self.active_combats = {}  # user_id -> CombatView
+        self._timeout_messages = {}  # user_id -> Message (latest timeout prompt)
+        self._adventure_views = {}  # user_id -> AdventureView (for marking _left)
 
     async def cog_check(self, ctx):
         """Enforce dungeon channel for all adventure commands."""
@@ -647,6 +679,12 @@ class Adventure(commands.Cog):
         return await check_channel(ctx, "dungeon_channel")
 
     async def show_main_menu(self, channel, ctx, char=None):
+        # Retire any previous adventure view so its on_timeout won't fire
+        old_adv = self._adventure_views.pop(ctx.author.id, None)
+        if old_adv:
+            old_adv._left = True
+            old_adv.stop()
+
         if not char:
             char = get_character(ctx.author.id)
         bal = get_balance(ctx.author.id)
@@ -711,9 +749,17 @@ class Adventure(commands.Cog):
         view = AdventureView(self, ctx, char)
         msg = await channel.send(embed=embed, view=view)
         view._message = msg  # Store for timeout editing
+        self._adventure_views[ctx.author.id] = view  # Track for leave command
 
     async def explore_room(self, interaction, char):
         await interaction.response.defer()
+
+        # Retire the current adventure view since we're transitioning
+        old_adv = self._adventure_views.pop(interaction.user.id, None)
+        if old_adv:
+            old_adv._left = True
+            old_adv.stop()
+
         roll = random.random()
         floor = char['current_floor']
         bonuses = get_equipped_bonuses(interaction.user.id)
@@ -722,6 +768,12 @@ class Adventure(commands.Cog):
         is_boss_floor = floor % 10 == 0 and floor > 0
 
         if is_boss_floor or roll < 0.50:
+            # Retire any old combat view
+            old_combat = self.active_combats.pop(interaction.user.id, None)
+            if old_combat:
+                old_combat._left = True
+                old_combat.stop()
+
             enemy = generate_boss(floor) if is_boss_floor else generate_enemy(floor)
             embed = discord.Embed(
                 title=f"{'👑 BOSS' if is_boss_floor else '⚔️ COMBAT'} — Floor {floor}",
@@ -875,8 +927,23 @@ class Adventure(commands.Cog):
         """Leave the dungeon and unlock yourself"""
         was_active = ctx.author.id in self.active_adventures
         self.active_adventures.discard(ctx.author.id)
-        if ctx.author.id in self.active_combats:
-            del self.active_combats[ctx.author.id]
+        # Mark the active adventure view as voluntarily left so timeout won't send a message
+        adv_view = self._adventure_views.pop(ctx.author.id, None)
+        if adv_view:
+            adv_view._left = True
+            adv_view.stop()
+        # Mark the active combat view as voluntarily left too
+        combat_view = self.active_combats.pop(ctx.author.id, None)
+        if combat_view:
+            combat_view._left = True
+            combat_view.stop()
+        # Clean up any existing timeout message
+        old_msg = self._timeout_messages.pop(ctx.author.id, None)
+        if old_msg:
+            try:
+                await old_msg.delete()
+            except Exception:
+                pass
         if was_active:
             await ctx.send(f"🚪 {ctx.author.mention} left the dungeon. Progress saved.")
         else:

@@ -2,6 +2,7 @@ import math
 import random
 from utils.database import db
 import json
+import os
 
 BASE_STATS = {
     "hp": 100,
@@ -12,38 +13,29 @@ BASE_STATS = {
     "luck": 5,
 }
 
-# Enemy types — tagged for item synergies (e.g. Blackened Sword vs demon)
-ENEMY_TYPES = {
-    "demon": ["Shadow Fiend", "Hellspawn", "Abyssal Knight", "Demon Lord", "Infernal Imp",
-              "Pit Fiend", "Soul Devourer", "Doom Herald"],
-    "undead": ["Skeleton", "Wraith", "Lich", "Bone Golem",
-               "Revenant", "Death Knight", "Phantom"],
-    "beast": ["Cave Bat", "Spider", "Dire Wolf", "Basilisk",
-              "Manticore", "Chimera", "Hydra"],
-    "humanoid": ["Goblin", "Dark Knight", "Bandit", "Cultist",
-                 "Assassin", "War Mage", "Fallen Paladin"],
-    "slime": ["Slime", "Acid Blob", "Ooze",
-              "Crystal Ooze", "Void Pudding"],
-    "elemental": ["Fire Elemental", "Frost Elemental", "Storm Elemental",
-                  "Void Elemental", "Chaos Elemental"],
-    "dragon": ["Drake", "Wyvern", "Elder Wyrm", "Shadow Dragon"],
-}
+# ========== LOAD ENEMY DATA FROM JSON ==========
+_ENEMIES_PATH = os.path.join(os.path.dirname(__file__), "enemies_data.json")
+with open(_ENEMIES_PATH, "r", encoding="utf-8") as _f:
+    _ENEMIES_DATA = json.load(_f)
 
-# Floor-based enemy pools (extended through Floor 100+)
-ENEMIES_BY_FLOOR = {
-    range(1, 6):    ["Slime", "Cave Bat", "Goblin", "Spider"],
-    range(6, 11):   ["Skeleton", "Bandit", "Dire Wolf", "Acid Blob"],
-    range(11, 21):  ["Dark Knight", "Wraith", "Cultist", "Basilisk"],
-    range(21, 36):  ["Shadow Fiend", "Bone Golem", "Infernal Imp", "Lich"],
-    range(36, 51):  ["Abyssal Knight", "Hellspawn", "Demon Lord", "Assassin"],
-    range(51, 66):  ["Revenant", "Manticore", "War Mage", "Fire Elemental", "Crystal Ooze"],
-    range(66, 81):  ["Death Knight", "Chimera", "Frost Elemental", "Pit Fiend", "Fallen Paladin"],
-    range(81, 96):  ["Storm Elemental", "Soul Devourer", "Hydra", "Drake", "Phantom"],
-    range(96, 111): ["Void Elemental", "Doom Herald", "Wyvern", "Chaos Elemental", "Elder Wyrm"],
-}
+# Enemy types — tagged for item synergies (e.g. Blackened Sword vs demon)
+ENEMY_TYPES = _ENEMIES_DATA["enemy_types"]
+
+# Floor-based enemy pools — parse "1-5" keys into range objects
+ENEMIES_BY_FLOOR = {}
+for _key, _enemies in _ENEMIES_DATA["enemies_by_floor"].items():
+    _start, _end = map(int, _key.split("-"))
+    ENEMIES_BY_FLOOR[range(_start, _end + 1)] = _enemies
 
 # Hardest tier — used as fallback for floors beyond the table
-_ENDGAME_ENEMIES = ["Shadow Dragon", "Chaos Elemental", "Elder Wyrm", "Doom Herald", "Soul Devourer"]
+_ENDGAME_ENEMIES = _ENEMIES_DATA["endgame_enemies"]
+
+# Boss data
+_BOSS_NAMES = {int(k): v for k, v in _ENEMIES_DATA["bosses"].items()}
+_BOSS_TYPES = sorted(
+    [(int(k), v) for k, v in _ENEMIES_DATA["boss_types"].items()],
+    key=lambda x: x[0], reverse=True
+)
 
 
 def get_enemy_type(enemy_name: str) -> str:
@@ -99,29 +91,15 @@ def generate_enemy(floor: int) -> dict:
 
 def generate_boss(floor: int) -> dict:
     """Generate a boss enemy for milestone floors."""
-    boss_names = {
-        10: "The Warden",
-        20: "Crimson Butcher",
-        30: "Void Sentinel",
-        40: "Abyssal Overlord",
-        50: "The Nameless King",
-        60: "Stormbreaker Titan",
-        70: "The Undying Lich",
-        80: "Infernal Archon",
-        90: "Wyrm of the Abyss",
-        100: "The World Ender",
-    }
-    # Find closest boss
-    name = boss_names.get(floor, f"Floor {floor} Guardian")
-    
-    # Boss type escalates with depth
-    if floor >= 80:
-        boss_type = "dragon"
-    elif floor >= 30:
-        boss_type = "demon"
-    else:
-        boss_type = "humanoid"
-    
+    name = _BOSS_NAMES.get(floor, f"Floor {floor} Guardian")
+
+    # Boss type escalates with depth (from JSON thresholds, sorted desc)
+    boss_type = "humanoid"
+    for threshold, btype in _BOSS_TYPES:
+        if floor >= threshold:
+            boss_type = btype
+            break
+
     return {
         "name": f"👑 {name}",
         "type": boss_type,

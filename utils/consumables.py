@@ -1,81 +1,13 @@
-"""Consumable items system — definitions and DB helpers."""
+"""Consumable items system — definitions loaded from JSON, DB helpers."""
+import json
+import os
 from utils.database import db
 
 
-# ========== CONSUMABLE DEFINITIONS ==========
-CONSUMABLES = {
-    "health_potion": {
-        "name": "Health Potion", "emoji": "🧪", "cost": 50,
-        "desc": "Heal 50 HP instantly.",
-        "combat": True,
-    },
-    "greater_potion": {
-        "name": "Greater Potion", "emoji": "🧪", "cost": 150,
-        "desc": "Heal to full HP.",
-        "combat": True,
-    },
-    "lucky_charm": {
-        "name": "Lucky Charm", "emoji": "🍀", "cost": 120,
-        "desc": "+10 LCK for your next 5 combats.",
-        "combat": True,
-    },
-    "revival_token": {
-        "name": "Revival Token", "emoji": "💀", "cost": 500,
-        "desc": "Prevent floor loss on your next death. (Passive)",
-        "combat": False,
-    },
-    # ===== NEW CONSUMABLES =====
-    "strength_tonic": {
-        "name": "Strength Tonic", "emoji": "💪", "cost": 80,
-        "desc": "+5 ATK for current combat.",
-        "combat": True,
-    },
-    "iron_skin": {
-        "name": "Iron Skin", "emoji": "🛡️", "cost": 80,
-        "desc": "+5 DEF for current combat.",
-        "combat": True,
-    },
-    "speed_elixir": {
-        "name": "Speed Elixir", "emoji": "💨", "cost": 80,
-        "desc": "+5 SPD for current combat.",
-        "combat": True,
-    },
-    "antidote": {
-        "name": "Antidote", "emoji": "🩹", "cost": 40,
-        "desc": "Remove all bleed stacks from you.",
-        "combat": True,
-    },
-    "smoke_bomb": {
-        "name": "Smoke Bomb", "emoji": "💣", "cost": 60,
-        "desc": "Guaranteed flee from current combat.",
-        "combat": True,
-    },
-    "damage_scroll": {
-        "name": "Damage Scroll", "emoji": "📜", "cost": 100,
-        "desc": "Deal 50 flat damage to current enemy.",
-        "combat": True,
-    },
-    "shield_scroll": {
-        "name": "Shield Scroll", "emoji": "🛡️", "cost": 100,
-        "desc": "Block the next enemy attack completely.",
-        "combat": True,
-    },
-    "xp_tome": {
-        "name": "XP Tome", "emoji": "📖", "cost": 200,
-        "desc": "+50 dungeon XP instantly.",
-        "combat": False,
-    },
-    "floor_skip": {
-        "name": "Floor Skip", "emoji": "⏭️", "cost": 300,
-        "desc": "Skip current floor, advance +1.",
-        "combat": False,
-    },
-    "warp_crystal": {
-        "name": "Warp Crystal", "emoji": "🔮", "cost": 500,
-        "desc": "Warp to your deepest floor reached.",
-        "combat": False,
-    },
-}
+# ========== LOAD CONSUMABLE DATA FROM JSON ==========
+_CONSUMABLES_PATH = os.path.join(os.path.dirname(__file__), "consumables_data.json")
+with open(_CONSUMABLES_PATH, "r", encoding="utf-8") as _f:
+    CONSUMABLES = json.load(_f)
 
 # Sell price: 30% of cost
 SELL_PRICES = {cid: max(1, int(cdata["cost"] * 0.3)) for cid, cdata in CONSUMABLES.items()}
