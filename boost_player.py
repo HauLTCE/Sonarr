@@ -10,16 +10,23 @@ Uses SSH to run SQL on the remote bot_data.db, same as deploy.py.
 import paramiko
 import os
 import sys
+from dotenv import load_dotenv
 
-# ============ CONFIG (same as deploy.py) ============
-HOST = '100.108.202.81'
-USER = 'root'
-PASSWORD = '12345'
-PORT = 22
-REMOTE_DIR = '/root/sonarr/'
+load_dotenv()
+
+# ============ CONFIG (from environment — see .env.example) ============
+# Secrets are NEVER hardcoded. Reuses the same DEPLOY_* vars as deploy.py.
+HOST = os.getenv('DEPLOY_HOST')
+USER = os.getenv('DEPLOY_USER', 'root')
+PASSWORD = os.getenv('DEPLOY_PASSWORD')
+PORT = int(os.getenv('DEPLOY_PORT', '22'))
+REMOTE_DIR = os.getenv('DEPLOY_REMOTE_DIR', '/root/sonarr/')
 DB_PATH = f'{REMOTE_DIR}bot_data.db'
 
-TARGET_USER_ID = '594006837230305280'
+if not HOST or not PASSWORD:
+    sys.exit("ERROR: DEPLOY_HOST and DEPLOY_PASSWORD must be set in .env")
+
+TARGET_USER_ID = os.getenv('BOOST_TARGET_USER_ID', '594006837230305280')
 
 # All legendary item IDs from items_data.json
 # Ordered so blackened_sword is first → gets equipped as weapon
