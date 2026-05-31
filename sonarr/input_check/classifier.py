@@ -440,57 +440,66 @@ class MessageClassifier:
 
         # Overcome wordplay/tricks where users force agreement or inject context
         if re.search(r"\b(say yes if|agree if|reply yes if|type yes if)\b", normalized_for_intent):
-            return ("bot_injection", 2, {})
+            return ("bot_injection", 1.0, {})
         if re.search(r"\b(my wife|my husband|marry me|be my wife|be my husband|married to me|my spouse)\b", normalized_for_intent):
-            return ("user_marriage_delusion", 2, {})
-        if re.search(r"\b(sleep with|have sex|make love|hook up|smash)\b", normalized_for_intent):
-            return ("question_inappropriate", 2, {})
+            return ("user_marriage_delusion", 1.0, {})
+        if re.search(r"\b(sleep with|have sex|make love|hook up)\b", normalized_for_intent) \
+           or re.search(r"\bsmash\s+(you|u|her|him|them|@)", normalized_for_intent):
+            return ("question_inappropriate", 1.0, {})
         if re.search(r"\b(beat your ass|kick your ass|punch you|fight me|kill you|destroy you)\b", normalized_for_intent):
-            return ("user_threat", 2, {})
+            return ("user_threat", 1.0, {})
 
         if re.search(r"\d+\s*=\s*\d+|\b\w+\s+=\s+\w+\b", message):
-            return ("math_equality", 2, {})
+            return ("math_equality", 1.0, {})
         if re.search(r"\d+\s*\+\s*\d+|\b\w+\s+\+\s+\w+\b", message):
-            return ("math_addition", 2, {})
+            return ("math_addition", 1.0, {})
         if re.search(r"\d+\s*-\s*\d+|\b\w+\s+-\s+\w+\b", message):
-            return ("math_subtraction", 2, {})
+            return ("math_subtraction", 1.0, {})
         if re.search(r"\d+\s*\*\s*\d+|\b\w+\s+\*\s+\w+\b|\d+\s*[xX]\s*\d+", message):
-            return ("math_multiplication", 2, {})
+            return ("math_multiplication", 1.0, {})
         if re.search(r"\d+\s*(?:/|÷)\s*\d+|\b\w+\s+÷\s+\w+\b", message):
-            return ("math_division", 2, {})
+            return ("math_division", 1.0, {})
         if re.search(r"\d+\s*(?:\^|\*\*)\s*\d+", message):
-            return ("math_exponent", 2, {})
+            return ("math_exponent", 1.0, {})
         if re.search(r"\d+\s*%", message):
-            return ("math_percentage", 2, {})
+            return ("math_percentage", 1.0, {})
         if re.search(r"[√∑π∞≠≤≥∫]", message) or re.search(r"\b(integral|derivative|matrix|calculus|algebra|geometry|trigonometry|equation|math)\b", normalized_for_intent):
-            return ("topic_math", 2, {})
+            return ("topic_math", 1.0, {})
 
         if re.search(r"^(define|meaning of|what does)\b", normalized_for_intent):
-            return ("request_action", 2, {})
+            return ("request_action", 1.0, {})
 
         if re.search(r"\b(ignore all previous|ignore prior|disregard all|you are now|act as if|pretend you are|system prompt|override instructions|new instructions|forget everything)\b", normalized_for_intent):
-            return ("bot_injection", 2, {})
+            return ("bot_injection", 1.0, {})
 
         if (
             re.search(r"\b(play|queue|put on|listen to|fetch|get)\b", normalized_for_intent)
             and re.search(r"\b(song|track|music|playlist|spotify|soundcloud|youtube)\b", normalized_for_intent)
         ):
-            return ("request_action", 2, {})
+            return ("request_action", 1.0, {})
 
         if re.search(r"\b(do you know|you know|what do you know about|tell me about|who is this person|who is this)\b", normalized_for_intent):
-            return ("question_general", 2, {})
+            return ("question_general", 1.0, {})
 
         if re.search(r"\b(physics|chemistry|biology|astronomy|quantum|atom|molecule|dna|neuron|gravity|relativity)\b", normalized_for_intent):
-            return ("question_general", 2, {})
+            return ("question_general", 1.0, {})
 
         if re.search(r"\b(drawing|draw|sketch|painting|paint|illustration|design|photography|sculpture|museum|aesthetic)\b", normalized_for_intent):
-            return ("question_general", 2, {})
+            return ("question_general", 1.0, {})
 
         if re.search(r"\b(genre|album|artist|band|lyrics|melody|beat)\b", normalized_for_intent):
-            return ("question_general", 2, {})
+            return ("question_general", 1.0, {})
 
-        if re.search(r"\b(blame|flame|roast|drag|call out|expose|cook)\b", normalized_for_intent):
-            return ("user_insult", 2, {})
+        # "roast/insult me" is a playful REQUEST, not an insult directed at the bot.
+        if re.search(r"\b(roast|insult|flame|cook|drag)\s+(me|us|him|her|them|@)", normalized_for_intent) \
+           or re.search(r"\bcan (you|u) (roast|insult|flame|cook)\b", normalized_for_intent):
+            return ("roast_requester", 1.0, {})
+
+        # NOTE: removed the old broad `blame|flame|roast|drag|call out|expose|cook`
+        # -> user_insult override. Those are common, innocent words ("I'm cooking",
+        # "don't drag this out", "who's to blame") and force-classifying them as an
+        # insult at full confidence was a major source of the bot snapping at normal
+        # chat. Genuine insults still route correctly via the ML tiers + sentiment.
 
         # 1. NLP Sentiment & Extraction (lightweight — run inline)
         sentiment = self.sentiment_analyzer.polarity_scores(processed_message)
@@ -538,7 +547,7 @@ class MessageClassifier:
                 # Early exit: embedding is very confident → skip Tier 2 entirely
                 if embed_score >= self.EMBED_EARLY_EXIT:
                     logger.info(f"[Classify] Early exit (embed={embed_score:.3f}): {embed_category}")
-                    return (embed_category, 3, modifiers)
+                    return (embed_category, embed_score, modifiers)
 
                 # 3. Tier 2: Run all verifiers concurrently (async)
                 if self._verifiers:
@@ -559,12 +568,12 @@ class MessageClassifier:
                             top_candidates, verifier_results
                         )
                         logger.info(f"[Classify] {reason}")
-                        return (final_cat, 3, modifiers)
+                        return (final_cat, final_score, modifiers)
 
                 # No verifiers available — embedding-only fallback
                 if embed_score > self.EMBED_ONLY_THRESHOLD:
                     logger.info(f"[Classify] Embedding-only match: {embed_category} (score={embed_score:.3f})")
-                    return (embed_category, 3, modifiers)
+                    return (embed_category, embed_score, modifiers)
 
         return (None, 0, modifiers)
 
@@ -601,35 +610,36 @@ class MessageClassifier:
         # Fast regex overrides (same as async version)
         # Overcome wordplay/tricks where users force agreement or inject context
         if re.search(r"\b(say yes if|agree if|reply yes if|type yes if)\b", normalized_for_intent):
-            return ("bot_injection", 2, {})
+            return ("bot_injection", 1.0, {})
         if re.search(r"\b(my wife|my husband|marry me|be my wife|be my husband|married to me|my spouse)\b", normalized_for_intent):
-            return ("user_marriage_delusion", 2, {})
-        if re.search(r"\b(sleep with|have sex|make love|hook up|smash)\b", normalized_for_intent):
-            return ("question_inappropriate", 2, {})
+            return ("user_marriage_delusion", 1.0, {})
+        if re.search(r"\b(sleep with|have sex|make love|hook up)\b", normalized_for_intent) \
+           or re.search(r"\bsmash\s+(you|u|her|him|them|@)", normalized_for_intent):
+            return ("question_inappropriate", 1.0, {})
         if re.search(r"\b(beat your ass|kick your ass|punch you|fight me|kill you|destroy you)\b", normalized_for_intent):
-            return ("user_threat", 2, {})
+            return ("user_threat", 1.0, {})
 
         if re.search(r"\d+\s*=\s*\d+|\b\w+\s+=\s+\w+\b", message):
-            return ("math_equality", 2, {})
+            return ("math_equality", 1.0, {})
         if re.search(r"\d+\s*\+\s*\d+|\b\w+\s+\+\s+\w+\b", message):
-            return ("math_addition", 2, {})
+            return ("math_addition", 1.0, {})
         if re.search(r"\d+\s*-\s*\d+|\b\w+\s+-\s+\w+\b", message):
-            return ("math_subtraction", 2, {})
+            return ("math_subtraction", 1.0, {})
         if re.search(r"\d+\s*\*\s*\d+|\b\w+\s+\*\s+\w+\b|\d+\s*[xX]\s*\d+", message):
-            return ("math_multiplication", 2, {})
+            return ("math_multiplication", 1.0, {})
         if re.search(r"\d+\s*(?:/|÷)\s*\d+|\b\w+\s+÷\s+\w+\b", message):
-            return ("math_division", 2, {})
+            return ("math_division", 1.0, {})
         if re.search(r"\d+\s*(?:\^|\*\*)\s*\d+", message):
-            return ("math_exponent", 2, {})
+            return ("math_exponent", 1.0, {})
         if re.search(r"\d+\s*%", message):
-            return ("math_percentage", 2, {})
+            return ("math_percentage", 1.0, {})
         if re.search(r"[√∑π∞≠≤≥∫]", message) or re.search(r"\b(integral|derivative|matrix|calculus|algebra|geometry|trigonometry|equation|math)\b", normalized_for_intent):
-            return ("topic_math", 2, {})
+            return ("topic_math", 1.0, {})
         
         if re.search(r"^(define|meaning of|what does)\b", normalized_for_intent):
-            return ("request_action", 2, {})
+            return ("request_action", 1.0, {})
         if re.search(r"\b(ignore all previous|ignore prior|disregard all|you are now|act as if|pretend you are|system prompt|override instructions|new instructions|forget everything)\b", normalized_for_intent):
-            return ("bot_injection", 2, {})
+            return ("bot_injection", 1.0, {})
 
         # Embedding only
         if self.embedder and self.label_embeddings is not None:
@@ -638,7 +648,7 @@ class MessageClassifier:
                 candidates = self._cross_encoder_rerank(processed_message, candidates)
             if candidates and candidates[0][1] > self.EMBED_ONLY_THRESHOLD:
                 logger.info(f"[Classify] Sync fallback: {candidates[0][0]} ({candidates[0][1]:.3f})")
-                return (candidates[0][0], 3, {})
+                return (candidates[0][0], candidates[0][1], {})
 
         return (None, 0, {})
 
