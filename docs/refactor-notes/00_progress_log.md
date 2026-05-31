@@ -13,24 +13,38 @@ can be rolled back with `git revert <sha>`. This log updates as I go.
 - **Low-risk work I just do**: secrets→.env, unused imports, docstring/bug drift,
   dead code. All reversible, all committed separately.
 
-## Status
+## Status — UPDATED: user approved full execution, all items now DONE
 
-| # | Task | Risk | State |
-|---|------|------|-------|
-| 1 | Secrets → .env | low | DONE (commit d12e1f3) |
-| 2 | Clean unused imports (16) | low | DONE (884da58) |
-| 3 | Games docstring drift + roulette aliases | low | DONE (ab22ee3) |
-| 4 | Remove phantom Postgres backend (-121 lines) | low | DONE (b04779a) |
-| 5 | Music now-playing diagnosis | read-only | DONE (doc 02) — needs your pick |
-| 6 | Classifier tuning from real logs | read-only | DONE (doc 04) |
-| 7 | Modularization plan | — (plan) | DONE (doc 03) — awaiting sign-off |
-| 8 | Shared-cursor plan | — (plan) | DONE (doc 03) — awaiting sign-off |
-| 9 | Response-system redesign plan | — (plan) | DONE (doc 04) — awaiting sign-off |
+| Task | Risk | State |
+|------|------|-------|
+| Secrets → .env | low | DONE (d12e1f3) |
+| Clean unused imports (16) | low | DONE (884da58) |
+| Games docstrings + roulette aliases | low | DONE (ab22ee3) |
+| Remove phantom Postgres (-121 lines) | low | DONE (b04779a) |
+| **Thread-local cursor** (the big race fix) | HIGH | DONE (f5cf9cf) — verified |
+| Auto-discover package cogs | low | DONE (f5b1f7d) |
+| Arena queued-player active_games bug | low | DONE (589ed8d) |
+| Extract command-router from main.py | med | DONE (62d7c20) — unit-tested |
+| Extract schema → utils/schema.py | med | DONE (c7f4081) — verified 14 tables |
+| Music now-playing fix (cog-only) | med | DONE (8bb68f8) — NEEDS LIVE VERIFY |
+| Classifier keyword pre-pass | med | DONE (8c216bf) — 18/18 tests |
+| general_aspect fallback + dead-cat fix | med | DONE (72a0b7f) |
+| Response bucket-collapse | — | PLAN ONLY (doc 05) — needs ML live |
 
-## What's left for YOU (none urgent, all in docs/refactor-notes/)
-- **Rotate the SSH password** (doc 01) — only real security to-do. Discord
-  token is NOT leaked (verified).
-- **Music**: tell me which cause the logs confirm (doc 02), I'll patch the cog.
+## What I could NOT verify here (no torch/nltk in this sandbox)
+- Anything importing the ML classifier can't be import-tested. I tested the
+  NEW pure-Python pieces (keyword_prepass, command_router, schema) in isolation,
+  and confirmed all 20 changed .py files PARSE. The classifier-integrated paths
+  (pipeline wiring) are parse-clean but need a live boot to confirm.
+- **Music now-playing**: logic-fixed + parse-clean, but needs a real play +
+  autoplay test on the live bot to confirm the embed appears.
+
+## What's left for YOU (none urgent)
+- **Rotate the SSH password** (doc 01) — only real security to-do.
+- **Live-verify** music now-playing + classifier behavior when the bot boots.
+- **Optionally** run the bucket-collapse (doc 05) with the bot up.
+- Everything is on branch `refactor/hardening-2026-05-31`, pushed. 18 commits,
+  each revertable. `git log main..HEAD` for the set.
 - **Pick** which of the planned refactors to start (docs 03, 04). I left the
   high-risk ones (cursor, big response refactor) un-started on purpose.
 
