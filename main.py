@@ -361,20 +361,19 @@ async def load_extensions():
     if not os.path.exists('./cogs'):
         os.makedirs('./cogs')
     
-    # Package-based cogs (directories with __init__.py)
-    package_cogs = ['sonarr_ai', 'music', 'games', 'adventure']
-    
     # File-based cogs to ignore (old files superseded by packages, or view-only files)
     ignored_files = ['views.py', 'sonarr_ai.py', 'music.py']
-    
+
     cog_names = []
-    
-    # Add package cogs
-    for pkg in package_cogs:
-        pkg_path = os.path.join('./cogs', pkg)
+
+    # Package-based cogs: auto-discover any cogs/<dir> that has an __init__.py.
+    # (Was a hardcoded list — adding a package cog and forgetting the list
+    # silently skipped it. Discovery removes that footgun.)
+    for entry in sorted(os.listdir('./cogs')):
+        pkg_path = os.path.join('./cogs', entry)
         if os.path.isdir(pkg_path) and os.path.exists(os.path.join(pkg_path, '__init__.py')):
-            cog_names.append(pkg)
-    
+            cog_names.append(entry)
+
     # Add file-based cogs
     for filename in os.listdir('./cogs'):
         if filename.endswith('.py') and filename not in ignored_files:
