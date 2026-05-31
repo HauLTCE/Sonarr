@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import asyncio
+import threading
 from pathlib import Path
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor
@@ -37,16 +38,31 @@ class Database:
     
     def __init__(self):
         self.connection = None
-        self.cursor = None
+        self._local = threading.local()
         self._init_db()
-    
+
+    @property
+    def cursor(self):
+        """Return a cursor unique to the calling thread.
+
+        The connection is shared (SQLite serializes writes), but a single shared
+        cursor is NOT thread-safe: concurrent execute/fetch on one cursor lets
+        threads read each other's result rows. Giving each thread its own cursor
+        closes that race with zero changes to the 125 `db.cursor.execute(...)`
+        call sites. Cursors are cheap and share the connection's transaction.
+        """
+        cur = getattr(self._local, "cursor", None)
+        if cur is None:
+            cur = self.connection.cursor()
+            self._local.cursor = cur
+        return cur
+
     def _init_db(self):
         """Initialize database and create tables if they don't exist."""
         try:
             self.connection = sqlite3.connect(str(DB_PATH), check_same_thread=False, timeout=10.0)
             self.connection.row_factory = sqlite3.Row
-            
-            self.cursor = self.connection.cursor()
+
             self.cursor.execute('PRAGMA journal_mode=WAL')
             self.cursor.execute('PRAGMA synchronous=NORMAL')
             self.cursor.execute('PRAGMA cache_size=10000')
