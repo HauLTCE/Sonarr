@@ -206,13 +206,16 @@ async def start_arena(cog, ctx, bet: int):
             await run_arena_match(cog, ctx, p, ctx.author, bet)
             return
             
-    # Join queue
+    # Join queue. Mark the player busy so they can't start another game while
+    # waiting (run_arena_match adds both players too; a set makes that idempotent).
     arena_queues[bet].append(ctx.author)
+    cog.active_games.add(ctx.author.id)
     await ctx.send(f"{ctx.author.mention} joined the Arena queue for {bet:,} 🪙. Waiting for an opponent... (Timeout in 60s)")
-    
+
     await asyncio.sleep(60)
-    
+
     if ctx.author in arena_queues[bet]:
         arena_queues[bet].remove(ctx.author)
+        cog.active_games.discard(ctx.author.id)
         # We could implement AI bot here, but for now just cancel
         await ctx.send(f"{ctx.author.mention}, no opponents found for {bet:,} 🪙 Arena. Queue cancelled.")
