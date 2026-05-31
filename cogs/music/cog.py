@@ -263,13 +263,25 @@ class Music(commands.Cog):
         await player.play(next_track, volume=self.volume)
         return True
 
-    async def _get_bound_channel(self, player: wavelink.Player) -> discord.TextChannel | None:
+    async def _get_bound_channel(self, player: wavelink.Player) -> "discord.abc.Messageable | None":
         channel_id = getattr(player, "text_channel_id", None)
-        if not channel_id:
-            return None
-        channel = self.bot.get_channel(channel_id)
-        if isinstance(channel, discord.TextChannel):
-            return channel
+        if channel_id:
+            channel = self.bot.get_channel(channel_id)
+            if isinstance(channel, discord.TextChannel):
+                return channel
+
+        # Fallback: no bound text channel (e.g. autoplay/session-resume created
+        # the player without going through the command path that sets
+        # text_channel_id). Use the voice channel itself — modern Discord voice
+        # channels have a text chat and support .send(). Remember it so later
+        # tracks reuse it. Log so this stops being an invisible failure.
+        vc = getattr(player, "channel", None)
+        if isinstance(vc, (discord.VoiceChannel, discord.StageChannel)):
+            setattr(player, "text_channel_id", vc.id)
+            logger.info("No bound text channel; falling back to voice channel %s for Now Playing", vc.id)
+            return vc
+
+        logger.warning("Now Playing suppressed: player has no resolvable text or voice channel")
         return None
 
     async def _send_interactive_player(self, player: wavelink.Player, track: wavelink.Playable) -> None:
