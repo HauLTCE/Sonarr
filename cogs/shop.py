@@ -1,10 +1,10 @@
 import discord
 from discord.ext import commands
-from utils.economy_helpers import get_balance, update_wallet, update_bank, ensure_account
+from utils.economy_helpers import get_balance, update_wallet, update_bank, ensure_account, spend_wallet, spend_gems
 from utils.database import db
 from utils.achievements import unlock_achievement
 from cogs.adventure.engine import get_character
-from cogs.levels import get_level
+from cogs.levels import get_level, set_level
 from utils.consumables import CONSUMABLES, get_consumables, add_consumable, use_consumable, remove_consumable, SELL_PRICES
 from cogs.adventure.items import (
     get_inventory, remove_item, ITEMS, RARITY_COLORS, RARITY_DISPLAY, GEAR_SELL_PRICES
@@ -255,10 +255,9 @@ class Shop(commands.Cog):
             if bal['bank_cap'] >= caps[tier]:
                 await ctx.send("You already have this or a higher bank tier.")
                 return
-            if bal['wallet'] < costs[tier]:
+            if not spend_wallet(ctx.author.id, costs[tier]):
                 await ctx.send(f"You need {costs[tier]:,} 🪙 to buy this upgrade.")
                 return
-            update_wallet(ctx.author.id, -costs[tier])
             db.cursor.execute("UPDATE economy SET bank_cap = ? WHERE user_id = ?", (caps[tier], user_id))
             db.connection.commit()
             await ctx.send(f"✅ Bank upgraded to Tier {tier}! New capacity: {caps[tier]:,} 🪙.")
@@ -273,10 +272,9 @@ class Shop(commands.Cog):
                 if db.cursor.fetchone():
                     await ctx.send(f"You already own 「{title_name}」. Use `!title {title_name}` to equip it.")
                     return
-                if bal['wallet'] < cost:
+                if not spend_wallet(ctx.author.id, cost):
                     await ctx.send(f"You need {cost:,} 🪙 for 「{title_name}」.")
                     return
-                update_wallet(ctx.author.id, -cost)
                 unlock_achievement(ctx.author.id, ach_id)
                 # Auto-set as active title
                 db.cursor.execute("UPDATE economy SET active_title = ? WHERE user_id = ?", (title_name, user_id))
@@ -294,11 +292,9 @@ class Shop(commands.Cog):
                 if db.cursor.fetchone():
                     await ctx.send(f"You already own 「{title_name}」. Use `!title {title_name}` to equip it.")
                     return
-                if bal['gems'] < cost:
+                if not spend_gems(ctx.author.id, cost):
                     await ctx.send(f"You need {cost} 💎 for 「{title_name}」.")
                     return
-                db.cursor.execute("UPDATE economy SET gems = gems - ? WHERE user_id = ?", (cost, user_id))
-                db.connection.commit()
                 unlock_achievement(ctx.author.id, ach_id)
                 db.cursor.execute("UPDATE economy SET active_title = ? WHERE user_id = ?", (title_name, user_id))
                 db.connection.commit()
@@ -323,13 +319,12 @@ class Shop(commands.Cog):
         if consumable_match:
             cid, cdata = consumable_match
             total_cost = cdata['cost'] * buy_qty
-            if bal['wallet'] < total_cost:
+            if not spend_wallet(ctx.author.id, total_cost):
                 if buy_qty > 1:
                     await ctx.send(f"You need {total_cost:,} 🪙 for {buy_qty}× **{cdata['name']}** ({cdata['cost']:,} each).")
                 else:
                     await ctx.send(f"You need {cdata['cost']:,} 🪙 for **{cdata['name']}**.")
                 return
-            update_wallet(ctx.author.id, -total_cost)
             add_consumable(ctx.author.id, cid, buy_qty)
             stock = get_consumables(ctx.author.id)
             qty_str = f"{buy_qty}× " if buy_qty > 1 else ""
@@ -517,7 +512,7 @@ class Shop(commands.Cog):
                 if interaction.user.id != self.outer_ctx.author.id:
                     return
                 db.cursor.execute("UPDATE economy SET wallet = 0, bank = 0, prestige = prestige + 1 WHERE user_id = ?", (str(self.outer_ctx.author.id),))
-                db.cursor.execute("UPDATE adventure_character SET current_floor = 1, deepest_floor = 1 WHERE user_id = ?", (str(self.outer_ctx.author.id),))
+                db.cursor.execute("UPDATE adventure_character SET current_floor = 1 WHERE user_id = ?", (str(self.outer_ctx.author.id),))
                 db.connection.commit()
                 
                 set_level(self.outer_ctx.author.id, guild_id, level=1, xp=0)

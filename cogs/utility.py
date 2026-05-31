@@ -39,8 +39,9 @@ class Utility(commands.Cog):
         await ctx.send(f'Pong! ({round(self.bot.latency * 1000)}ms)')
 
     @commands.command()
+    @commands.has_permissions(manage_messages=True)
     async def echo(self, ctx, *, message):
-        """Repeats the message you sent."""
+        """Repeats the message you sent. Requires Manage Messages."""
         await ctx.send(message)
 
     @commands.command()
@@ -116,6 +117,15 @@ class Utility(commands.Cog):
         seconds = convert(time_str)
         if seconds == -1:
             await ctx.send("❌ Invalid format. Use 10s, 5m, 1h, etc.")
+            return
+        if seconds <= 0:
+            await ctx.send("❌ Reminder time must be positive.")
+            return
+        # Cap at 7 days: these live in memory (one sleeping coroutine each, holding
+        # ctx), so an unbounded value is a memory-exhaustion / spam vector.
+        MAX_SECONDS = 7 * 86400
+        if seconds > MAX_SECONDS:
+            await ctx.send("❌ Reminders can be at most 7 days out.")
             return
 
         await ctx.send(f"⏰ Timer set for **{task}** in **{time_str}**.")

@@ -7,7 +7,7 @@ import json
 import os
 from utils.database import db
 
-# ========== ITEM CATALOG (from JSON) ==========
+# ========== ITEM CATALOG ==========
 _ITEMS_PATH = os.path.join(os.path.dirname(__file__), "items_data.json")
 with open(_ITEMS_PATH, "r", encoding="utf-8") as _f:
     ITEMS = json.load(_f)

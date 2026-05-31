@@ -94,11 +94,34 @@ def check_command_type_spam(user_id, command_name):
 def cleanup_spam_data():
     """Clean up expired spam tracking data."""
     current_time = time.time()
-    
+
     expired_users = [uid for uid, timeout in user_cooldowns.items() if timeout <= current_time]
     for uid in expired_users:
         del user_cooldowns[uid]
-    
+
     expired_commands = [key for key, timeout in command_type_spam.items() if timeout <= current_time]
     for key in expired_commands:
         del command_type_spam[key]
+
+    # Prune command_counts so it doesn't grow unbounded across the bot's lifetime.
+    # Entries are only refreshed when a user runs a command, so stale users (who
+    # stopped using the bot) would otherwise linger forever. Drop any whose tracked
+    # timestamps are all older than the widest window.
+    stale = []
+    for key, val in command_counts.items():
+        if isinstance(val, dict):
+            # {command_name: [timestamps]} — keep only recent timestamps, drop empties
+            for cmd in list(val.keys()):
+                val[cmd] = [ts for ts in val[cmd] if current_time - ts < PER_COMMAND_TIME_WINDOW]
+                if not val[cmd]:
+                    del val[cmd]
+            if not val:
+                stale.append(key)
+        elif isinstance(val, list):
+            # [(timestamp, count), ...] — stale if nothing within the chain window
+            if not any(current_time - ts < TIME_WINDOW for ts, _ in val):
+                stale.append(key)
+        else:
+            stale.append(key)
+    for key in stale:
+        del command_counts[key]

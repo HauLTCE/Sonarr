@@ -1,13 +1,12 @@
 import discord
 from discord.ext import commands
 import time
-import math
 import random
 
 from utils.database import db
 from utils.economy_helpers import (
-    ensure_account, get_balance, update_wallet, update_bank, 
-    transfer_coins, get_leaderboard, calculate_cashout
+    ensure_account, get_balance, update_wallet, update_bank,
+    get_leaderboard, calculate_cashout, spend_wallet
 )
 from cogs.levels import get_level, set_level
 
@@ -35,10 +34,9 @@ class BankUpgradeView(discord.ui.View):
             await interaction.response.send_message("Already at max bank tier!", ephemeral=True)
             return
         cost = costs[next_tier]
-        if bal['wallet'] < cost:
+        if not spend_wallet(self.ctx.author.id, cost):
             await interaction.response.send_message(f"Need {cost:,} 🪙 for Bank Tier {next_tier}.", ephemeral=True)
             return
-        update_wallet(self.ctx.author.id, -cost)
         uid = str(self.ctx.author.id)
         db.cursor.execute("UPDATE economy SET bank_cap = ? WHERE user_id = ?", (caps[next_tier], uid))
         db.connection.commit()
@@ -56,6 +54,7 @@ class CashoutView(discord.ui.View):
         self.new_level = new_level
         self.cog = cog
         self.value = None
+        self.done = False  # Guards against double-confirm (two views → double payout)
 
     @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green, emoji="✅")
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -76,6 +75,15 @@ class CashoutView(discord.ui.View):
         self.stop()
         
     async def process_cashout(self, interaction):
+        # Re-entry guard: if the user opened two cashout views, only the first
+        # confirm pays out — the rest are no-ops.
+        if self.done:
+            await interaction.response.send_message("This cashout was already processed.", ephemeral=True)
+            return
+        self.done = True
+        for child in self.children:
+            child.disabled = True
+
         user_id = str(self.ctx.author.id)
         guild_id = str(interaction.guild.id) if interaction.guild else 'global'
         
@@ -150,8 +158,8 @@ class Economy(commands.Cog):
             last_cashout = row[0]
             if time.time() - last_cashout < 3600:
                 rem = int(3600 - (time.time() - last_cashout))
-                mins = rem // 60
-                await ctx.send(f"You can cash out again in {mins} minutes.")
+                wait = f"{rem // 60}m {rem % 60}s" if rem >= 60 else f"{rem}s"
+                await ctx.send(f"You can cash out again in {wait}.")
                 return
 
         guild_id = str(ctx.guild.id) if ctx.guild else 'global'
@@ -240,8 +248,12 @@ class Economy(commands.Cog):
         hours_since = (now - last_daily) / 3600
         
         if hours_since < 24:
-            rem = int(24 - hours_since)
-            await ctx.send(f"I already gave you your allowance. Come back in {rem} hours.")
+            rem_secs = int(24 * 3600 - (now - last_daily))
+            if rem_secs >= 3600:
+                wait = f"{rem_secs // 3600}h {(rem_secs % 3600) // 60}m"
+            else:
+                wait = f"{rem_secs // 60}m"
+            await ctx.send(f"I already gave you your allowance. Come back in {wait}.")
             return
             
         if hours_since > 48 and last_daily != 0:
@@ -277,7 +289,9 @@ class Economy(commands.Cog):
         if gems_reward > 0:
             desc += f"🎉 Milestone reached! You got {gems_reward} 💎!\n"
         elif streak < 7:
-            desc += f"🔥 {streak}-day streak! {7-streak} more for a 💎\nCome back tomorrow to keep it."
+            remaining = 7 - streak
+            day_word = "day" if remaining == 1 else "days"
+            desc += f"🔥 {streak}-day streak! {remaining} more {day_word} for a 💎\nCome back tomorrow to keep it."
             
         embed.description = desc
         
@@ -350,10 +364,14 @@ class Economy(commands.Cog):
             
         tax = int(amount * 0.05)
         net_amount = amount - tax
-        
-        update_wallet(ctx.author.id, -amount)
+
+        # Atomic: deduct the full amount from the sender first; only credit the
+        # recipient if that succeeded, so a race can't duplicate or lose coins.
+        if not spend_wallet(ctx.author.id, amount):
+            await ctx.send("You don't have enough coins in your wallet.")
+            return
         update_wallet(user.id, net_amount)
-        
+
         await ctx.send(f"You paid {user.mention} {net_amount} 🪙. ({tax} 🪙 taken as tax.)")
 
     @commands.command(aliases=['dep'])
@@ -385,10 +403,13 @@ class Economy(commands.Cog):
             view = BankUpgradeView(ctx)
             await ctx.send("Your bank is full. Upgrade?", view=view)
             return
-            
-        update_wallet(ctx.author.id, -dep_amount)
+
+        # Atomic: pull from wallet first; only bank it if the deduction happened.
+        if not spend_wallet(ctx.author.id, dep_amount):
+            await ctx.send("You don't have that much in your wallet.")
+            return
         update_bank(ctx.author.id, dep_amount)
-        
+
         await ctx.send(f"Deposited {dep_amount} 🪙 to your bank.")
 
     @commands.command()
@@ -412,10 +433,19 @@ class Economy(commands.Cog):
         if bal["bank"] < wd_amount:
             await ctx.send("You don't have that much in your bank.")
             return
-            
-        update_bank(ctx.author.id, -wd_amount)
+
+        # Atomic: deduct from bank only if it still has the funds, then credit wallet.
+        uid = str(ctx.author.id)
+        db.cursor.execute(
+            "UPDATE economy SET bank = bank - ? WHERE user_id = ? AND bank >= ?",
+            (wd_amount, uid, wd_amount),
+        )
+        db.connection.commit()
+        if db.cursor.rowcount == 0:
+            await ctx.send("You don't have that much in your bank.")
+            return
         update_wallet(ctx.author.id, wd_amount)
-        
+
         await ctx.send(f"Withdrew {wd_amount} 🪙 from your bank.")
 
     @commands.command()

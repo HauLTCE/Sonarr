@@ -53,6 +53,43 @@ def update_wallet(user_id: int, amount: int) -> int:
     row = db.cursor.fetchone()
     return row[0] if row else 0
 
+def spend_wallet(user_id: int, amount: int) -> bool:
+    """Atomically deduct `amount` only if wallet >= amount.
+
+    Returns True if the deduction happened, False if the wallet was insufficient.
+    Unlike update_wallet (which clamps at 0 and always "succeeds"), this is the
+    safe primitive for purchases: the WHERE guard + rowcount check makes the
+    read-and-deduct a single atomic step, closing the TOCTOU race where a
+    concurrent spend could let a user buy something they can't afford.
+    """
+    if amount <= 0:
+        return True
+    ensure_account(user_id)
+    db.cursor.execute(
+        "UPDATE economy SET wallet = wallet - ? WHERE user_id = ? AND wallet >= ?",
+        (amount, str(user_id), amount),
+    )
+    db.connection.commit()
+    return db.cursor.rowcount > 0
+
+
+def spend_gems(user_id: int, amount: int) -> bool:
+    """Atomically deduct gems only if gems >= amount. Returns True if spent.
+
+    Gems have no MAX(0, ...) clamp anywhere, so a plain UPDATE could drive them
+    negative — this guard prevents that.
+    """
+    if amount <= 0:
+        return True
+    ensure_account(user_id)
+    db.cursor.execute(
+        "UPDATE economy SET gems = gems - ? WHERE user_id = ? AND gems >= ?",
+        (amount, str(user_id), amount),
+    )
+    db.connection.commit()
+    return db.cursor.rowcount > 0
+
+
 def update_bank(user_id: int, amount: int) -> int:
     """Add/subtract from bank. Respects bank_cap. Returns new balance."""
     ensure_account(user_id)
@@ -67,18 +104,20 @@ def update_bank(user_id: int, amount: int) -> int:
     return new_bank
 
 def transfer_coins(from_id: int, to_id: int, amount: int) -> bool:
-    """Atomic transfer between two users. Returns success."""
+    """Atomic transfer between two users. Returns success.
+
+    Deducts from the sender first via the conditional spend_wallet; only credits
+    the recipient if that deduction actually happened, so a failure can never
+    create or destroy coins.
+    """
     if amount <= 0:
         return False
-        
+
     ensure_account(from_id)
     ensure_account(to_id)
-    
-    bal_from = get_balance(from_id)
-    if bal_from["wallet"] < amount:
+
+    if not spend_wallet(from_id, amount):
         return False
-        
-    update_wallet(from_id, -amount)
     update_wallet(to_id, amount)
     return True
 
