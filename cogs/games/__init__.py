@@ -236,7 +236,8 @@ class Games(commands.Cog):
     @commands.command(aliases=['rl'])
     async def roulette(self, ctx, bet: int, choice: str = None):
         """Spin the roulette wheel — European rules (0-36). Bet 10-5,000 🪙.
-        Bet on: `red`/`black` (2x), `odd`/`even` (2x), `1-18`/`19-36` (2x), or a number 0-36 (36x).
+        Bet on: `red`/`black` (2x), `odd`/`even` (2x), `low`/`high` aka `1-18`/`19-36` (2x),
+        a dozen `1st`/`2nd`/`3rd` (3x), or a single number 0-36 (36x).
         Usage: `!roulette 100 red` or `!rl 100 17`"""
         if choice is None:
             await ctx.send("Please specify a choice. e.g., `!roulette 100 red` or `!roulette 100 17`")
@@ -288,9 +289,9 @@ class Games(commands.Cog):
     @commands.command()
     async def rob(self, ctx, target: discord.Member):
         """Attempt to pickpocket another user's wallet. No bet required.
-        Success chance scales with your wallet vs theirs. Steal 10-30% of their wallet.
-        Fail and you pay a fine (capped at your own balance). 2-hour cooldown.
-        Usage: `!rob @user`"""
+        Click the button in time for a better success chance. Steal 15-25% of their wallet.
+        Fail and you pay a fine (up to 150 🪙, capped at your balance). 4-hour cooldown.
+        Target must have at least 200 🪙. Usage: `!rob @user`"""
         if ctx.author.id in self.active_games:
             await ctx.send("You're already in a game. Finish that first.")
             return
@@ -412,11 +413,11 @@ class Games(commands.Cog):
 
     @commands.command()
     async def arena(self, ctx, bet: int):
-        """PvE combat arena — 3 rounds of rock-paper-scissors with HP. Bet 10-5,000 🪙.
-        Choose Attack (🗡️), Defend (🛡️), or Special (⚡) each round.
-        Attack beats Special, Special beats Defend, Defend beats Attack.
-        Losing a round costs HP. Survive 3 rounds to win based on remaining HP.
-        Usage: `!arena 100`"""
+        """PvP combat arena — queue up and get matched against another player betting
+        the same amount. Bet 10-5,000 🪙. Each round, pick Attack (🗡️), Defend (🛡️),
+        or Special (⚡): Defend blocks and counters Attack; Special hits hard but can miss
+        and be interrupted. Fight until someone hits 0 HP. Winner takes the pot (10% tax).
+        Queue cancels after 60s with no opponent. Usage: `!arena 100`"""
         if ctx.author.id in self.active_games:
             await ctx.send("You're already in a game.")
             return
