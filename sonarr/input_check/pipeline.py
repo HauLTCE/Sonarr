@@ -7,10 +7,37 @@ Provides a simplified classification flow using the async two-tier classifier.
 import random
 import asyncio
 import logging
+import re
 
 from sonarr.responses import EMPTY_MESSAGE_RESPONSES
 
 logger = logging.getLogger("bot")
+
+# Categories where a TIMEOUT effect is legitimate (genuine abuse / attacks on the
+# bot or others). Anywhere else, a stray TIMEOUT line is stripped so normal
+# chatters don't get muted for a joke or a question. Widen this set to restore
+# punishment to a category.
+TIMEOUT_ALLOWED_CATEGORIES = frozenset({
+    "bot_injection",
+    "disruptive_hate_speech",
+    "disruptive_bypass",
+    "user_threat",
+    "request_timeout",   # user explicitly asked to be timed out
+})
+
+
+def _strip_timeout_prefix(response: str) -> str:
+    """Remove a leading TIMEOUT: / TIMEOUT:30m: effect, keeping the message text.
+
+    'TIMEOUT:2m:Too personal.' -> 'Too personal.'
+    'TIMEOUT:You earned that.'  -> 'You earned that.'
+    """
+    body = response[len("TIMEOUT:"):]
+    m = re.match(r'^\d+[smhd]:(.+)$', body, re.DOTALL)
+    if m:
+        return m.group(1).strip()
+    return body.strip()
+
 
 class ClassifierMixin:
     """Mixin providing async NLP classification for SonarrAI."""
@@ -82,5 +109,16 @@ class ClassifierMixin:
 
         # Map to response directly
         response = await self._pick_response_for_category(category)
+
+        # Timeout gate: a TIMEOUT: effect actually mutes/punishes the user. Many
+        # normal-conversation pools (jokes, questions, requests) historically had
+        # stray TIMEOUT lines, so a correct classification could still randomly
+        # time out a normal chatter. Only let timeouts fire for genuine-abuse
+        # categories; everywhere else, keep the sassy text but strip the
+        # punishment. (Reversible: widen TIMEOUT_ALLOWED_CATEGORIES to restore.)
+        if response and response.startswith("TIMEOUT:") and category not in TIMEOUT_ALLOWED_CATEGORIES:
+            response = _strip_timeout_prefix(response)
+            logger.info(f"[Classify] Stripped stray TIMEOUT from non-abuse category '{category}'")
+
         logger.info(f"[BotReply] Q: '{message_content}' (cat: {category}) -> A: '{response}'")
         return response
