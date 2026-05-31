@@ -58,8 +58,16 @@ class ClassifierMixin:
         )
 
         if not category or confidence < 2:
-            # Fallback
-            category = random.choice(["social_chitchat", "user_confusion", "disruptive_behavior"])
+            # Low-confidence fallback. Prefer the broad general_aspect pool so a
+            # vague input gets an on-brand reply instead of being force-fit into
+            # a specific category. Guard against the key being absent.
+            from sonarr.responses import COLD_RESPONSES
+            if "general_aspect" in COLD_RESPONSES:
+                category = "general_aspect"
+            else:
+                candidates = [c for c in ("social_chitchat", "user_confusion", "user_unclear")
+                              if c in COLD_RESPONSES]
+                category = random.choice(candidates) if candidates else "social_chitchat"
 
         logger.debug(f"[Classify] FINAL ({word_count}w): '{message_content[:40]}' → {category}")
 
