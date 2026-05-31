@@ -5,7 +5,6 @@ import os
 import asyncio
 from pathlib import Path
 from datetime import datetime, timezone
-from functools import wraps
 from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger("bot")
@@ -30,7 +29,6 @@ def _run_async_in_thread(coro_func, *args, **kwargs):
         finally:
             loop.close()
     
-    import concurrent.futures
     future = _executor.submit(run_in_new_loop)
     return future.result(timeout=30)
 

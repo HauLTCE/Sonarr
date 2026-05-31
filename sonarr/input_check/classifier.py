@@ -11,14 +11,12 @@ Two-tier classification architecture:
   All model inference runs async via run_in_executor to avoid blocking the event loop.
 """
 
-import os
 import re
 import logging
 import asyncio
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
-import nltk
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import spacy
 import numpy as np
