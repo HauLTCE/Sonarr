@@ -57,15 +57,24 @@ class ClassifierMixin:
             message_content, is_reply_to_bot=(reply_msg_obj is not None)
         )
 
-        if not category or confidence < 2:
-            # Low-confidence fallback. Prefer the broad general_aspect pool so a
-            # vague input gets an on-brand reply instead of being force-fit into
-            # a specific category. Guard against the key being absent.
+        # Confidence floor. `confidence` is now the REAL match score (0.0-1.0),
+        # not a hardcoded constant. Regex intent-overrides return 1.0 (certain).
+        # Below the floor the classifier is essentially guessing — and a wrong
+        # guess often lands on a hostile category (user_insult/user_confusion),
+        # which is what was timing out / snapping at normal chatters. So route
+        # anything uncertain to the broad, on-brand general_aspect pool instead
+        # of committing to a bad specific category.
+        CONFIDENCE_FLOOR = 0.42
+        if not category or confidence < CONFIDENCE_FLOOR:
+            logger.info(
+                f"[Classify] LOW CONFIDENCE ({confidence if category else 'none'}) "
+                f"for '{message_content[:40]}' → general_aspect fallback"
+            )
             from sonarr.responses import COLD_RESPONSES
             if "general_aspect" in COLD_RESPONSES:
                 category = "general_aspect"
             else:
-                candidates = [c for c in ("social_chitchat", "user_confusion", "user_unclear")
+                candidates = [c for c in ("social_chitchat", "general_aspect")
                               if c in COLD_RESPONSES]
                 category = random.choice(candidates) if candidates else "social_chitchat"
 
