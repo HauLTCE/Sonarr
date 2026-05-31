@@ -40,6 +40,16 @@ class ClassifierMixin:
             logger.debug(f"[Classify] EMPTY MESSAGE → {response[:50]}")
             return response
 
+        # Keyword fast-path: confident exact/keyword hits skip the ML tiers
+        # entirely (saves compute and fixes borderline cases the verifiers got
+        # wrong). Only trust it if it maps to a category we actually have.
+        from sonarr.input_check.keyword_prepass import keyword_prepass
+        from sonarr.responses import COLD_RESPONSES
+        kw_category = keyword_prepass(message_content)
+        if kw_category and kw_category in COLD_RESPONSES:
+            logger.info(f"[Classify] KEYWORD FAST-PATH: '{message_content[:40]}' → {kw_category}")
+            return await self._pick_response_for_category(kw_category)
+
         # Run async two-tier classification (embedding → verifiers)
         logger.debug(f"[Classify] Starting classification for: '{message_content[:40]}'")
 
