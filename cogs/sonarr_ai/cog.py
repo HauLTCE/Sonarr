@@ -97,7 +97,8 @@ class SonarrAI(ResponseMixin, ClassifierMixin, commands.Cog):
         Discord mentions look like <@123456789>, <@!123456789>, <#123456789>, <@&123456789>
         """
         # Remove bot mention specifically
-        content = content.replace(f"<@{self.bot.user.id}>", "").replace(f"<@!{self.bot.user.id}>", "")
+        if self.bot.user:
+            content = content.replace(f"<@{self.bot.user.id}>", "").replace(f"<@!{self.bot.user.id}>", "")
         # Replace other user mentions with a generic "someone"
         content = re.sub(r"<@!?\d+>", "someone", content)
         # Remove role mentions
@@ -136,11 +137,13 @@ class SonarrAI(ResponseMixin, ClassifierMixin, commands.Cog):
             return
 
         # Check if bot is mentioned or replied to
-        is_bot_mentioned = (
-            self.bot.user in message.mentions or
-            (message.reference and message.reference.resolved and
-             message.reference.resolved.author == self.bot.user)
+        ref = message.reference
+        replied_to_bot = (
+            ref is not None
+            and isinstance(getattr(ref, "resolved", None), discord.Message)
+            and ref.resolved.author == self.bot.user
         )
+        is_bot_mentioned = (self.bot.user in message.mentions) or replied_to_bot
 
         # Only respond if bot is mentioned
         if not is_bot_mentioned:
@@ -188,9 +191,10 @@ class SonarrAI(ResponseMixin, ClassifierMixin, commands.Cog):
         # --- NORMAL RESPONSE FLOW ---
         content_for_ai = self._clean_mentions(message.content)
 
-        # Get reply context
+        # Get reply context (skip deleted/unresolved references — those aren't
+        # full Message objects and have no .author/.content).
         reply_msg_obj = None
-        if message.reference and message.reference.resolved:
+        if message.reference and isinstance(message.reference.resolved, discord.Message):
             reply_msg_obj = message.reference.resolved
 
         # Classify and respond

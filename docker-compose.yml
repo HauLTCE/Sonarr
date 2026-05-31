@@ -1,0 +1,35 @@
+# Bot-only stack. Lavalink (systemd) and yt-cipher (container) are NOT managed here —
+# they stay exactly as they are on the host. The bot reaches them over host networking.
+services:
+  bot:
+    build: .
+    image: sonarr-bot:latest
+    container_name: sonarr-bot
+    # Host networking: the bot is an outbound gateway client (no inbound ports) and must
+    # reach Lavalink at 192.168.1.101:2333 and yt-cipher on the host. This makes the existing
+    # LAVALINK_URI work unchanged.
+    network_mode: "host"
+    # Reuse the existing secrets/flags (DISCORD_TOKEN, LAVALINK_*, feature flags).
+    env_file:
+      - /root/sonarr/.env
+    restart: unless-stopped
+    mem_limit: 3g
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      # ---- Writable user data (host = source of truth; survives rebuilds) ----
+      # Bind the main DB files only. SQLite manages its own -wal/-shm sidecars inside the
+      # container layer; binding those individually is unsafe (SQLite unlinks/recreates them,
+      # which fails on a file bind-mount). The WAL is checkpointed into the main file, which
+      # IS persisted here, so no committed data is lost on clean shutdown.
+      - /root/sonarr-data/bot_data.db:/app/bot_data.db
+      - /root/sonarr-data/sonarr_memory.db:/app/sonarr_memory.db
+      - /root/sonarr-data/playlists.json:/app/playlists.json
+      - /root/sonarr-data/ai_memory.json:/app/ai_memory.json
+      - /root/sonarr-data/data:/app/data
+      # ---- Pre-populated model caches (read-only; never re-downloaded) ----
+      - /root/.cache/huggingface:/models/huggingface:ro
+      - /root/nltk_data:/models/nltk_data:ro

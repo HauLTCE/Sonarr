@@ -1,0 +1,36 @@
+# Build-context excludes — keep the image lean and never ship data or secrets.
+.git/
+.gitignore
+venv/
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Data and databases — these live on host volumes, never in the image.
+data/
+*.db
+*.db-shm
+*.db-wal
+playlists.json
+ai_memory.json
+
+# Secrets — provided at runtime via env_file.
+.env
+.env.example
+
+# Dev-only tooling and docs not needed at runtime.
+deploy.py
+scripts/
+docs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Docker artifacts themselves.
+Dockerfile
+docker-compose.yml
+.dockerignore

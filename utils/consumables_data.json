@@ -11,7 +11,7 @@
   },
   "lucky_charm": {
     "name": "Lucky Charm", "emoji": "🍀", "cost": 120,
-    "desc": "+10 LCK for your next 5 combats.",
+    "desc": "+10 LCK for the current combat.",
     "combat": true
   },
   "revival_token": {

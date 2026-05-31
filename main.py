@@ -29,7 +29,12 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True 
 
-bot = commands.Bot(command_prefix='!', intents=intents, help_command=PrettyHelp())
+bot = commands.Bot(
+    command_prefix='!',
+    intents=intents,
+    help_command=PrettyHelp(),
+    allowed_mentions=discord.AllowedMentions(everyone=False, roles=False),
+)
 bot.server_config = load_config()
 bot.lavalink_ready = False
 
@@ -90,6 +95,11 @@ async def cleanup_message_cache():
         db.cleanup_all_guilds_cache()
     except Exception as e:
         logger.error(f"[Cache Cleanup] Message cache error: {e}")
+    try:
+        from utils.spam import cleanup_spam_data
+        cleanup_spam_data()
+    except Exception as e:
+        logger.error(f"[Cache Cleanup] Spam data error: {e}")
 
 @cleanup_message_cache.before_loop
 async def before_message_cache_cleanup():
@@ -201,8 +211,32 @@ def _fuzzy_suggest(invoked: str) -> str | None:
     for name in all_names:
         if name.startswith(invoked) or invoked.startswith(name):
             return name
-    
+
     return None
+
+
+def _find_command_by_prefix(cmd_name: str) -> list:
+    """Return commands whose name or any alias starts with cmd_name.
+
+    Used by the `&&` command-chain handler to resolve partial command names.
+    Exact name/alias matches short-circuit to a single result so a full name
+    never reads as ambiguous against longer commands sharing its prefix.
+    """
+    cmd_name = cmd_name.lower()
+    if not cmd_name:
+        return []
+
+    # Exact match wins outright.
+    exact = bot.get_command(cmd_name)
+    if exact:
+        return [exact]
+
+    matches = []
+    for cmd in bot.commands:
+        names = [cmd.name] + list(cmd.aliases)
+        if any(n.lower().startswith(cmd_name) for n in names):
+            matches.append(cmd)
+    return matches
 
 
 @bot.event

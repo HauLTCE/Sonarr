@@ -103,12 +103,20 @@ class Levels(commands.Cog):
             return
 
         user_id = str(message.author.id)
-        
+        now = time.time()
+
+        # Opportunistically evict stale cooldown entries so this dict doesn't grow
+        # unbounded over the bot's lifetime (one entry per user who ever spoke).
+        if len(self.cooldowns) > 1000:
+            cutoff = now - 60
+            for uid in [u for u, ts in self.cooldowns.items() if ts < cutoff]:
+                del self.cooldowns[uid]
+
         if user_id in self.cooldowns:
-            if time.time() - self.cooldowns[user_id] < 60:
+            if now - self.cooldowns[user_id] < 60:
                 return
 
-        self.cooldowns[user_id] = time.time()
+        self.cooldowns[user_id] = now
 
         xp_gain = random.randint(15, 25)
         new_level, leveled_up = add_xp(message.author.id, message.guild.id, xp_gain)
@@ -129,10 +137,11 @@ class Levels(commands.Cog):
                 await message.channel.send(level_msg)
 
     @commands.command(aliases=['rank', 'lvl'])
+    @commands.guild_only()
     async def level(self, ctx, member: discord.Member = None):
         """Check your current level and XP progress."""
         member = member or ctx.author
-        data = get_level(member.id, ctx.guild.id if ctx.guild else "global")
+        data = get_level(member.id, ctx.guild.id)
 
         lvl = data["level"]
         xp = data["xp"]
@@ -152,18 +161,19 @@ class Levels(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command(aliases=['top'])
+    @commands.guild_only()
     async def leaderboard(self, ctx):
         """Display the top 10 users with the most XP."""
-        guild_id = str(ctx.guild.id) if ctx.guild else "global"
+        guild_id = str(ctx.guild.id)
         db.cursor.execute(
             "SELECT user_id, xp, level FROM levels WHERE guild_id = ? ORDER BY level DESC, xp DESC LIMIT 10",
             (guild_id,)
         )
         rows = db.cursor.fetchall()
-        
+
         desc = ""
         for i, row in enumerate(rows, start=1):
-            member = ctx.guild.get_member(int(row[0])) if ctx.guild else None
+            member = ctx.guild.get_member(int(row[0]))
             name = member.display_name if member else f"User {row[0]}"
             desc += f"**{i}.** {name} - Lvl {row[2]} ({row[1]} XP)\n"
 
