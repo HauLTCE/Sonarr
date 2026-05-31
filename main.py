@@ -9,8 +9,6 @@ os.environ["OPENBLAS_NUM_THREADS"] = "10"
 import asyncio
 import shlex
 import copy
-import logging
-import random
 import wavelink
 from discord.ext import commands, tasks
 from dotenv import load_dotenv

@@ -1,4 +1,3 @@
-import discord
 from utils.economy_helpers import get_balance
 from utils.config import get_guild_config
 

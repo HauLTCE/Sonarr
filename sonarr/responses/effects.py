@@ -25,7 +25,7 @@ import logging
 import urllib.parse
 from datetime import timedelta
 from dataclasses import dataclass, field
-from typing import Optional, Tuple, List
+from typing import Optional, List
 
 logger = logging.getLogger("bot")
 
