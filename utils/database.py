@@ -615,131 +615,6 @@ class Database:
         ''', (cutoff,))
         self.connection.commit()
 
-# ============================================================
-# PostgreSQL Wrapper for HA Mode
-# ============================================================
-
-class PostgresWrapper:
-    """
-    Synchronous wrapper around the async PostgresDatabase.
-    Allows existing sync code to work with PostgreSQL.
-    """
-    
-    def __init__(self, database_url: str):
-        self.database_url = database_url
-        self._pg_db = None
-        self._pg_loop = None
-        self._initialized = False
-        self._sqlite_fallback = None
-        self._init_error = None
-        self._init_lock = False
-        
-        # Try to initialize immediately (in a separate thread)
-        self._try_init()
-    
-    def _try_init(self):
-        """Try to initialize PostgreSQL connection."""
-        if self._initialized or self._init_error or self._init_lock:
-            return
-        
-        self._init_lock = True
-        
-        try:
-            # Initialize in a separate thread with its own event loop
-            def init_pg():
-                from database.postgres import PostgresDatabase
-                
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                
-                pg_db = PostgresDatabase(self.database_url)
-                loop.run_until_complete(pg_db.connect())
-                
-                return pg_db, loop
-            
-            self._pg_db, self._pg_loop = _executor.submit(init_pg).result(timeout=30)
-            self._initialized = True
-            logger.info("[Database] PostgreSQL connection established (HA mode)")
-        except Exception as e:
-            self._init_error = str(e)
-            logger.error(f"[Database] PostgreSQL init failed: {e}, falling back to SQLite")
-            self._sqlite_fallback = Database()
-        finally:
-            self._init_lock = False
-    
-    def _run_sync(self, async_method, *args, **kwargs):
-        """Run async method synchronously using thread pool."""
-        if not self._initialized:
-            self._try_init()
-        
-        if self._pg_db is None:
-            raise RuntimeError("PostgreSQL not initialized, use fallback")
-        
-        def run_in_pg_loop():
-            return self._pg_loop.run_until_complete(async_method(*args, **kwargs))
-        
-        return _executor.submit(run_in_pg_loop).result(timeout=30)
-    
-    def _get_fallback(self):
-        """Get or create SQLite fallback."""
-        if self._sqlite_fallback is None:
-            self._sqlite_fallback = Database()
-        return self._sqlite_fallback
-    
-    # ========== ECONOMY METHODS ==========
-    
-    def get_cached_category(self, msg_hash: str, guild_id: int = None) -> str | None:
-        if self._pg_db:
-            return self._run_sync(self._pg_db.get_cached_category, msg_hash, guild_id)
-        return self._get_fallback().get_cached_category(msg_hash, guild_id)
-    
-    def cache_category(self, msg_hash: str, category: str, guild_id=None, content_words: list = None):
-        if self._pg_db:
-            return self._run_sync(self._pg_db.cache_category, msg_hash, category, guild_id, content_words)
-        return self._get_fallback().cache_category(msg_hash, category, guild_id, content_words)
-    
-    # ========== MISGENDERING MEMORY ==========
-    
-    def record_misgendering(self, user_id: str, guild_id: str, term_used: str):
-        if self._pg_db:
-            return self._run_sync(self._pg_db.record_misgendering, str(user_id), str(guild_id), term_used)
-        return self._get_fallback().record_misgendering(str(user_id), str(guild_id), term_used)
-    
-    def get_misgendered_users(self, guild_id: str, hours_back: int = 24) -> list:
-        if self._pg_db:
-            return self._run_sync(self._pg_db.get_misgendered_users, str(guild_id), hours_back)
-        return self._get_fallback().get_misgendered_users(str(guild_id), hours_back)
-    
-    def clear_misgendering_memory(self, user_id: str, guild_id: str):
-        if self._pg_db:
-            return self._run_sync(self._pg_db.clear_misgendering_memory, str(user_id), str(guild_id))
-        return self._get_fallback().clear_misgendering_memory(str(user_id), str(guild_id))
-    
-    def cleanup_expired_misgendering(self, hours_back: int = 24):
-        if self._pg_db:
-            return self._run_sync(self._pg_db.cleanup_expired_misgendering, hours_back)
-        return self._get_fallback().cleanup_expired_misgendering(hours_back)
-    
-    # ========== FALLBACK TO SQLITE FOR UNIMPLEMENTED METHODS ==========
-    
-    def __getattr__(self, name):
-        """
-        For methods not yet implemented in PostgresWrapper,
-        fall back to a local SQLite database.
-        """
-        # Prevent recursion - check for internal attributes first
-        if name.startswith('_'):
-            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
-        
-        # Initialize fallback if needed
-        if '_sqlite_fallback' not in self.__dict__:
-            object.__setattr__(self, '_sqlite_fallback', Database())
-            logger.warning(f"[Database] PostgreSQL fallback to SQLite initialized")
-        
-        attr = getattr(self._sqlite_fallback, name, None)
-        if attr is None:
-            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
-        return attr
 
 
 # ============================================================
@@ -747,15 +622,19 @@ class PostgresWrapper:
 # ============================================================
 
 def _create_database():
-    """Create the appropriate database based on environment."""
+    """Create the database instance.
+
+    NOTE: A PostgreSQL "HA mode" was once scaffolded here but never implemented
+    (it imported a `database.postgres` module that does not exist in this repo),
+    so it always fell back to SQLite anyway. The dead wrapper was removed. If you
+    set HA_ENABLED / DATABASE_URL expecting Postgres, you'll get SQLite + a warning
+    until a real backend is built. See docs/refactor-notes/ for the plan.
+    """
     if USE_POSTGRES:
-        database_url = os.getenv('DATABASE_URL')
-        if database_url:
-            logger.info("[Database] HA mode enabled - using PostgreSQL")
-            return PostgresWrapper(database_url)
-        else:
-            logger.warning("[Database] HA_ENABLED but no DATABASE_URL - falling back to SQLite")
-    
+        logger.warning(
+            "[Database] HA_ENABLED/DATABASE_URL is set, but no PostgreSQL backend "
+            "is implemented. Using SQLite."
+        )
     logger.info("[Database] Using SQLite backend")
     return Database()
 
