@@ -1,13 +1,13 @@
 import discord
 from discord.ext import commands
-from utils.economy_helpers import get_balance, update_wallet, update_bank, ensure_account, spend_wallet, spend_gems
+from utils.economy_helpers import get_balance, update_wallet, ensure_account, spend_wallet, spend_gems
 from utils.database import db
 from utils.achievements import unlock_achievement
 from cogs.adventure.engine import get_character
 from cogs.levels import get_level, set_level
-from utils.consumables import CONSUMABLES, get_consumables, add_consumable, use_consumable, remove_consumable, SELL_PRICES
+from utils.consumables import CONSUMABLES, get_consumables, add_consumable, remove_consumable, SELL_PRICES
 from cogs.adventure.items import (
-    get_inventory, remove_item, ITEMS, RARITY_COLORS, RARITY_DISPLAY, GEAR_SELL_PRICES
+    get_inventory, remove_item, ITEMS, RARITY_COLORS, GEAR_SELL_PRICES
 )
 
 

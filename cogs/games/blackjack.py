@@ -1,6 +1,5 @@
 import discord
 import random
-import asyncio
 from utils.economy_helpers import update_wallet, record_gamble
 
 CARD_FACES = {

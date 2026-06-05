@@ -10,13 +10,13 @@ GREEN_NUMBERS = {0}
 async def start_roulette(cog, ctx, bet: int, choice: str):
     choice = choice.lower()
     
-    valid_choices = ['red', 'black', 'odd', 'even', 'high', 'low', '1st', '2nd', '3rd']
+    valid_choices = ['red', 'black', 'odd', 'even', 'high', 'low', '1st', '2nd', '3rd', '1-18', '19-36']
     is_number = False
     
     if choice.isdigit() and 0 <= int(choice) <= 36:
         is_number = True
     elif choice not in valid_choices:
-        await ctx.send("Invalid choice. Bet on a number (0-36), red/black, odd/even, high/low, or 1st/2nd/3rd.")
+        await ctx.send("Invalid choice. Bet on a number (0-36), red/black, odd/even, high/low (or 1-18/19-36), or 1st/2nd/3rd.")
         return
         
     cog.active_games.add(ctx.author.id)
@@ -65,6 +65,12 @@ async def start_roulette(cog, ctx, bet: int, choice: str):
                 win = True
                 multiplier = 2
             elif choice == 'low' and result <= 18:
+                win = True
+                multiplier = 2
+            elif choice == '19-36' and result >= 19:
+                win = True
+                multiplier = 2
+            elif choice == '1-18' and result <= 18:
                 win = True
                 multiplier = 2
             elif choice == '1st' and 1 <= result <= 12:

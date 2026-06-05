@@ -9,8 +9,6 @@ os.environ["OPENBLAS_NUM_THREADS"] = "10"
 import asyncio
 import shlex
 import copy
-import logging
-import random
 import wavelink
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
@@ -21,6 +19,7 @@ from core.logger import setup_logging
 from utils.config import load_config
 from utils.spam import check_spam, check_command_type_spam
 from utils.command_history import log_command, update_command_status
+from utils.command_router import fuzzy_suggest, find_command_by_prefix
 
 load_dotenv()
 logger = setup_logging()
@@ -124,7 +123,7 @@ async def _log_command(ctx):
             logger.info(f"User {ctx.author.display_name} used {ctx.message.content}")
             log_command(ctx.command.name if ctx.command else "unknown", ctx.author.display_name)
             update_command_status("executed")
-        except Exception as e:
+        except Exception:
             pass
     
     await log_and_track()
@@ -158,7 +157,7 @@ async def on_command_error(ctx, error):
         if not invoked or len(invoked) < 2:
             return
         
-        suggestion = _fuzzy_suggest(invoked)
+        suggestion = fuzzy_suggest(bot, invoked)
         if suggestion:
             await ctx.send(
                 f"That's not a command. Did you mean **`!{suggestion}`**?",
@@ -182,61 +181,6 @@ async def on_command_error(ctx, error):
     else:
         logger.critical(f"Unhandled error in command {ctx.command} invoked by {ctx.author.display_name}: {error}", exc_info=True)
         await ctx.send("❌ An unexpected error occurred.", delete_after=5)
-
-
-def _fuzzy_suggest(invoked: str) -> str | None:
-    """Find the closest matching command name using fuzzy matching."""
-    import difflib
-    
-    # Build a list of all command names + aliases
-    all_names = []
-    for cmd in bot.commands:
-        all_names.append(cmd.name)
-        all_names.extend(cmd.aliases)
-        # Include subcommands for groups
-        if isinstance(cmd, commands.Group):
-            for sub in cmd.commands:
-                all_names.append(f"{cmd.name} {sub.name}")
-                all_names.extend(f"{cmd.name} {a}" for a in sub.aliases)
-    
-    # Also add help-related keywords
-    all_names.extend(["help", "help games", "help dungeon", "help economy", "help music",
-                       "help adventure", "dungeon_guide", "dguide", "advguide"])
-    
-    matches = difflib.get_close_matches(invoked, all_names, n=1, cutoff=0.6)
-    if matches:
-        return matches[0]
-    
-    # Fallback: prefix match
-    for name in all_names:
-        if name.startswith(invoked) or invoked.startswith(name):
-            return name
-
-    return None
-
-
-def _find_command_by_prefix(cmd_name: str) -> list:
-    """Return commands whose name or any alias starts with cmd_name.
-
-    Used by the `&&` command-chain handler to resolve partial command names.
-    Exact name/alias matches short-circuit to a single result so a full name
-    never reads as ambiguous against longer commands sharing its prefix.
-    """
-    cmd_name = cmd_name.lower()
-    if not cmd_name:
-        return []
-
-    # Exact match wins outright.
-    exact = bot.get_command(cmd_name)
-    if exact:
-        return [exact]
-
-    matches = []
-    for cmd in bot.commands:
-        names = [cmd.name] + list(cmd.aliases)
-        if any(n.lower().startswith(cmd_name) for n in names):
-            matches.append(cmd)
-    return matches
 
 
 @bot.event
@@ -287,7 +231,7 @@ async def on_message(message):
 
         cmd = bot.get_command(cmd_name)
         if not cmd:
-            matches = _find_command_by_prefix(cmd_name)
+            matches = find_command_by_prefix(bot, cmd_name)
             if len(matches) == 1:
                 cmd = matches[0]
             elif len(matches) > 1:
@@ -363,20 +307,19 @@ async def load_extensions():
     if not os.path.exists('./cogs'):
         os.makedirs('./cogs')
     
-    # Package-based cogs (directories with __init__.py)
-    package_cogs = ['sonarr_ai', 'music', 'games', 'adventure']
-    
     # File-based cogs to ignore (old files superseded by packages, or view-only files)
     ignored_files = ['views.py', 'sonarr_ai.py', 'music.py']
-    
+
     cog_names = []
-    
-    # Add package cogs
-    for pkg in package_cogs:
-        pkg_path = os.path.join('./cogs', pkg)
+
+    # Package-based cogs: auto-discover any cogs/<dir> that has an __init__.py.
+    # (Was a hardcoded list — adding a package cog and forgetting the list
+    # silently skipped it. Discovery removes that footgun.)
+    for entry in sorted(os.listdir('./cogs')):
+        pkg_path = os.path.join('./cogs', entry)
         if os.path.isdir(pkg_path) and os.path.exists(os.path.join(pkg_path, '__init__.py')):
-            cog_names.append(pkg)
-    
+            cog_names.append(entry)
+
     # Add file-based cogs
     for filename in os.listdir('./cogs'):
         if filename.endswith('.py') and filename not in ignored_files:
@@ -391,7 +334,7 @@ async def load_extensions():
             logger.error(f"Failed to load extension {name}: {e}")
             return False
     
-    results = await asyncio.gather(*[load_cog(n) for n in cog_names], return_exceptions=True)
+    await asyncio.gather(*[load_cog(n) for n in cog_names], return_exceptions=True)
 
 async def main():
     async with bot:

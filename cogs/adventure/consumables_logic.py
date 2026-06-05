@@ -2,7 +2,6 @@
 thin. Combat items share the per-battle cap enforced in views.CombatView."""
 import discord
 import asyncio
-from utils.economy_helpers import update_wallet, get_balance
 from utils.consumables import CONSUMABLES, get_consumables, use_consumable
 from cogs.adventure.engine import get_character, update_character, award_dungeon_xp
 from cogs.adventure.items import get_equipped_bonuses

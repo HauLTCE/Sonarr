@@ -1,7 +1,6 @@
 # Environment variables
 .env
 *.env
-deploy.py
 
 # Python
 __pycache__/
@@ -51,3 +50,6 @@ Thumbs.db
 
 # Logs
 *.log
+# Server log dumps (contain user messages/IDs — never commit)
+docs/refactor-notes/_server_log_raw.txt
+_server_log_raw.txt
