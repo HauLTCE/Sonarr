@@ -13,7 +13,7 @@ from cogs.adventure.engine import (
 )
 from cogs.adventure.items import (
     get_equipped_bonuses, get_equipped_items, get_inventory, equip_item,
-    give_item, roll_loot, get_item, ITEMS, RARITY_COLORS, RARITY_DISPLAY, ALL_SLOTS,
+    give_item, roll_loot, get_item, ITEMS, RARITY_COLORS, ALL_SLOTS,
 )
 from utils.consumables import CONSUMABLES, get_consumables
 from cogs.adventure.text_adapter import SimpleContext, TextInteraction

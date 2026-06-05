@@ -1,1 +1,0 @@
-Always try to work in small chunks. There is output limit and it will cut you off. Make the foundation first then add more into it. Keep each output around 100 lines and appends in later.
