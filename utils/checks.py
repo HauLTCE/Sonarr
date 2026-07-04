@@ -12,15 +12,28 @@ class BotRestrictedTimeError(commands.CheckFailure):
         self.reason = reason
 
 def is_sleep_time():
-    """Check if bot is in sleep mode (10PM - 6AM in UTC+7)"""
+    """Check if bot is in sleep mode (10PM - 6AM in UTC+7).
+
+    Gated by SLEEP_MODE_ENABLED (default False, matching .env.example). The toggle
+    was previously ignored here, so this always returned True at night — but since
+    nothing called it, it was dead. Now that economy_allowed() is wired, honor the
+    toggle so the default (off) means no restriction.
+    """
+    enabled = os.getenv("SLEEP_MODE_ENABLED", "False").lower() == "true"
+    if not enabled:
+        return False
     utc_plus_7 = timezone(timedelta(hours=7))
     now = datetime.now(utc_plus_7)
     hour = now.hour
     return hour >= 22 or hour < 6
 
 def is_lunch_break():
-    """Check if bot is on lunch break (12PM - 1PM in UTC+7)"""
-    enabled = os.getenv("MIDDAY_BREAK_ENABLED", "True").lower() == "true"
+    """Check if bot is on lunch break (12PM - 1PM in UTC+7).
+
+    Gated by MIDDAY_BREAK_ENABLED (default False, matching .env.example — the code
+    previously defaulted this to True, disagreeing with the template).
+    """
+    enabled = os.getenv("MIDDAY_BREAK_ENABLED", "False").lower() == "true"
     if not enabled:
         return False
     utc_plus_7 = timezone(timedelta(hours=7))

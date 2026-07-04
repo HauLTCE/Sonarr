@@ -2,11 +2,9 @@ import sqlite3
 import json
 import logging
 import os
-import asyncio
 import threading
 from pathlib import Path
 from datetime import datetime, timezone
-from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger("bot")
 
@@ -15,23 +13,6 @@ DB_PATH = Path("bot_data.db")
 # Check if we should use PostgreSQL
 USE_POSTGRES = os.getenv('HA_ENABLED', '').lower() in ('true', '1', 'yes') or os.getenv('DATABASE_URL')
 
-# Thread pool for running async code from sync context
-_executor = ThreadPoolExecutor(max_workers=10)
-
-
-def _run_async_in_thread(coro_func, *args, **kwargs):
-    """Run an async function in a separate thread with its own event loop."""
-    def run_in_new_loop():
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            coro = coro_func(*args, **kwargs)
-            return loop.run_until_complete(coro)
-        finally:
-            loop.close()
-    
-    future = _executor.submit(run_in_new_loop)
-    return future.result(timeout=30)
 
 class Database:
     """SQLite abstraction layer for economy and AI memory with prepared statements."""
@@ -387,9 +368,21 @@ class Database:
         return len(guilds), total_deleted, total_remaining
     
     def close(self):
-        """Close database connection."""
+        """Checkpoint the WAL, then close the connection.
+
+        A clean shutdown must not leave an un-flushed WAL: a subsequent redeploy
+        backs up only the main .db file, so anything still sitting in the WAL
+        would be lost. TRUNCATE folds the WAL back into the main DB and empties
+        it. Idempotent (safe to call more than once).
+        """
         if self.connection:
+            try:
+                self.connection.execute('PRAGMA wal_checkpoint(TRUNCATE)')
+                self.connection.commit()
+            except Exception as e:
+                logger.warning(f"[Database] WAL checkpoint on close failed: {e}")
             self.connection.close()
+            self.connection = None
             logger.info("[Database] Connection closed")
 
     # ========== MISGENDERING MEMORY METHODS ==========

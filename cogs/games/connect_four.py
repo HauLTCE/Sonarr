@@ -1,5 +1,5 @@
 import discord
-from utils.economy_helpers import update_wallet, record_gamble
+from utils.economy_helpers import update_wallet, spend_wallet, record_gamble
 
 class ConnectFourButton(discord.ui.Button):
     def __init__(self, col, row_idx):
@@ -173,12 +173,13 @@ class C4AcceptView(discord.ui.View):
 async def start_c4(cog, ctx, target, bet: int = 0):
     cog.active_games.add(ctx.author.id)
     cog.active_games.add(target.id)
-    
+
+    def _release():
+        cog.active_games.discard(ctx.author.id)
+        cog.active_games.discard(target.id)
+
     try:
-        if bet > 0:
-            update_wallet(ctx.author.id, -bet)
-            update_wallet(target.id, -bet)
-            
+        # M2: defer charging until the challenge is accepted.
         embed = discord.Embed(title="🔴🟡 Connect Four", color=0x3498DB)
         if bet > 0:
             embed.description = f"{ctx.author.mention} challenges {target.mention}!\nBet: {bet:,} 🪙\n\n{target.mention} has 60 seconds to respond."
@@ -191,38 +192,45 @@ async def start_c4(cog, ctx, target, bet: int = 0):
         await accept_view.wait()
         
         if accept_view.accepted is None:
-            if bet > 0:
-                update_wallet(ctx.author.id, bet)
-                update_wallet(target.id, bet)
             await msg.edit(content="Challenge timed out.", embed=None)
-            cog.active_games.discard(ctx.author.id)
-            cog.active_games.discard(target.id)
+            _release()
             return
             
         if not accept_view.accepted:
+            await msg.edit(content=f"{target.display_name} declined.", embed=None)
+            _release()
+            return
+
+        # Consent given — charge both atomically (M1).
+        if bet > 0:
+            if not spend_wallet(ctx.author.id, bet):
+                await msg.edit(content="You no longer have enough coins. Game cancelled.", embed=None)
+                _release()
+                return
+            if not spend_wallet(target.id, bet):
+                update_wallet(ctx.author.id, bet)
+                await msg.edit(content=f"{target.display_name} no longer has enough coins. Game cancelled.", embed=None)
+                _release()
+                return
+            
+        # Start game (view owns active_games / payouts from here).
+        try:
+            game_view = ConnectFourView(cog, ctx, target, bet)
+            
+            if bet > 0:
+                embed.description = f"Bet: {bet:,} 🪙\n\n{ctx.author.mention} (🔴) vs {target.mention} (🟡)\n{ctx.author.mention}'s turn\n\n{game_view.format_board()}"
+            else:
+                embed.description = f"{ctx.author.mention} (🔴) vs {target.mention} (🟡)\n{ctx.author.mention}'s turn\n\n{game_view.format_board()}"
+                
+            await msg.edit(embed=embed, view=game_view)
+        except Exception:
             if bet > 0:
                 update_wallet(ctx.author.id, bet)
                 update_wallet(target.id, bet)
-            await msg.edit(content=f"{target.display_name} declined.", embed=None)
-            cog.active_games.discard(ctx.author.id)
-            cog.active_games.discard(target.id)
-            return
-            
-        # Start game
-        game_view = ConnectFourView(cog, ctx, target, bet)
-        
-        if bet > 0:
-            embed.description = f"Bet: {bet:,} 🪙\n\n{ctx.author.mention} (🔴) vs {target.mention} (🟡)\n{ctx.author.mention}'s turn\n\n{game_view.format_board()}"
-        else:
-            embed.description = f"{ctx.author.mention} (🔴) vs {target.mention} (🟡)\n{ctx.author.mention}'s turn\n\n{game_view.format_board()}"
-            
-        await msg.edit(embed=embed, view=game_view)
+            _release()
+            raise
         
     except Exception as e:
-        if bet > 0:
-            update_wallet(ctx.author.id, bet)
-            update_wallet(target.id, bet)
-        cog.active_games.discard(ctx.author.id)
-        cog.active_games.discard(target.id)
-        await ctx.send("An error occurred. Bets refunded.")
+        _release()
+        await ctx.send("An error occurred.")
         raise e

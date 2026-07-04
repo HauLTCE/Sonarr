@@ -3,7 +3,7 @@ from discord.ext import commands
 import random
 import asyncio
 
-from utils.economy_helpers import get_balance, update_wallet, record_gamble
+from utils.economy_helpers import get_balance, update_wallet, spend_wallet, record_gamble
 from cogs.games.utils import validate_bet, check_channel
 from cogs.games.highlow import start_highlow
 
@@ -51,6 +51,10 @@ class Games(commands.Cog):
             if target.bot:
                 await ctx.send("Bots don't have money.")
                 return
+            # M2: don't let a challenge pull someone who's already mid-game.
+            if target.id in self.active_games:
+                await ctx.send(f"{target.display_name} is already in a game.")
+                return
                 
             if not await validate_bet(ctx, bet, max_bet=10000):
                 return
@@ -64,9 +68,9 @@ class Games(commands.Cog):
             self.active_games.add(target.id)
             
             try:
-                update_wallet(user_id, -bet)
-                update_wallet(target.id, -bet)
-                
+                # M2: bets are NOT deducted here. Charging before consent locks
+                # the target's coins for the whole 30s window (grief vector), so
+                # we defer the deduction until the challenge is actually accepted.
                 class PvPView(discord.ui.View):
                     def __init__(self):
                         super().__init__(timeout=30)
@@ -102,17 +106,23 @@ class Games(commands.Cog):
                 await view.wait()
                 
                 if view.accepted is None:
-                    update_wallet(user_id, bet)
-                    update_wallet(target.id, bet)
-                    await msg.edit(content="Challenge timed out. Bets refunded.", embed=None)
+                    await msg.edit(content="Challenge timed out.", embed=None)
                     return
                     
                 if not view.accepted:
-                    update_wallet(user_id, bet)
-                    update_wallet(target.id, bet)
-                    await msg.edit(content=f"{target.display_name} declined the challenge. Bets refunded.", embed=None)
+                    await msg.edit(content=f"{target.display_name} declined the challenge.", embed=None)
                     return
-                    
+
+                # Consent given — charge both atomically now. If either can no
+                # longer cover the bet, refund whoever was charged and abort.
+                if not spend_wallet(user_id, bet):
+                    await msg.edit(content="You no longer have enough coins. Challenge cancelled.", embed=None)
+                    return
+                if not spend_wallet(target.id, bet):
+                    update_wallet(user_id, bet)
+                    await msg.edit(content=f"{target.display_name} no longer has enough coins. Challenge cancelled.", embed=None)
+                    return
+
                 winner = random.choice([ctx.author, target])
                 loser = target if winner == ctx.author else ctx.author
                 
@@ -131,13 +141,11 @@ class Games(commands.Cog):
                     f"🏆 {winner.mention} wins **{payout:,} 🪙**!\n"
                     f"💀 {loser.mention} lost {bet:,} 🪙."
                 )
-                await msg.edit(embed=res_embed)
-                
-            except Exception as e:
-                update_wallet(user_id, bet)
-                update_wallet(target.id, bet)
-                await ctx.send("An error occurred. Bets refunded.")
-                raise e
+                # Money is already settled above; a failed edit must not refund.
+                try:
+                    await msg.edit(embed=res_embed)
+                except discord.HTTPException:
+                    pass
             finally:
                 self.active_games.discard(user_id)
                 self.active_games.discard(target.id)
@@ -158,10 +166,15 @@ class Games(commands.Cog):
             return
             
         self.active_games.add(user_id)
-        
+
+        # Atomic deduction: fail instead of clamping to 0.
+        if not spend_wallet(user_id, bet):
+            self.active_games.discard(user_id)
+            await ctx.send("You don't have enough coins in your wallet for that bet.")
+            return
+
+        payout_done = False
         try:
-            update_wallet(user_id, -bet)
-            
             bot_choice = random.choice(['heads', 'tails'])
             player_choice_full = 'heads' if choice in ['heads', 'h'] else 'tails'
             
@@ -191,12 +204,15 @@ class Games(commands.Cog):
                     f"You called: {player_choice_full.upper()}\n"
                     f"... {bot_choice.upper()}. You lost {bet:,} 🪙."
                 )
-                
+
+            # Outcome settled — a failed message edit past here must not refund.
+            payout_done = True
             await msg.edit(embed=embed)
             
         except Exception as e:
-            update_wallet(user_id, bet)
-            await ctx.send("An error occurred. Bet refunded.")
+            if not payout_done:
+                update_wallet(user_id, bet)
+                await ctx.send("An error occurred. Bet refunded.")
             raise e
         finally:
             self.active_games.discard(user_id)
@@ -315,6 +331,10 @@ class Games(commands.Cog):
         if target.bot:
             await ctx.send("Bots don't play.")
             return
+
+        if target.id in self.active_games:
+            await ctx.send(f"{target.display_name} is already in a game.")
+            return
             
         if not await validate_bet(ctx, bet, max_bet=5000):
             return
@@ -342,6 +362,10 @@ class Games(commands.Cog):
             
         if target.bot:
             await ctx.send("Bots don't play.")
+            return
+
+        if target.id in self.active_games:
+            await ctx.send(f"{target.display_name} is already in a game.")
             return
             
         if bet > 0:
@@ -371,6 +395,10 @@ class Games(commands.Cog):
             
         if target.bot:
             await ctx.send("Bots don't play.")
+            return
+
+        if target.id in self.active_games:
+            await ctx.send(f"{target.display_name} is already in a game.")
             return
             
         if bet > 0:

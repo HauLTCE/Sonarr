@@ -5,7 +5,7 @@ import random
 import asyncio
 from utils.economy_helpers import update_wallet, get_balance
 from cogs.adventure.engine import (
-    update_character, calculate_damage, process_bleed,
+    get_character, update_character, calculate_damage, process_bleed,
     apply_on_kill_stat, is_demon, award_dungeon_xp, calculate_xp_reward,
 )
 from cogs.adventure.items import (
@@ -104,6 +104,9 @@ class AdventureView(_TimeoutMixin, discord.ui.View):
         if not self._owned(interaction):
             await interaction.response.send_message("Not your adventure.", ephemeral=True)
             return
+        # M5: re-read from the DB so a prior text command (!rest, !use) that
+        # mutated the character isn't clobbered by this view's stale snapshot.
+        self.char = get_character(self.ctx.author.id)
         await self.cog.explore_room(interaction, self.char)
 
     @discord.ui.button(label="Rest", style=discord.ButtonStyle.success, emoji="💊")
@@ -111,6 +114,8 @@ class AdventureView(_TimeoutMixin, discord.ui.View):
         if not self._owned(interaction):
             await interaction.response.send_message("Not your adventure.", ephemeral=True)
             return
+        # M5: act on fresh state, not the snapshot captured when the menu opened.
+        self.char = get_character(self.ctx.author.id)
         msg = self.cog.do_rest(self.ctx.author.id, self.char)
         if msg.startswith("❌"):
             await interaction.response.send_message(msg, ephemeral=True)
@@ -130,6 +135,7 @@ class AdventureView(_TimeoutMixin, discord.ui.View):
         if not self._owned(interaction):
             await interaction.response.send_message("Not your adventure.", ephemeral=True)
             return
+        self.char = get_character(self.ctx.author.id)
         await interaction.response.send_message(self.cog.build_stats_text(self.ctx.author.id, self.char), ephemeral=True)
 
 
@@ -150,6 +156,11 @@ class CombatView(_TimeoutMixin, discord.ui.View):
         self.shield_active = False
         self._message = None
         self._left = False
+        # Re-entry guard (M6): one action (attack/flee/potion) resolves at a time.
+        # Set synchronously before any await so a rapid second click — or a
+        # button + text `!attack` interleave — can't both kill the enemy and run
+        # handle_victory twice (double rewards). `_left` marks the combat done.
+        self._busy = False
 
     async def on_timeout(self):
         self.cog.active_combats.pop(self.ctx.author.id, None)
@@ -210,6 +221,22 @@ class CombatView(_TimeoutMixin, discord.ui.View):
         embed.set_footer(text=f"⚔️ !attack | 🏃 !flee | 🧪 Items: {self.items_used}/{MAX_ITEMS_PER_BATTLE} used")
 
     async def do_player_attack(self, interaction):
+        # M6 re-entry guard: bail if the combat is already resolved or another
+        # action is mid-flight. Check-and-set is synchronous (no await between),
+        # so it's atomic against a concurrent click that resumes at the defer.
+        if self._left or self._busy:
+            try:
+                await interaction.response.defer()
+            except Exception:
+                pass
+            return
+        self._busy = True
+        try:
+            await self._do_player_attack_inner(interaction)
+        finally:
+            self._busy = False
+
+    async def _do_player_attack_inner(self, interaction):
         await interaction.response.defer()
         b = self.bonuses
         if b['execute_chance'] > 0 and random.random() < b['execute_chance']:
@@ -387,6 +414,19 @@ class CombatView(_TimeoutMixin, discord.ui.View):
         await self.do_player_attack(interaction)
 
     async def do_flee(self, interaction):
+        if self._left or self._busy:
+            try:
+                await interaction.response.defer()
+            except Exception:
+                pass
+            return
+        self._busy = True
+        try:
+            await self._do_flee_inner(interaction)
+        finally:
+            self._busy = False
+
+    async def _do_flee_inner(self, interaction):
         await interaction.response.defer()
         flee = min(0.95, (self.char['base_speed'] + self.bonuses['speed']) / max(1, self.enemy['speed']) * 0.6)
         if random.random() < flee:
@@ -410,6 +450,19 @@ class CombatView(_TimeoutMixin, discord.ui.View):
         await self.do_flee(interaction)
 
     async def do_use_potion(self, interaction, potion_type="health_potion"):
+        if self._left or self._busy:
+            try:
+                await interaction.response.defer()
+            except Exception:
+                pass
+            return
+        self._busy = True
+        try:
+            await self._do_use_potion_inner(interaction, potion_type)
+        finally:
+            self._busy = False
+
+    async def _do_use_potion_inner(self, interaction, potion_type):
         if self.items_used >= MAX_ITEMS_PER_BATTLE:
             await interaction.response.send_message(
                 f"🧪 Item limit reached! ({MAX_ITEMS_PER_BATTLE}/{MAX_ITEMS_PER_BATTLE} used this battle)", ephemeral=True)
@@ -424,7 +477,11 @@ class CombatView(_TimeoutMixin, discord.ui.View):
             await interaction.response.send_message("You're already at full HP!", ephemeral=True)
             return
         await interaction.response.defer()
-        use_consumable(self.ctx.author.id, potion_type)
+        # Only heal if a potion was actually consumed (use_consumable is atomic).
+        if not use_consumable(self.ctx.author.id, potion_type):
+            await interaction.followup.send(
+                f"You don't have any **{CONSUMABLES[potion_type]['name']}** left.", ephemeral=True)
+            return
         self.items_used += 1
         old_hp = self.char['hp']
         self.char['hp'] = eff_hp if potion_type == "greater_potion" else min(eff_hp, self.char['hp'] + 50)

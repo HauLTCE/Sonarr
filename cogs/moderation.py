@@ -42,6 +42,10 @@ class Moderation(commands.Cog):
         except discord.Forbidden:
             await ctx.send("❌ I don't have permission to delete messages here.", delete_after=5)
             return
+        except discord.HTTPException:
+            # Bulk delete rejects messages older than 14 days (and other API errors).
+            await ctx.send("❌ Couldn't delete those messages — some may be older than 14 days.", delete_after=5)
+            return
         await ctx.send(f"🧹 Deleted **{amount}** messages.", delete_after=3)
 
     @commands.command()

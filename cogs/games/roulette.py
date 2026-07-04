@@ -20,9 +20,15 @@ async def start_roulette(cog, ctx, bet: int, choice: str):
         return
         
     cog.active_games.add(ctx.author.id)
+
+    # Atomic deduction (M1): fail instead of clamping to 0.
+    if not spend_wallet(ctx.author.id, bet):
+        cog.active_games.discard(ctx.author.id)
+        await ctx.send("You don't have enough coins in your wallet for that bet.")
+        return
+
+    settled = False
     try:
-        update_wallet(ctx.author.id, -bet)
-        
         embed = discord.Embed(title="🎡 Roulette", color=0x3498DB)
         embed.description = (
             f"Bet: {bet:,} 🪙\n"
@@ -47,7 +53,10 @@ async def start_roulette(cog, ctx, bet: int, choice: str):
         
         if is_number and int(choice) == result:
             win = True
-            multiplier = 35
+            # 36x returned = 35:1 profit (standard European single-number payout,
+            # matching the documented "36x"). Was 35x returned (34:1), which
+            # silently shorted the player by one unit.
+            multiplier = 36
         elif result != 0:
             if choice == 'red' and result in RED_NUMBERS:
                 win = True
@@ -92,6 +101,8 @@ async def start_roulette(cog, ctx, bet: int, choice: str):
             f"      {color} {result} — {color_name}!\n\n"
         )
         
+        # Outcome decided — settle. A later failure must not refund on top.
+        settled = True
         if win:
             payout = bet * multiplier
             update_wallet(ctx.author.id, payout)
@@ -106,8 +117,9 @@ async def start_roulette(cog, ctx, bet: int, choice: str):
         await msg.edit(embed=embed)
         
     except Exception as e:
-        update_wallet(ctx.author.id, bet)
-        await ctx.send("An error occurred. Bet refunded.")
+        if not settled:
+            update_wallet(ctx.author.id, bet)
+            await ctx.send("An error occurred. Bet refunded.")
         raise e
     finally:
         cog.active_games.discard(ctx.author.id)

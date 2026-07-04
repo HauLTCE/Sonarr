@@ -122,11 +122,15 @@ class PlayerControlView(discord.ui.View):
 
     @discord.ui.button(emoji="❤️", label="Save", style=discord.ButtonStyle.success, custom_id="music_save", row=1)
     async def save_song(self, interaction: discord.Interaction, button: discord.ui.Button):
-        playlists = list(self.cog.saved_playlists.keys())
+        # Playlists are namespaced per guild now, so resolve this guild's set.
+        guild_id = interaction.guild_id or (self.player.guild.id if self.player.guild else None)
+        if guild_id is None:
+            return await interaction.response.send_message("Playlists are only available in a server.", ephemeral=True)
+        playlists = list(self.cog._guild_playlists(guild_id).keys())
         if not playlists:
-            return await interaction.response.send_message("You don't have any saved playlists! Use `/playlist create <name>` first.", ephemeral=True)
+            return await interaction.response.send_message("You don't have any saved playlists! Use `!playlist create <name>` first.", ephemeral=True)
             
-        view = SaveToPlaylistView(self.cog, self.track)
+        view = SaveToPlaylistView(self.cog, self.track, guild_id)
         await interaction.response.send_message("Select a playlist to save this song to:", view=view, ephemeral=True)
 
     @discord.ui.button(emoji="🎤", label="Lyrics", style=discord.ButtonStyle.secondary, custom_id="music_lyrics", row=1)
@@ -139,7 +143,9 @@ class PlayerControlView(discord.ui.View):
         
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(f"https://some-random-api.com/lyrics?title={query}") as resp:
+                # Pass the title via params so spaces / & / # in track titles are
+                # URL-encoded instead of breaking the query string.
+                async with session.get("https://some-random-api.com/lyrics", params={"title": query}) as resp:
                     if resp.status == 200:
                         data = await resp.json()
                         lyrics = data.get("lyrics", "No lyrics found.")
@@ -154,13 +160,14 @@ class PlayerControlView(discord.ui.View):
 
 
 class SaveToPlaylistView(discord.ui.View):
-    def __init__(self, cog, track: wavelink.Playable):
+    def __init__(self, cog, track: wavelink.Playable, guild_id: int):
         super().__init__(timeout=60)
         self.cog = cog
         self.track = track
+        self.guild_id = guild_id
         
         options = []
-        for name in list(self.cog.saved_playlists.keys())[:25]:
+        for name in list(self.cog._guild_playlists(guild_id).keys())[:25]:
             options.append(discord.SelectOption(label=name, value=name))
             
         self.select = discord.ui.Select(placeholder="Choose a playlist...", min_values=1, max_values=1, options=options)
@@ -169,7 +176,10 @@ class SaveToPlaylistView(discord.ui.View):
         
     async def select_callback(self, interaction: discord.Interaction):
         name = self.select.values[0]
-        playlist = self.cog.saved_playlists[name]
+        guild_playlists = self.cog._guild_playlists(self.guild_id)
+        if name not in guild_playlists:
+            return await interaction.response.edit_message(content=f"❌ Playlist `{name}` no longer exists.", view=None)
+        playlist = guild_playlists[name]
         
         serialized = self.cog._serialize_track(self.track)
         playlist.append(serialized)

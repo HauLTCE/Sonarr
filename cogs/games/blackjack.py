@@ -1,6 +1,6 @@
 import discord
 import random
-from utils.economy_helpers import update_wallet, record_gamble
+from utils.economy_helpers import update_wallet, spend_wallet, record_gamble
 
 CARD_FACES = {
     2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8',
@@ -44,6 +44,12 @@ class BlackjackView(discord.ui.View):
         self.dealer_hand = [self.deck.pop(), self.deck.pop()]
         
         self.doubled = False
+        # Idempotency guard so the wager is settled exactly once, whether the
+        # game ends via a button or via on_timeout (prevents double payout if a
+        # click races the timeout).
+        self.resolved = False
+        # Message the view is attached to, so on_timeout can update it.
+        self.message = None
         
     def generate_embed(self, dealer_hidden=True):
         embed = discord.Embed(title="🃏 Blackjack", color=0x2ECC71)
@@ -67,21 +73,28 @@ class BlackjackView(discord.ui.View):
         )
         return embed
 
-    async def end_game(self, interaction: discord.Interaction):
-        for child in self.children:
-            child.disabled = True
-            
+    def _settle(self):
+        """Play out the dealer and settle the wager exactly once.
+
+        Returns the final embed, or None if the wager was already settled.
+        Kept free of any interaction so both end_game (button) and on_timeout
+        (auto-stand) can share it.
+        """
+        if self.resolved:
+            return None
+        self.resolved = True
+
         player_score = calculate_score(self.player_hand)
         dealer_score = calculate_score(self.dealer_hand)
-        
+
         while dealer_score < 17 and player_score <= 21:
             self.dealer_hand.append(self.deck.pop())
             dealer_score = calculate_score(self.dealer_hand)
-            
+
         embed = self.generate_embed(dealer_hidden=False)
-        
+
         final_bet = self.bet * 2 if self.doubled else self.bet
-        
+
         if player_score > 21:
             record_gamble(self.ctx.author.id, final_bet, -final_bet)
             embed.color = 0xE74C3C
@@ -106,7 +119,19 @@ class BlackjackView(discord.ui.View):
             update_wallet(self.ctx.author.id, final_bet)
             embed.color = 0xF1C40F
             embed.description += f"\n\n🤝 Push. Your bet of {final_bet:,} 🪙 was returned."
-            
+
+        return embed
+
+    async def end_game(self, interaction: discord.Interaction):
+        for child in self.children:
+            child.disabled = True
+
+        embed = self._settle()
+        if embed is None:
+            # Already settled (e.g. by a timeout that just fired) — just refresh.
+            await interaction.response.edit_message(view=self)
+            return
+
         await interaction.response.edit_message(embed=embed, view=self)
         self.cog.active_games.discard(self.ctx.author.id)
         self.stop()
@@ -143,28 +168,43 @@ class BlackjackView(discord.ui.View):
             await interaction.response.send_message("Not your game.", ephemeral=True)
             return
             
-        from utils.economy_helpers import get_balance
-        bal = get_balance(self.ctx.author.id)
-        if bal['wallet'] < self.bet:
+        # Atomic: only take the second stake if the wallet can actually cover it.
+        if not spend_wallet(self.ctx.author.id, self.bet):
             await interaction.response.send_message("You don't have enough coins to double down.", ephemeral=True)
             return
-            
-        update_wallet(self.ctx.author.id, -self.bet)
+
         self.doubled = True
         
         self.player_hand.append(self.deck.pop())
         await self.end_game(interaction)
 
     async def on_timeout(self):
-        # Refund the bet if game times out without resolution
-        final_bet = self.bet * 2 if self.doubled else self.bet
-        update_wallet(self.ctx.author.id, final_bet)
+        # Auto-stand instead of refunding. Walking away from a bad hand must not
+        # be a risk-free escape — resolve the hand exactly as a Stand would.
+        for child in self.children:
+            child.disabled = True
+
+        embed = self._settle()
         self.cog.active_games.discard(self.ctx.author.id)
+        if embed is None:
+            return
+        if self.message is not None:
+            try:
+                await self.message.edit(embed=embed, view=self)
+            except Exception:
+                pass
 
 async def start_blackjack(cog, ctx, bet: int):
     cog.active_games.add(ctx.author.id)
+
+    # Atomic deduction: fail instead of clamping to 0 so we never deal a hand the
+    # player can't actually pay for.
+    if not spend_wallet(ctx.author.id, bet):
+        cog.active_games.discard(ctx.author.id)
+        await ctx.send("You don't have enough coins in your wallet for that bet.")
+        return
+
     try:
-        update_wallet(ctx.author.id, -bet)
         view = BlackjackView(cog, ctx, bet)
         
         # Check natural blackjack
@@ -172,6 +212,10 @@ async def start_blackjack(cog, ctx, bet: int):
         dealer_score = calculate_score(view.dealer_hand)
         
         if player_score == 21:
+            # Resolves immediately without the interactive view. Mark it settled
+            # and stop it so a stray timeout can never re-pay this hand.
+            view.resolved = True
+            view.stop()
             embed = view.generate_embed(dealer_hidden=False)
             if dealer_score == 21:
                 update_wallet(ctx.author.id, bet)
@@ -189,7 +233,7 @@ async def start_blackjack(cog, ctx, bet: int):
             return
             
         embed = view.generate_embed(dealer_hidden=True)
-        await ctx.send(embed=embed, view=view)
+        view.message = await ctx.send(embed=embed, view=view)
         
     except Exception as e:
         update_wallet(ctx.author.id, bet)

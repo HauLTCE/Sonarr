@@ -32,18 +32,21 @@ def add_consumable(user_id: int, item_id: str, qty: int = 1):
 
 
 def use_consumable(user_id: int, item_id: str) -> bool:
-    """Use one consumable. Returns True if successful, False if none owned."""
+    """Use one consumable. Returns True if one was actually consumed.
+
+    Atomic: the decrement is a single guarded UPDATE (quantity > 0) and success
+    is decided by rowcount, so two near-simultaneous uses can't both consume the
+    same last item (the SELECT-then-UPDATE version let a button + text `!use`
+    race heal twice off one potion).
+    """
     uid = str(user_id)
-    db.cursor.execute("SELECT quantity FROM consumable_inventory WHERE user_id = ? AND item_id = ?", (uid, item_id))
-    row = db.cursor.fetchone()
-    if not row or row[0] <= 0:
-        return False
     db.cursor.execute(
-        "UPDATE consumable_inventory SET quantity = quantity - 1 WHERE user_id = ? AND item_id = ?",
+        "UPDATE consumable_inventory SET quantity = quantity - 1 "
+        "WHERE user_id = ? AND item_id = ? AND quantity > 0",
         (uid, item_id)
     )
     db.connection.commit()
-    return True
+    return db.cursor.rowcount > 0
 
 
 def remove_consumable(user_id: int, item_id: str, qty: int = 1) -> bool:

@@ -71,9 +71,15 @@ class CashoutView(discord.ui.View):
             await interaction.response.send_message("Not your button.", ephemeral=True)
             return
         self.value = False
+        self.cog.pending_cashouts.discard(self.ctx.author.id)
         await interaction.response.edit_message(content="Cashout cancelled.", embed=None, view=None)
         self.stop()
-        
+
+    async def on_timeout(self):
+        # Release the pending flag so the user can cash out again after the
+        # confirmation window expires without paying anything out.
+        self.cog.pending_cashouts.discard(self.ctx.author.id)
+
     async def process_cashout(self, interaction):
         # Re-entry guard: if the user opened two cashout views, only the first
         # confirm pays out — the rest are no-ops.
@@ -81,26 +87,49 @@ class CashoutView(discord.ui.View):
             await interaction.response.send_message("This cashout was already processed.", ephemeral=True)
             return
         self.done = True
+        self.cog.pending_cashouts.discard(self.ctx.author.id)
         for child in self.children:
             child.disabled = True
 
         user_id = str(self.ctx.author.id)
         guild_id = str(interaction.guild.id) if interaction.guild else 'global'
-        
-        set_level(self.ctx.author.id, guild_id, level=self.new_level, xp=0)
-        
-        update_wallet(self.ctx.author.id, self.payout)
-        
+
+        # Defense in depth: re-validate against *current* state at confirm time.
+        # The payout/new_level captured when the view was created can be stale
+        # (the level may have changed, or another cashout may have just landed),
+        # so recompute everything now instead of trusting the snapshot.
+        db.cursor.execute("SELECT last_cashout FROM economy WHERE user_id = ?", (user_id,))
+        row = db.cursor.fetchone()
+        if row and row[0] and time.time() - row[0] < 3600:
+            await interaction.response.edit_message(
+                content="You've already cashed out recently. Try again later.", embed=None, view=None)
+            return
+
+        level_data = get_level(self.ctx.author.id, guild_id)
+        current_level = level_data["level"]
+        levels_to_sell = min(self.levels_to_sell, current_level - 1)
+        if levels_to_sell <= 0:
+            await interaction.response.edit_message(
+                content="You no longer have enough levels to cash out.", embed=None, view=None)
+            return
+
+        payout = calculate_cashout(levels_to_sell)
+        new_level = current_level - levels_to_sell
+
+        set_level(self.ctx.author.id, guild_id, level=new_level, xp=0)
+
+        update_wallet(self.ctx.author.id, payout)
+
         now = time.time()
         db.cursor.execute("UPDATE economy SET last_cashout = ? WHERE user_id = ?", (now, user_id))
         db.connection.commit()
-        
+
         msg = random.choice([
-            f"{self.payout} coins for {self.levels_to_sell} levels of your life. Was it worth it. Don't answer that.",
+            f"{payout} coins for {levels_to_sell} levels of your life. Was it worth it. Don't answer that.",
             "Sold. Your levels are gone forever. No refunds, no regrets, no therapy.",
             "You traded your progress for pocket change. Bold financial strategy."
         ])
-        
+
         await interaction.response.edit_message(content=msg, embed=None, view=None)
 
 WORK_SUCCESS = [
@@ -135,10 +164,23 @@ class Economy(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        # User IDs with a cashout confirmation currently awaiting a decision.
+        # Prevents spawning multiple CashoutViews (each of which would otherwise
+        # pay out independently — the classic multi-view duplication exploit).
+        self.pending_cashouts = set()
 
     async def cog_check(self, ctx):
-        """Enforce economy channel for all economy commands."""
+        """Enforce the economy channel and the (optional) sleep/lunch restriction.
+
+        The sleep/lunch window is off by default (SLEEP_MODE_ENABLED /
+        MIDDAY_BREAK_ENABLED). Wiring it here is what makes those .env toggles
+        actually do something and what makes main.py's BotRestrictedTimeError
+        handler reachable — previously the whole restriction system was dead code.
+        """
         from cogs.games.utils import check_channel
+        from utils.checks import is_restricted_time, get_restriction_reason, BotRestrictedTimeError
+        if is_restricted_time():
+            raise BotRestrictedTimeError(get_restriction_reason())
         return await check_channel(ctx, "economy_channel")
 
     @commands.command()
@@ -181,6 +223,13 @@ class Economy(commands.Cog):
         new_level = current_level - levels
         
         if levels >= 10:
+            # Block a second confirmation view while one is already pending.
+            # Without this, spamming the command opens N views that each pay out
+            # on confirm even though the level only drops once.
+            if ctx.author.id in self.pending_cashouts:
+                await ctx.send("You already have a cashout waiting for confirmation. Resolve that one first.")
+                return
+            self.pending_cashouts.add(ctx.author.id)
             embed = discord.Embed(title="🪙 Level Cashout", color=0xFFD700)
             embed.description = (
                 f"Selling: {levels} levels\n"
@@ -189,7 +238,12 @@ class Economy(commands.Cog):
                 f"⚠️ Your XP will reset to 0 for Level {new_level}. This cannot be undone."
             )
             view = CashoutView(ctx, levels, payout, new_level, self)
-            await ctx.send(embed=embed, view=view)
+            try:
+                await ctx.send(embed=embed, view=view)
+            except Exception:
+                # If we couldn't even send the confirmation, don't strand the flag.
+                self.pending_cashouts.discard(ctx.author.id)
+                raise
         else:
             set_level(ctx.author.id, guild_id, level=new_level, xp=0)
             

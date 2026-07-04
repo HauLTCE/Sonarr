@@ -1,7 +1,7 @@
 import discord
 import random
 import asyncio
-from utils.economy_helpers import update_wallet, record_gamble
+from utils.economy_helpers import update_wallet, spend_wallet, record_gamble
 
 def generate_crash_point():
     house_edge = 0.04
@@ -13,7 +13,11 @@ def generate_crash_point():
 
 class CrashView(discord.ui.View):
     def __init__(self, cog, ctx, bet: int):
-        super().__init__(timeout=60)
+        # No fixed timeout: the game loop (start_crash) owns the lifecycle and
+        # stops the view when the round ends. A fixed 60s timeout used to kill
+        # the Cash Out button mid-game for high crash points (the 1.5s increment
+        # loop outlives 60s), leaving a winning game uncashable.
+        super().__init__(timeout=None)
         self.cog = cog
         self.ctx = ctx
         self.bet = bet
@@ -33,9 +37,17 @@ class CrashView(discord.ui.View):
 
 async def start_crash(cog, ctx, bet: int):
     cog.active_games.add(ctx.author.id)
+
+    # Atomic deduction (M1): fail instead of clamping to 0.
+    if not spend_wallet(ctx.author.id, bet):
+        cog.active_games.discard(ctx.author.id)
+        await ctx.send("You don't have enough coins in your wallet for that bet.")
+        return
+
+    # Guards the broad refund below so a failure after the outcome is decided
+    # can't refund on top of a payout / recorded loss.
+    settled = False
     try:
-        update_wallet(ctx.author.id, -bet)
-        
         crash_point = generate_crash_point()
         
         view = CrashView(cog, ctx, bet)
@@ -51,6 +63,7 @@ async def start_crash(cog, ctx, bet: int):
         msg = await ctx.send(embed=embed, view=view)
         
         if crash_point == 1.00:
+            settled = True
             view.stop()
             for child in view.children:
                 child.disabled = True
@@ -62,7 +75,6 @@ async def start_crash(cog, ctx, bet: int):
             )
             record_gamble(ctx.author.id, bet, -bet)
             await msg.edit(embed=embed, view=view)
-            cog.active_games.discard(ctx.author.id)
             return
             
         current_multiplier = 1.00
@@ -97,7 +109,10 @@ async def start_crash(cog, ctx, bet: int):
                 pass # ignore rare limits, loop continues
                 
             await asyncio.sleep(1.5)
-            
+
+        # Outcome decided (crashed or cashed out) — settle the round.
+        settled = True
+        view.stop()
         if view.cashed_out:
             view.cashout_multiplier = current_multiplier
             winnings = int(bet * current_multiplier)
@@ -127,8 +142,10 @@ async def start_crash(cog, ctx, bet: int):
         await msg.edit(embed=embed, view=view)
         
     except Exception as e:
-        update_wallet(ctx.author.id, bet)
-        await ctx.send("An error occurred. Bet refunded.")
+        # Only refund if the round never reached settlement.
+        if not settled:
+            update_wallet(ctx.author.id, bet)
+            await ctx.send("An error occurred. Bet refunded.")
         raise e
     finally:
         cog.active_games.discard(ctx.author.id)
