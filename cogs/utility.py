@@ -9,10 +9,16 @@ import logging
 
 logger = logging.getLogger("bot")
 
+MAX_ACTIVE_REMINDERS = 5
+
+
 class Utility(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.start_time = time.time()
+        # user_id -> count of live reminder coroutines. Caps how many sleeping
+        # tasks one user can accumulate (each holds ctx for up to 7 days).
+        self.active_reminders = {}
     
     def internal_ping(self):
         """Internal: Get bot ping silently"""
@@ -128,9 +134,23 @@ class Utility(commands.Cog):
             await ctx.send("❌ Reminders can be at most 7 days out.")
             return
 
-        await ctx.send(f"⏰ Timer set for **{task}** in **{time_str}**.")
-        await asyncio.sleep(seconds)
-        await ctx.send(f"🔔 {ctx.author.mention}, you asked me to remind you: **{task}**")
+        # Cap concurrent reminders per user so someone can't stack thousands of
+        # long-lived sleeping tasks (the per-command spam limiter now also throttles
+        # !remind since it was removed from SPAM_EXEMPT_COMMANDS).
+        uid = ctx.author.id
+        if self.active_reminders.get(uid, 0) >= MAX_ACTIVE_REMINDERS:
+            await ctx.send(
+                f"❌ You already have {MAX_ACTIVE_REMINDERS} active reminders. "
+                "Wait for one to fire before setting another.")
+            return
+
+        self.active_reminders[uid] = self.active_reminders.get(uid, 0) + 1
+        try:
+            await ctx.send(f"⏰ Timer set for **{task}** in **{time_str}**.")
+            await asyncio.sleep(seconds)
+            await ctx.send(f"🔔 {ctx.author.mention}, you asked me to remind you: **{task}**")
+        finally:
+            self.active_reminders[uid] = max(0, self.active_reminders.get(uid, 1) - 1)
 
 async def setup(bot):
     await bot.add_cog(Utility(bot))

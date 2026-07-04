@@ -7,6 +7,22 @@ class Admin(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    async def cog_check(self, ctx):
+        """Require Administrator for every command in this cog.
+
+        The `setchannel` group uses invoke_without_command=True, and discord.py
+        skips a group's own checks for its sub-commands in that mode. The
+        sub-commands (`economy`, `games`, `clear`, ...) had no checks of their
+        own, so any member could reconfigure or wipe a guild's channel config.
+        A cog_check DOES run for sub-commands, so gate the whole cog here.
+        """
+        if ctx.guild is None:
+            raise commands.NoPrivateMessage()
+        perms = ctx.author.guild_permissions
+        if not perms.administrator:
+            raise commands.MissingPermissions(['administrator'])
+        return True
+
     @commands.group(invoke_without_command=True)
     @commands.has_permissions(administrator=True)
     async def setchannel(self, ctx):

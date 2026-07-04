@@ -9,6 +9,7 @@ os.environ["OPENBLAS_NUM_THREADS"] = "10"
 import asyncio
 import shlex
 import copy
+import signal
 import wavelink
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
@@ -176,6 +177,13 @@ async def on_command_error(ctx, error):
         logger.warning(f"NotOwner: {ctx.author.display_name} tried to use owner-only command {ctx.command}")
         await ctx.send("⛔ You don't have permission to do that.", delete_after=5)
         update_command_status("not owner")
+    elif isinstance(error, commands.MissingPermissions):
+        logger.warning(f"MissingPermissions: {ctx.author.display_name} tried privileged command {ctx.command}")
+        await ctx.send("⛔ You don't have permission to do that.", delete_after=5)
+        update_command_status("missing permissions")
+    elif isinstance(error, commands.NoPrivateMessage):
+        await ctx.send("This command can only be used in a server.", delete_after=5)
+        update_command_status("no private message")
     elif isinstance(error, commands.CheckFailure):
         update_command_status("check failed")
     else:
@@ -336,16 +344,50 @@ async def load_extensions():
     
     await asyncio.gather(*[load_cog(n) for n in cog_names], return_exceptions=True)
 
+def _shutdown_db():
+    """Checkpoint + close the SQLite DB so `systemctl stop` never leaves an
+    un-flushed WAL (which the redeploy backup would then miss)."""
+    try:
+        from utils.database import db
+        db.close()
+    except Exception as e:
+        logger.error(f"[Shutdown] Error closing database: {e}")
+
+
 async def main():
     async with bot:
         await load_extensions()
         if not os.getenv('DISCORD_TOKEN'):
             logger.critical("DISCORD_TOKEN not found in .env")
             return
-        await bot.start(os.getenv('DISCORD_TOKEN'))
+
+        # Graceful shutdown: systemctl sends SIGTERM. Without a handler the
+        # process is killed abruptly and the WAL may not be checkpointed. Ask the
+        # bot to close cleanly on SIGTERM/SIGINT; the finally block then flushes
+        # the DB. (add_signal_handler isn't supported on Windows — dev only —
+        # so we degrade gracefully there.)
+        loop = asyncio.get_running_loop()
+
+        def _request_stop():
+            logger.info("[Shutdown] Signal received; closing bot cleanly...")
+            asyncio.create_task(bot.close())
+
+        for sig in (getattr(signal, "SIGTERM", None), getattr(signal, "SIGINT", None)):
+            if sig is None:
+                continue
+            try:
+                loop.add_signal_handler(sig, _request_stop)
+            except (NotImplementedError, RuntimeError):
+                pass  # not supported on this platform (e.g. Windows)
+
+        try:
+            await bot.start(os.getenv('DISCORD_TOKEN'))
+        finally:
+            _shutdown_db()
 
 if __name__ == '__main__':
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        pass
+        # SIGINT on platforms where add_signal_handler isn't wired (Windows).
+        _shutdown_db()

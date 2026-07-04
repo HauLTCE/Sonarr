@@ -32,6 +32,7 @@ class Adventure(commands.Cog):
         self.active_combats = {}       # user_id -> CombatView
         self._timeout_messages = {}    # user_id -> Message (latest restart prompt)
         self._adventure_views = {}     # user_id -> AdventureView (for marking _left)
+        self._exploring = set()        # user_ids with an explore currently resolving (M6 guard)
 
     async def cog_check(self, ctx):
         from cogs.games.utils import check_channel
@@ -140,6 +141,24 @@ class Adventure(commands.Cog):
 
     # ── Explore a room ──
     async def explore_room(self, interaction, char):
+        # M6: prevent two rooms/combats starting at once (Explore button +
+        # `!explore`, or a double-click). Once combat starts active_combats
+        # guards; this set covers the window before that while a non-combat room
+        # animates. Guard is set synchronously before any await.
+        uid = interaction.user.id
+        if uid in self.active_combats or uid in self._exploring:
+            try:
+                await interaction.response.defer()
+            except Exception:
+                pass
+            return
+        self._exploring.add(uid)
+        try:
+            await self._explore_room_inner(interaction, char)
+        finally:
+            self._exploring.discard(uid)
+
+    async def _explore_room_inner(self, interaction, char):
         await interaction.response.defer()
         old_adv = self._adventure_views.pop(interaction.user.id, None)
         if old_adv:

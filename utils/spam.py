@@ -15,11 +15,14 @@ PER_COMMAND_THRESHOLD = 50
 PER_COMMAND_TIME_WINDOW = 300
 PER_COMMAND_COOLDOWN = 600
 
+# NOTE: 'remind' is deliberately NOT exempt — each call spawns a long-lived
+# sleeping coroutine (up to 7 days), so it must stay subject to the per-command
+# spam limiter. The Utility cog also caps concurrent reminders per user.
 SPAM_EXEMPT_COMMANDS = {
     'play', 'queue', 'skip', 'stop', 'pause', 'resume', 'join', 'leave', 'disconnect',
     'nowplaying', 'now_playing', 'loop', 'shuffle', 'clear', 'remove',
     'playlist_save', 'playlist_load', 'playlist_list',
-    'ping', 'echo', 'remind', 'status', 'help'
+    'ping', 'echo', 'status', 'help'
 }
 
 def check_spam(user_id, chain_count=1):

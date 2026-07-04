@@ -3,17 +3,18 @@ import time
 from utils.database import db
 
 def ensure_account(user_id: int) -> None:
-    """Creates economy row if it doesn't exist."""
+    """Creates economy row if it doesn't exist.
+
+    Uses INSERT OR IGNORE (atomic on the user_id PK) instead of SELECT-then-INSERT,
+    so two near-simultaneous first-touch calls for the same user can't both try to
+    insert and raise an IntegrityError.
+    """
     user_str = str(user_id)
-    # Check if exists
-    db.cursor.execute("SELECT 1 FROM economy WHERE user_id = ?", (user_str,))
-    if not db.cursor.fetchone():
-        now = time.time()
-        db.cursor.execute(
-            "INSERT INTO economy (user_id, created_at) VALUES (?, ?)", 
-            (user_str, now)
-        )
-        db.connection.commit()
+    db.cursor.execute(
+        "INSERT OR IGNORE INTO economy (user_id, created_at) VALUES (?, ?)",
+        (user_str, time.time())
+    )
+    db.connection.commit()
 
 def get_balance(user_id: int) -> dict:
     """Returns {'wallet': int, 'bank': int, 'gems': int, 'bank_cap': int}"""
@@ -61,8 +62,13 @@ def spend_wallet(user_id: int, amount: int) -> bool:
     safe primitive for purchases: the WHERE guard + rowcount check makes the
     read-and-deduct a single atomic step, closing the TOCTOU race where a
     concurrent spend could let a user buy something they can't afford.
+
+    A negative amount would mean "spend a negative sum" (i.e. gain coins) — that's
+    never valid here, so reject it rather than silently returning success.
     """
-    if amount <= 0:
+    if amount < 0:
+        return False
+    if amount == 0:
         return True
     ensure_account(user_id)
     db.cursor.execute(
@@ -77,9 +83,12 @@ def spend_gems(user_id: int, amount: int) -> bool:
     """Atomically deduct gems only if gems >= amount. Returns True if spent.
 
     Gems have no MAX(0, ...) clamp anywhere, so a plain UPDATE could drive them
-    negative — this guard prevents that.
+    negative — this guard prevents that. A negative amount is rejected (spending
+    negative gems would mean gaining them).
     """
-    if amount <= 0:
+    if amount < 0:
+        return False
+    if amount == 0:
         return True
     ensure_account(user_id)
     db.cursor.execute(
