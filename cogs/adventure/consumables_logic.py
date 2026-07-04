@@ -69,7 +69,10 @@ async def _use_potion(cog, ctx, cid, combat):
     if char['hp'] >= eff_hp:
         await ctx.send("You're already at full HP!", delete_after=5)
         return
-    use_consumable(ctx.author.id, cid)
+    # Only heal if a potion was actually consumed (atomic; guards a button/text race).
+    if not use_consumable(ctx.author.id, cid):
+        await ctx.send(f"You don't have any **{name}** left.", delete_after=5)
+        return
     old = char['hp']
     char['hp'] = eff_hp if cid == "greater_potion" else min(eff_hp, char['hp'] + 50)
     update_character(ctx.author.id, hp=char['hp'])
@@ -160,12 +163,16 @@ async def _use_utility(cog, ctx, cid):
         if ctx.author.id in cog.active_combats:
             await ctx.send("Can't skip floors during combat!", delete_after=5)
             return
-        use_consumable(ctx.author.id, cid)
+        if not use_consumable(ctx.author.id, cid):
+            await ctx.send("You don't have a Floor Skip.", delete_after=5)
+            return
         char = get_character(ctx.author.id)
         char['current_floor'] += 1
-        if char['current_floor'] > char['deepest_floor']:
-            char['deepest_floor'] = char['current_floor']
-        update_character(ctx.author.id, current_floor=char['current_floor'], deepest_floor=char['deepest_floor'])
+        # deepest_floor is intentionally NOT advanced here. It tracks floors
+        # *earned* in combat and gates the leaderboard + the prestige unlock
+        # (deepest_floor >= 25); letting a bought skip inflate it would let a rich
+        # player top the ladder and prestige without fighting.
+        update_character(ctx.author.id, current_floor=char['current_floor'])
         await ctx.send(f"⏭️ Floor skipped! Now on **Floor {char['current_floor']}**.")
     elif cid == "warp_crystal":
         if ctx.author.id in cog.active_combats:
@@ -175,7 +182,11 @@ async def _use_utility(cog, ctx, cid):
         if char['current_floor'] >= char['deepest_floor']:
             await ctx.send("You're already at your deepest floor!", delete_after=5)
             return
-        use_consumable(ctx.author.id, cid)
+        if not use_consumable(ctx.author.id, cid):
+            await ctx.send("You don't have a Warp Crystal.", delete_after=5)
+            return
+        # Warps up to your earned deepest floor only — never past it, so this
+        # can't inflate deepest_floor either.
         char['current_floor'] = char['deepest_floor']
         update_character(ctx.author.id, current_floor=char['current_floor'])
         await ctx.send(f"🔮 Warped to **Floor {char['current_floor']}**!")

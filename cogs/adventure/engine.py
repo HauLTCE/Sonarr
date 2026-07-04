@@ -115,14 +115,14 @@ def generate_boss(floor: int) -> dict:
 
 
 def ensure_adventure_account(user_id: int):
+    # INSERT OR IGNORE on the user_id PK is atomic; the old SELECT-then-INSERT
+    # could raise on a same-user first-touch race.
     uid = str(user_id)
-    db.cursor.execute("SELECT 1 FROM adventure_character WHERE user_id = ?", (uid,))
-    if not db.cursor.fetchone():
-        db.cursor.execute('''
-            INSERT INTO adventure_character (user_id, current_floor, deepest_floor, hp, max_hp, base_attack, base_defense, base_speed, base_luck)
-            VALUES (?, 1, 1, ?, ?, ?, ?, ?, ?)
-        ''', (uid, BASE_STATS["hp"], BASE_STATS["max_hp"], BASE_STATS["attack"], BASE_STATS["defense"], BASE_STATS["speed"], BASE_STATS["luck"]))
-        db.connection.commit()
+    db.cursor.execute('''
+        INSERT OR IGNORE INTO adventure_character (user_id, current_floor, deepest_floor, hp, max_hp, base_attack, base_defense, base_speed, base_luck)
+        VALUES (?, 1, 1, ?, ?, ?, ?, ?, ?)
+    ''', (uid, BASE_STATS["hp"], BASE_STATS["max_hp"], BASE_STATS["attack"], BASE_STATS["defense"], BASE_STATS["speed"], BASE_STATS["luck"]))
+    db.connection.commit()
 
 
 def get_character(user_id: int):

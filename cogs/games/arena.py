@@ -1,7 +1,7 @@
 import discord
 import random
 import asyncio
-from utils.economy_helpers import update_wallet, record_gamble
+from utils.economy_helpers import update_wallet, spend_wallet, record_gamble
 
 class ArenaMatch:
     def __init__(self, cog, p1, p2, bet):
@@ -115,10 +115,20 @@ def get_hp_bar(hp):
 async def run_arena_match(cog, ctx, p1, p2, bet):
     cog.active_games.add(p1.id)
     cog.active_games.add(p2.id)
-    
+
+    # Guards the broad refund below: once the outcome is being settled, a later
+    # failure (e.g. the final message edit) must not refund on top of a payout.
+    settled = False
     try:
-        update_wallet(p1.id, -bet)
-        update_wallet(p2.id, -bet)
+        # M1: atomic deductions. A player's balance can drop while they wait in
+        # queue, so fail (and refund the other) instead of clamping to 0.
+        if not spend_wallet(p1.id, bet):
+            await ctx.send(f"{p1.display_name} no longer has enough coins. Match cancelled.")
+            return
+        if not spend_wallet(p2.id, bet):
+            update_wallet(p1.id, bet)
+            await ctx.send(f"{p2.display_name} no longer has enough coins. Match cancelled.")
+            return
         
         match = ArenaMatch(cog, p1, p2, bet)
         
@@ -160,7 +170,8 @@ async def run_arena_match(cog, ctx, p1, p2, bet):
             if match.hp[p1.id] > 0 and match.hp[p2.id] > 0:
                 embed.description += f"Round {match.round} — Choose your move!"
                 
-        # Game over
+        # Game over — outcome decided, we're about to settle the pot.
+        settled = True
         embed.title = "🏆 ARENA VICTORY"
         
         if match.hp[p1.id] <= 0 and match.hp[p2.id] <= 0:
@@ -185,9 +196,11 @@ async def run_arena_match(cog, ctx, p1, p2, bet):
         await msg.edit(embed=embed, view=None)
         
     except Exception as e:
-        update_wallet(p1.id, bet)
-        update_wallet(p2.id, bet)
-        await ctx.send("An error occurred. Bets refunded.")
+        # Only refund if we hadn't started settling the pot yet.
+        if not settled:
+            update_wallet(p1.id, bet)
+            update_wallet(p2.id, bet)
+            await ctx.send("An error occurred. Bets refunded.")
         raise e
     finally:
         cog.active_games.discard(p1.id)

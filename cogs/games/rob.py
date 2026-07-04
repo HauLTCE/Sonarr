@@ -2,8 +2,9 @@ import discord
 import random
 import asyncio
 import time
+from datetime import timedelta
 from utils.database import db
-from utils.economy_helpers import get_balance, update_wallet
+from utils.economy_helpers import get_balance, update_wallet, spend_wallet
 
 class RobView(discord.ui.View):
     def __init__(self, ctx, target):
@@ -33,8 +34,10 @@ async def start_rob(cog, ctx, target: discord.Member):
     if target.id == cog.bot.user.id:
         await ctx.send("You want to rob ME? Bold. And stupid.")
         try:
-            await ctx.author.timeout(discord.utils.utcnow() + discord.utils.timedelta(minutes=1), reason="Tried to rob Sonarr")
-        except:
+            # Was discord.utils.timedelta (doesn't exist) — the AttributeError
+            # got swallowed by the bare except, so the timeout never applied.
+            await ctx.author.timeout(discord.utils.utcnow() + timedelta(minutes=1), reason="Tried to rob Sonarr")
+        except Exception:
             pass
         return
         
@@ -57,66 +60,75 @@ async def start_rob(cog, ctx, target: discord.Member):
     # Set cooldown immediately
     db.cursor.execute("UPDATE economy SET last_rob = ? WHERE user_id = ?", (time.time(), user_id))
     db.connection.commit()
-    
-    embed = discord.Embed(title=f"🦹 Robbery Attempt on {target.display_name}", color=0x95A5A6)
-    embed.description = "Sneaking up..."
-    
-    msg = await ctx.send(embed=embed)
-    
-    delay = random.uniform(2.0, 5.0)
-    await asyncio.sleep(delay)
-    
-    embed.description = (
-        "Sneaking up...\n\n"
-        "⚡ QUICK! Click the button! ⚡\n\n"
-        "(You have 3 seconds!)"
-    )
-    
-    view = RobView(ctx, target)
-    await msg.edit(embed=embed, view=view)
-    
-    await view.wait()
-    
-    success_rate = 0.45 if view.clicked else 0.25
-    
-    if random.random() < success_rate:
-        # Success
-        bal = get_balance(target.id)
-        # recheck balance just in case
-        if bal["wallet"] < 200:
-            await msg.edit(content="They hid their money! Robbery failed.", embed=None, view=None)
-            return
+
+    # Mark the robber busy for the duration (start_rob previously never
+    # registered active_games, so a player could rob while in another game).
+    cog.active_games.add(ctx.author.id)
+    try:
+        embed = discord.Embed(title=f"🦹 Robbery Attempt on {target.display_name}", color=0x95A5A6)
+        embed.description = "Sneaking up..."
+        
+        msg = await ctx.send(embed=embed)
+        
+        delay = random.uniform(2.0, 5.0)
+        await asyncio.sleep(delay)
+        
+        embed.description = (
+            "Sneaking up...\n\n"
+            "⚡ QUICK! Click the button! ⚡\n\n"
+            "(You have 3 seconds!)"
+        )
+        
+        view = RobView(ctx, target)
+        await msg.edit(embed=embed, view=view)
+        
+        await view.wait()
+        
+        success_rate = 0.45 if view.clicked else 0.25
+        
+        if random.random() < success_rate:
+            # Success
+            bal = get_balance(target.id)
+            # recheck balance just in case
+            if bal["wallet"] < 200:
+                await msg.edit(content="They hid their money! Robbery failed.", embed=None, view=None)
+                return
+                
+            if bal["wallet"] >= 1000:
+                pct = random.uniform(0.20, 0.25)
+            else:
+                pct = random.uniform(0.15, 0.20)
+                
+            stolen = int(bal["wallet"] * pct)
+
+            # Atomic: only credit the robber if the victim's coins actually moved.
+            if not spend_wallet(target.id, stolen):
+                await msg.edit(content="They moved their money just in time! Robbery failed.", embed=None, view=None)
+                return
+            update_wallet(ctx.author.id, stolen)
             
-        if bal["wallet"] >= 1000:
-            pct = random.uniform(0.20, 0.25)
-        else:
-            pct = random.uniform(0.15, 0.20)
+            db.cursor.execute("UPDATE economy SET times_robbed = times_robbed + 1 WHERE user_id = ?", (str(target.id),))
+            db.connection.commit()
             
-        stolen = int(bal["wallet"] * pct)
-        
-        update_wallet(target.id, -stolen)
-        update_wallet(ctx.author.id, stolen)
-        
-        db.cursor.execute("UPDATE economy SET times_robbed = times_robbed + 1 WHERE user_id = ?", (str(target.id),))
-        db.connection.commit()
-        
-        res_embed = discord.Embed(title="🦹 Robbery Successful", color=0x2ECC71)
-        res_embed.description = f"You sneaked into {target.display_name}'s wallet and stole **{stolen:,} 🪙**.\nSlick."
-        await msg.edit(embed=res_embed, view=None)
-        
-        try:
-            await target.send(f"⚠️ You were robbed! Someone took **{stolen:,} 🪙** from your wallet.")
-        except:
-            pass
-    else:
-        # Failure
-        robber_bal = get_balance(ctx.author.id)
-        fine = min(150, robber_bal['wallet'])
-        if fine > 0:
-            update_wallet(ctx.author.id, -fine)
-        res_embed = discord.Embed(title="🦹 Robbery Failed", color=0xE74C3C)
-        if view.clicked:
-            res_embed.description = f"CAUGHT. You tried, but they noticed. Pay the fine: **{fine} 🪙** for being bad at crime."
+            res_embed = discord.Embed(title="🦹 Robbery Successful", color=0x2ECC71)
+            res_embed.description = f"You sneaked into {target.display_name}'s wallet and stole **{stolen:,} 🪙**.\nSlick."
+            await msg.edit(embed=res_embed, view=None)
+            
+            try:
+                await target.send(f"⚠️ You were robbed! Someone took **{stolen:,} 🪙** from your wallet.")
+            except Exception:
+                pass
         else:
-            res_embed.description = f"CAUGHT. You were too slow! Pay the fine: **{fine} 🪙** for being bad at crime."
-        await msg.edit(embed=res_embed, view=None)
+            # Failure
+            robber_bal = get_balance(ctx.author.id)
+            fine = min(150, robber_bal['wallet'])
+            if fine > 0:
+                update_wallet(ctx.author.id, -fine)
+            res_embed = discord.Embed(title="🦹 Robbery Failed", color=0xE74C3C)
+            if view.clicked:
+                res_embed.description = f"CAUGHT. You tried, but they noticed. Pay the fine: **{fine} 🪙** for being bad at crime."
+            else:
+                res_embed.description = f"CAUGHT. You were too slow! Pay the fine: **{fine} 🪙** for being bad at crime."
+            await msg.edit(embed=res_embed, view=None)
+    finally:
+        cog.active_games.discard(ctx.author.id)

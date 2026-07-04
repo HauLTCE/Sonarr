@@ -1,6 +1,19 @@
-# Environment variables
+# Environment variables & secrets (NEVER commit — Discord token, SSH/deploy password, Lavalink pw)
 .env
+.env.*
 *.env
+!.env.example
+# Private keys / credential files
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+credentials.json
+secrets.json
 
 # Python
 __pycache__/
@@ -34,15 +47,33 @@ wheels/
 *.swo
 *~
 
-# Database
+# Databases + their WAL/SHM sidecars (user data — never commit).
+# The old rule only matched *.db, so chroma's .sqlite3 (and every -wal/-shm
+# holding uncommitted transactions) slipped through.
 *.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
 bot_data.db
 
-# JSON data files
+# JSON data files (user / guild data)
 playlists.json
 levels.json
 ai_memory.json
 server_config.json
+
+# One-time migration leftovers (renamed copies of the JSON data above — same content)
+*.migrated
+
+# Runtime data directory: DBs, chroma vector store, per-user context/affect state,
+# training data. The bot and deploy.py create it fresh — nothing here belongs in git.
+data/
+docs/
 
 # System
 .DS_Store
