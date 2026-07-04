@@ -18,6 +18,8 @@ logger = logging.getLogger("bot")
 PLAYLIST_FILE = "playlists.json"
 MAX_PLAYLIST_ADD = 100
 MAX_QUEUE_PREVIEW = 20
+DEFAULT_VOLUME = 50
+HISTORY_CAP = 20
 
 
 class LavalinkPlayer(wavelink.Player):
@@ -72,13 +74,46 @@ def _track_uri(track: wavelink.Playable) -> str:
 class Music(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
-        self.history: list[tuple[str, str]] = []
-        self.volume = 50
+        # All three are keyed per guild now — previously bot-global single values
+        # that leaked volume/history/playlists between servers.
+        self.history: dict[int, list[tuple[str, str]]] = {}
+        self.volume: dict[int, int] = {}
+        # {guild_id(str): {playlist_name: [ {title, url}, ... ]}}
         self.saved_playlists = self._load_playlists()
         self.session_cache: dict[int, dict[str, Any]] = {}
         self.user_favorites: dict[int, dict[str, int]] = {}
 
-    def _load_playlists(self) -> dict[str, list[dict[str, str]]]:
+    # ----- per-guild state accessors -----
+    def _get_volume(self, guild_id: int) -> int:
+        return self.volume.get(guild_id, DEFAULT_VOLUME)
+
+    def _get_history(self, guild_id: int) -> list[tuple[str, str]]:
+        return self.history.setdefault(guild_id, [])
+
+    def _guild_playlists(self, guild_id: int) -> dict[str, list[dict[str, str]]]:
+        """The playlist namespace for a single guild (created on first use)."""
+        return self.saved_playlists.setdefault(str(guild_id), {})
+
+    @staticmethod
+    def _normalize_playlist_entries(entries: Any) -> list[dict[str, str]]:
+        parsed: list[dict[str, str]] = []
+        if not isinstance(entries, list):
+            return parsed
+        for entry in entries:
+            if isinstance(entry, dict):
+                title = str(entry.get("title", "")).strip()
+                url = str(entry.get("url", "")).strip()
+            elif isinstance(entry, (list, tuple)) and len(entry) >= 2:
+                title = str(entry[0]).strip()
+                url = str(entry[1]).strip()
+            else:
+                continue
+            if not title and not url:
+                continue
+            parsed.append({"title": title or url, "url": url or title})
+        return parsed
+
+    def _load_playlists(self) -> dict[str, dict[str, list[dict[str, str]]]]:
         if not os.path.exists(PLAYLIST_FILE):
             return {}
 
@@ -89,28 +124,36 @@ class Music(commands.Cog):
             logger.warning("Failed to load %s: %s", PLAYLIST_FILE, exc)
             return {}
 
-        normalized: dict[str, list[dict[str, str]]] = {}
-        for name, entries in raw.items():
-            parsed: list[dict[str, str]] = []
-            if not isinstance(entries, list):
-                continue
+        if not isinstance(raw, dict):
+            return {}
 
-            for entry in entries:
-                if isinstance(entry, dict):
-                    title = str(entry.get("title", "")).strip()
-                    url = str(entry.get("url", "")).strip()
-                elif isinstance(entry, (list, tuple)) and len(entry) >= 2:
-                    title = str(entry[0]).strip()
-                    url = str(entry[1]).strip()
-                else:
+        # New format is guild-namespaced: {guild_id: {name: [entries]}}. Detect
+        # it by the values being dicts (name->entries maps).
+        is_nested = bool(raw) and all(isinstance(v, dict) for v in raw.values())
+
+        result: dict[str, dict[str, list[dict[str, str]]]] = {}
+        if is_nested or not raw:
+            for guild_id, playlists in raw.items():
+                if not isinstance(playlists, dict):
                     continue
-
-                if not title and not url:
-                    continue
-
-                parsed.append({"title": title or url, "url": url or title})
-            normalized[name] = parsed
-        return normalized
+                result[str(guild_id)] = {
+                    name: self._normalize_playlist_entries(entries)
+                    for name, entries in playlists.items()
+                }
+        else:
+            # Legacy flat format ({name: [entries]}) predates guild namespacing,
+            # so we can't know which guild owned these. Preserve them under a
+            # reserved bucket (no numeric guild id collides with it) so a redeploy
+            # doesn't silently destroy them, but don't serve them to any guild.
+            logger.warning(
+                "playlists.json is in the pre-guild flat format; preserving under "
+                "'_legacy' (not served to any guild). Recreate playlists per server."
+            )
+            result["_legacy"] = {
+                name: self._normalize_playlist_entries(entries)
+                for name, entries in raw.items()
+            }
+        return result
 
     def _save_playlists_atomic(self) -> bool:
         temp_path = ""
@@ -238,7 +281,7 @@ class Music(commands.Cog):
         
         # SMART RADIO MODE
         player.autoplay = wavelink.AutoPlayMode.enabled
-        await player.set_volume(self.volume)
+        await player.set_volume(self._get_volume(ctx.guild.id))
         setattr(player, "text_channel_id", ctx.channel.id)
         
         if not hasattr(player, "skip_votes"):
@@ -260,7 +303,7 @@ class Music(commands.Cog):
         except wavelink.QueueEmpty:
             return False
 
-        await player.play(next_track, volume=self.volume)
+        await player.play(next_track, volume=self._get_volume(player.guild.id))
         return True
 
     async def _get_bound_channel(self, player: wavelink.Player) -> "discord.abc.Messageable | None":
@@ -369,9 +412,10 @@ class Music(commands.Cog):
         setattr(player, "last_track_uri", uri)
 
         if not is_looping_same:
-            self.history.insert(0, (title, uri))
-            if len(self.history) > 20:
-                self.history = self.history[:20]
+            hist = self._get_history(player.guild.id)
+            hist.insert(0, (title, uri))
+            if len(hist) > HISTORY_CAP:
+                del hist[HISTORY_CAP:]
             await self.update_status(title)
             await self._send_interactive_player(player, track)
 
@@ -488,8 +532,9 @@ Examples:
             return
 
         # Smart Playlist Detection
-        if query in self.saved_playlists:
-            entries = self.saved_playlists[query]
+        guild_playlists = self._guild_playlists(ctx.guild.id)
+        if query in guild_playlists:
+            entries = guild_playlists[query]
             added = 0
             async with ctx.typing():
                 for entry in entries[:MAX_PLAYLIST_ADD]:
@@ -638,6 +683,11 @@ Requires vote in channels with 8+ listeners."""
         
         # Dynamic Vote Skip
         if len(humans) >= 8:
+            # Only members actually in the voice channel may vote — previously any
+            # user who typed !skip from the text channel had their vote counted.
+            if ctx.author not in channel.members:
+                await ctx.send("You must be in the voice channel to vote-skip.", delete_after=5)
+                return
             votes_needed = len(humans) // 2
             votes = getattr(player, "skip_votes", set())
             votes.add(ctx.author.id)
@@ -733,8 +783,12 @@ Alternatively specify a mode:
         added_tracks = getattr(player, "session_added_tracks", [])
         
         if playlist_name and added_tracks:
+            guild_playlists = self._guild_playlists(ctx.guild.id)
             async def on_yes(interaction: discord.Interaction):
-                self.saved_playlists[playlist_name].extend(added_tracks)
+                if playlist_name not in guild_playlists:
+                    await interaction.followup.send(f"Playlist `{playlist_name}` no longer exists.", ephemeral=True)
+                    return
+                guild_playlists[playlist_name].extend(added_tracks)
                 self._save_playlists_atomic()
                 await interaction.followup.send(f"Updated `{playlist_name}` with {len(added_tracks)} new tracks!", ephemeral=True)
             async def on_no(interaction: discord.Interaction):
@@ -763,9 +817,10 @@ Alternatively specify a mode:
     @playlist.command(name="create")
     @is_music_channel()
     async def playlist_create(self, ctx: commands.Context, name: str) -> None:
-        if name in self.saved_playlists:
+        guild_playlists = self._guild_playlists(ctx.guild.id)
+        if name in guild_playlists:
             return await ctx.send(f"Playlist `{name}` already exists.")
-        self.saved_playlists[name] = []
+        guild_playlists[name] = []
         if self._save_playlists_atomic():
             await ctx.send(f"Created empty playlist `{name}`.")
         else:
@@ -785,7 +840,7 @@ Alternatively specify a mode:
         if not tracks:
             return await ctx.send("Queue is empty, nothing to save.")
 
-        self.saved_playlists[name] = [self._serialize_track(t) for t in tracks]
+        self._guild_playlists(ctx.guild.id)[name] = [self._serialize_track(t) for t in tracks]
         if self._save_playlists_atomic():
             await ctx.send(f"Playlist `{name}` saved ({len(tracks)} tracks).")
         else:
@@ -794,16 +849,18 @@ Alternatively specify a mode:
     @playlist.command(name="list")
     @is_music_channel()
     async def playlist_list(self, ctx: commands.Context) -> None:
-        if not self.saved_playlists:
+        guild_playlists = self._guild_playlists(ctx.guild.id)
+        if not guild_playlists:
             return await ctx.send("No saved playlists.")
-        names = "\n".join(f"- {name} ({len(t)} tracks)" for name, t in self.saved_playlists.items())
+        names = "\n".join(f"- {name} ({len(t)} tracks)" for name, t in guild_playlists.items())
         embed = discord.Embed(title="Saved Playlists", description=names, color=0x00FF00)
         await ctx.send(embed=embed)
 
     @playlist.command(name="add")
     @is_music_channel()
     async def playlist_add(self, ctx: commands.Context, name: str, *, query: str | None = None) -> None:
-        if name not in self.saved_playlists:
+        guild_playlists = self._guild_playlists(ctx.guild.id)
+        if name not in guild_playlists:
             return await ctx.send(f"Playlist `{name}` not found. Use `!playlist create` first.")
 
         if not query:
@@ -818,7 +875,7 @@ Alternatively specify a mode:
         if not tracks:
             return await ctx.send("Could not find any tracks.")
 
-        self.saved_playlists[name].extend(self._serialize_track(t) for t in tracks)
+        guild_playlists[name].extend(self._serialize_track(t) for t in tracks)
         if self._save_playlists_atomic():
             await ctx.send(f"Added {len(tracks)} track(s) to playlist `{name}`.")
         else:
@@ -827,9 +884,10 @@ Alternatively specify a mode:
     @playlist.command(name="remove")
     @is_music_channel()
     async def playlist_remove(self, ctx: commands.Context, name: str, index: int) -> None:
-        if name not in self.saved_playlists:
+        guild_playlists = self._guild_playlists(ctx.guild.id)
+        if name not in guild_playlists:
             return await ctx.send(f"Playlist `{name}` not found.")
-        playlist = self.saved_playlists[name]
+        playlist = guild_playlists[name]
         if index < 1 or index > len(playlist):
             return await ctx.send("Invalid index.")
 
@@ -840,9 +898,10 @@ Alternatively specify a mode:
     @playlist.command(name="view")
     @is_music_channel()
     async def playlist_view(self, ctx: commands.Context, name: str) -> None:
-        if name not in self.saved_playlists:
+        guild_playlists = self._guild_playlists(ctx.guild.id)
+        if name not in guild_playlists:
             return await ctx.send(f"Playlist `{name}` not found.")
-        playlist = self.saved_playlists[name]
+        playlist = guild_playlists[name]
         if not playlist:
             return await ctx.send(f"Playlist `{name}` is empty.")
 
@@ -856,9 +915,10 @@ Alternatively specify a mode:
     @playlist.command(name="delete")
     @is_music_channel()
     async def playlist_delete(self, ctx: commands.Context, name: str) -> None:
-        if name not in self.saved_playlists:
+        guild_playlists = self._guild_playlists(ctx.guild.id)
+        if name not in guild_playlists:
             return await ctx.send(f"Playlist `{name}` not found.")
-        del self.saved_playlists[name]
+        del guild_playlists[name]
         if self._save_playlists_atomic():
             await ctx.send(f"Deleted playlist `{name}`.")
 
@@ -916,7 +976,7 @@ Alternatively specify a mode:
     async def volume(self, ctx: commands.Context, vol: int) -> None:
         """Set the playback volume. Range: 0 to 100."""
         if 0 <= vol <= 100:
-            self.volume = vol
+            self.volume[ctx.guild.id] = vol
             player = ctx.voice_client
             if isinstance(player, wavelink.Player):
                 await player.set_volume(vol)
@@ -926,13 +986,14 @@ Alternatively specify a mode:
     @is_music_channel()
     async def history(self, ctx: commands.Context) -> None:
         """Show the last 10 tracks that were played."""
-        if not self.history:
+        hist = self._get_history(ctx.guild.id)
+        if not hist:
             await ctx.send("No playback history yet.")
             return
 
         lines = [
             f"{index}. [{title}]({url})"
-            for index, (title, url) in enumerate(self.history[:10], start=1)
+            for index, (title, url) in enumerate(hist[:10], start=1)
         ]
         embed = discord.Embed(title="Playback History", description="\n".join(lines), color=0x00FF00)
         await ctx.send(embed=embed)
@@ -941,11 +1002,12 @@ Alternatively specify a mode:
     @is_music_channel()
     async def previous(self, ctx: commands.Context) -> None:
         """Go back and replay the previously played track."""
-        if len(self.history) < 2:
+        hist = self._get_history(ctx.guild.id)
+        if len(hist) < 2:
             await ctx.send("No previous song available.")
             return
 
-        previous_url = self.history[1][1]
+        previous_url = hist[1][1]
         player = await self._ensure_player(ctx)
         if player is None:
             return

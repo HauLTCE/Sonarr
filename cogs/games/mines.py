@@ -1,6 +1,7 @@
+import asyncio
 import discord
 import random
-from utils.economy_helpers import update_wallet, record_gamble
+from utils.economy_helpers import update_wallet, spend_wallet, record_gamble
 
 def calculate_mines_multiplier(total_tiles, mines, revealed):
     safe_remaining = total_tiles - mines - revealed
@@ -53,7 +54,11 @@ class MinesView(discord.ui.View):
         self.revealed_count = 0
         self.multiplier = 1.00
         self.total_tiles = 25
-        
+        # Set when the game ends by any path (mine hit, board cleared, cashout,
+        # timeout). Lets the chat-listener loop in start_mines stop waiting the
+        # moment the game is over instead of blocking for the full timeout.
+        self.finished_event = asyncio.Event()
+
         grid = [(x, y) for x in range(5) for y in range(5)]
         mine_locations = set(random.sample(grid, mines))
         
@@ -167,7 +172,14 @@ class MinesView(discord.ui.View):
         self.cog.active_games.discard(self.ctx.author.id)
         self.stop()
 
+    def stop(self):
+        # Signal the chat-listener loop before the base class marks us finished.
+        self.finished_event.set()
+        super().stop()
+
     async def on_timeout(self):
+        # on_timeout is not routed through stop(), so signal the loop explicitly.
+        self.finished_event.set()
         self.cog.active_games.discard(self.ctx.author.id)
         # Auto cashout if any revealed
         if self.revealed_count > 0:
@@ -177,38 +189,72 @@ class MinesView(discord.ui.View):
 
 async def start_mines(cog, ctx, bet: int, mines: int):
     cog.active_games.add(ctx.author.id)
+
+    # Deduct the stake atomically. spend_wallet fails (returns False) instead of
+    # clamping to 0, so we never start a game the player can't actually pay for.
+    if not spend_wallet(ctx.author.id, bet):
+        cog.active_games.discard(ctx.author.id)
+        await ctx.send("You don't have enough coins in your wallet for that bet.")
+        return
+
+    # Only the setup (before any play happens) is allowed to trigger a refund.
+    # Everything after the board is shown resolves through the view's own
+    # win/lose/cashout paths, so the outer handler can't double-refund a
+    # completed game.
     try:
-        update_wallet(ctx.author.id, -bet)
-        
         view = MinesView(cog, ctx, bet, mines)
-        
+
         embed = discord.Embed(title="💣 Mines", color=0x3498DB)
         embed.description = (
             f"Bet: {bet:,} 🪙 | Mines: {mines}\n"
             f"Current: 1.00x\n\n"
             f"Type `cashout` in chat at any time to secure your winnings."
         )
-        
+
         msg = await ctx.send(embed=embed, view=view)
-        
-        def check(m):
-            return m.author == ctx.author and m.channel == ctx.channel and m.content.lower() == 'cashout'
-            
-        while not view.is_finished():
-            try:
-                # Wait for cashout message
-                m = await cog.bot.wait_for('message', check=check, timeout=120.0)
-                if not view.is_finished():
-                    await view.cashout_game(m)
-                    try:
-                        await msg.edit(view=view)
-                    except:
-                        pass
-            except discord.TimeoutError:
-                break
-                
     except Exception as e:
         update_wallet(ctx.author.id, bet)
         cog.active_games.discard(ctx.author.id)
         await ctx.send("An error occurred. Bet refunded.")
         raise e
+
+    def check(m):
+        return m.author == ctx.author and m.channel == ctx.channel and m.content.lower() == 'cashout'
+
+    # Listen for a typed "cashout" while the game is live. Race the message wait
+    # against the view finishing so we stop the moment the game ends (hit a mine,
+    # cleared the board, or timed out) instead of blocking for the full timeout.
+    # NOTE: catch asyncio.TimeoutError, not the non-existent discord.TimeoutError
+    # — the old code raised AttributeError on timeout, which bubbled to a bogus
+    # bet refund (losses refunded, wins double-paid).
+    while not view.is_finished():
+        message_task = asyncio.ensure_future(cog.bot.wait_for('message', check=check))
+        finished_task = asyncio.ensure_future(view.finished_event.wait())
+        try:
+            done, pending = await asyncio.wait(
+                {message_task, finished_task},
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+        except asyncio.CancelledError:
+            message_task.cancel()
+            finished_task.cancel()
+            raise
+
+        for task in pending:
+            task.cancel()
+
+        if message_task not in done:
+            # The view finished first — nothing left to do.
+            break
+
+        try:
+            m = message_task.result()
+        except asyncio.CancelledError:
+            break
+
+        if not view.is_finished():
+            await view.cashout_game(m)
+            try:
+                await msg.edit(view=view)
+            except Exception:
+                pass

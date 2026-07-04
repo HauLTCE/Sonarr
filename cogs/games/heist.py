@@ -2,7 +2,7 @@ import discord
 import random
 import asyncio
 import time
-from utils.economy_helpers import update_wallet, record_gamble
+from utils.economy_helpers import update_wallet, spend_wallet, record_gamble
 
 HEIST_STAGES = [
     {
@@ -89,6 +89,10 @@ class HeistRecruitmentView(discord.ui.View):
         if len(self.crew) >= 6:
             await interaction.response.send_message("The crew is full.", ephemeral=True)
             return
+
+        if interaction.user.id in self.cog.active_games:
+            await interaction.response.send_message("You're already in a game. Finish that first.", ephemeral=True)
+            return
             
         from utils.economy_helpers import get_balance
         bal = get_balance(interaction.user.id)
@@ -120,21 +124,22 @@ class HeistRecruitmentView(discord.ui.View):
         self.force_start = True
         self.stop()
 
-server_cooldown = 0
-player_cooldowns = {}
+# Cooldowns are per-guild now (were module-global, so a heist in one guild
+# blocked heists in every other guild).
+server_cooldowns: dict[int, float] = {}          # guild_id -> unix time allowed again
+player_cooldowns: dict[tuple[int, int], float] = {}  # (guild_id, user_id) -> unix time
 
 async def start_heist(cog, ctx, ante: int):
-    global server_cooldown, player_cooldowns
-    
+    guild_id = ctx.guild.id if ctx.guild else 0
     now = time.time()
     
-    if now < server_cooldown:
-        rem = int((server_cooldown - now) // 60)
+    if now < server_cooldowns.get(guild_id, 0):
+        rem = int((server_cooldowns[guild_id] - now) // 60)
         await ctx.send(f"The cops are on high alert. Wait {rem} minutes before starting another server heist.")
         return
         
-    if now < player_cooldowns.get(ctx.author.id, 0):
-        rem = int((player_cooldowns[ctx.author.id] - now) // 60)
+    if now < player_cooldowns.get((guild_id, ctx.author.id), 0):
+        rem = int((player_cooldowns[(guild_id, ctx.author.id)] - now) // 60)
         await ctx.send(f"You're lying low. Wait {rem} minutes.")
         return
         
@@ -149,68 +154,85 @@ async def start_heist(cog, ctx, ante: int):
         embed.description += "\n\n❌ Not enough people joined. Heist cancelled."
         await msg.edit(embed=embed, view=None)
         return
-        
-    server_cooldown = time.time() + 1800 # 30 mins
+
+    # Lock in the crew: charge each ante atomically (M1) and drop anyone whose
+    # wallet dropped below the ante since they joined.
+    crew = []
     for p in view.crew:
-        player_cooldowns[p.id] = time.time() + 900 # 15 mins
-        update_wallet(p.id, -ante)
-        
-    crew = view.crew
-    survivors = list(crew)
-    dead_players = []
-    
-    total_ante = ante * len(crew)
-    
-    for i, stage in enumerate(HEIST_STAGES):
-        embed = discord.Embed(title=f"🏦 HEIST — Stage {i+1}: {stage['name']}", color=0xF1C40F)
-        results = []
-        
-        success_rate = stage["base_success"] + (len(crew) * stage["per_player_bonus"])
-        
-        next_survivors = []
-        
-        for p in survivors:
-            if random.random() < success_rate:
-                next_survivors.append(p)
-                results.append(f"✅ {random.choice(stage['success_messages']).format(player=p.display_name)}")
-            else:
-                dead_players.append((p, i+1))
-                results.append(f"❌ {random.choice(stage['failure_messages']).format(player=p.display_name)}")
-                record_gamble(p.id, ante, -ante)
-                
-        survivors = next_survivors
-        
-        embed.description = "\n".join(results) + f"\n\nSurvivors: {len(survivors)}/{len(crew)}"
-        
-        if i < len(HEIST_STAGES) - 1 and len(survivors) > 0:
-            embed.description += f" — Moving to Stage {i+2}..."
-            
+        if spend_wallet(p.id, ante):
+            crew.append(p)
+    if len(crew) < 2:
+        for p in crew:  # refund anyone we already charged
+            update_wallet(p.id, ante)
+        embed.description += "\n\n❌ The crew couldn't cover the ante. Heist cancelled."
         await msg.edit(embed=embed, view=None)
+        return
+
+    server_cooldowns[guild_id] = time.time() + 1800  # 30 mins
+    for p in crew:
+        player_cooldowns[(guild_id, p.id)] = time.time() + 900  # 15 mins
+        cog.active_games.add(p.id)  # mark crew busy for the duration of the run
+
+    try:
+        survivors = list(crew)
+        dead_players = []
         
-        if len(survivors) == 0:
-            await asyncio.sleep(2)
-            fail_embed = discord.Embed(title="🏦 HEIST — RESULTS", color=0xE74C3C)
-            fail_embed.description = "Everyone was caught. The heist failed."
-            await msg.edit(embed=fail_embed)
-            return
+        total_ante = ante * len(crew)
+        
+        for i, stage in enumerate(HEIST_STAGES):
+            embed = discord.Embed(title=f"🏦 HEIST — Stage {i+1}: {stage['name']}", color=0xF1C40F)
+            results = []
             
-        await asyncio.sleep(4)
+            success_rate = stage["base_success"] + (len(crew) * stage["per_player_bonus"])
+            
+            next_survivors = []
+            
+            for p in survivors:
+                if random.random() < success_rate:
+                    next_survivors.append(p)
+                    results.append(f"✅ {random.choice(stage['success_messages']).format(player=p.display_name)}")
+                else:
+                    dead_players.append((p, i+1))
+                    results.append(f"❌ {random.choice(stage['failure_messages']).format(player=p.display_name)}")
+                    record_gamble(p.id, ante, -ante)
+                    
+            survivors = next_survivors
+            
+            embed.description = "\n".join(results) + f"\n\nSurvivors: {len(survivors)}/{len(crew)}"
+            
+            if i < len(HEIST_STAGES) - 1 and len(survivors) > 0:
+                embed.description += f" — Moving to Stage {i+2}..."
+                
+            await msg.edit(embed=embed, view=None)
+            
+            if len(survivors) == 0:
+                await asyncio.sleep(2)
+                fail_embed = discord.Embed(title="🏦 HEIST — RESULTS", color=0xE74C3C)
+                fail_embed.description = "Everyone was caught. The heist failed."
+                await msg.edit(embed=fail_embed)
+                return
+                
+            await asyncio.sleep(4)
+            
+        vault_loot = calculate_vault_loot(len(crew), total_ante)
+        split = vault_loot // len(survivors)
         
-    vault_loot = calculate_vault_loot(len(crew), total_ante)
-    split = vault_loot // len(survivors)
-    
-    res_embed = discord.Embed(title="🏦 HEIST — RESULTS", color=0x2ECC71)
-    
-    desc = f"Vault Loot: {vault_loot:,} 🪙\nSurvivors: {', '.join([p.display_name for p in survivors])}\n\n"
-    
-    for p, stage_died in dead_players:
-        desc += f"💀 {p.display_name} — Caught in Stage {stage_died} (-{ante:,} 🪙)\n"
+        res_embed = discord.Embed(title="🏦 HEIST — RESULTS", color=0x2ECC71)
         
-    for p in survivors:
-        net = split - ante
-        update_wallet(p.id, split)
-        record_gamble(p.id, ante, net)
-        desc += f"🏆 {p.display_name} — {split:,} 🪙 (+{net:,} net)\n"
+        desc = f"Vault Loot: {vault_loot:,} 🪙\nSurvivors: {', '.join([p.display_name for p in survivors])}\n\n"
         
-    res_embed.description = desc
-    await msg.edit(embed=res_embed)
+        for p, stage_died in dead_players:
+            desc += f"💀 {p.display_name} — Caught in Stage {stage_died} (-{ante:,} 🪙)\n"
+            
+        for p in survivors:
+            net = split - ante
+            update_wallet(p.id, split)
+            record_gamble(p.id, ante, net)
+            desc += f"🏆 {p.display_name} — {split:,} 🪙 (+{net:,} net)\n"
+            
+        res_embed.description = desc
+        await msg.edit(embed=res_embed)
+    finally:
+        # Always release the busy flags, even if a stage edit raised.
+        for p in crew:
+            cog.active_games.discard(p.id)

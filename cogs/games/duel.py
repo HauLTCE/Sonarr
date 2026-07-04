@@ -1,6 +1,6 @@
 import discord
 import random
-from utils.economy_helpers import update_wallet, record_gamble
+from utils.economy_helpers import update_wallet, spend_wallet, record_gamble
 
 class DuelGameView(discord.ui.View):
     def __init__(self, cog, ctx, target, bet, pot):
@@ -137,11 +137,14 @@ class DuelAcceptView(discord.ui.View):
 async def start_duel(cog, ctx, target, bet: int):
     cog.active_games.add(ctx.author.id)
     cog.active_games.add(target.id)
-    
+
+    def _release():
+        cog.active_games.discard(ctx.author.id)
+        cog.active_games.discard(target.id)
+
     try:
-        update_wallet(ctx.author.id, -bet)
-        update_wallet(target.id, -bet)
-        
+        # M2: don't charge until the challenge is accepted — no locked coins
+        # during the 60s window.
         embed = discord.Embed(title="💀 Russian Roulette Challenge", color=0x3498DB)
         embed.description = (
             f"{ctx.author.mention} challenges {target.mention}!\n"
@@ -155,30 +158,41 @@ async def start_duel(cog, ctx, target, bet: int):
         await accept_view.wait()
         
         if accept_view.accepted is None:
-            update_wallet(ctx.author.id, bet)
-            update_wallet(target.id, bet)
-            await msg.edit(content="Challenge timed out. Bets refunded.", embed=None)
-            cog.active_games.discard(ctx.author.id)
-            cog.active_games.discard(target.id)
+            await msg.edit(content="Challenge timed out.", embed=None)
+            _release()
             return
             
         if not accept_view.accepted:
+            await msg.edit(content=f"{target.display_name} declined.", embed=None)
+            _release()
+            return
+
+        # Consent given — charge both atomically (M1). Abort + refund if either
+        # can no longer cover the bet.
+        if not spend_wallet(ctx.author.id, bet):
+            await msg.edit(content="You no longer have enough coins. Duel cancelled.", embed=None)
+            _release()
+            return
+        if not spend_wallet(target.id, bet):
+            update_wallet(ctx.author.id, bet)
+            await msg.edit(content=f"{target.display_name} no longer has enough coins. Duel cancelled.", embed=None)
+            _release()
+            return
+
+        # Both charged. Hand off to the game view (which owns active_games and the
+        # win/lose payout from here). If we can't even show the board, refund both.
+        try:
+            game_view = DuelGameView(cog, ctx, target, bet, bet*2)
+            game_view.msg = msg
+            await msg.edit(embed=game_view.generate_embed(), view=game_view)
+        except Exception:
             update_wallet(ctx.author.id, bet)
             update_wallet(target.id, bet)
-            await msg.edit(content=f"{target.display_name} declined. Bets refunded.", embed=None)
-            cog.active_games.discard(ctx.author.id)
-            cog.active_games.discard(target.id)
-            return
-            
-        # Start game
-        game_view = DuelGameView(cog, ctx, target, bet, bet*2)
-        game_view.msg = msg
-        await msg.edit(embed=game_view.generate_embed(), view=game_view)
+            _release()
+            raise
         
     except Exception as e:
-        update_wallet(ctx.author.id, bet)
-        update_wallet(target.id, bet)
-        cog.active_games.discard(ctx.author.id)
-        cog.active_games.discard(target.id)
-        await ctx.send("An error occurred. Bets refunded.")
+        # Pre-charge failure (nothing deducted yet) — just release the flags.
+        _release()
+        await ctx.send("An error occurred.")
         raise e
