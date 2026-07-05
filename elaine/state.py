@@ -53,6 +53,11 @@ class Transition:
     cooldown: int = 0                            # won't re-fire for this many logical turns
     once: bool = False                           # fire at most once per session
     key: str = ""                                # stable id (state#index) for cooldown/once
+    # Phase 4 (speech acts): a declarative label for what THIS reply DOES conversationally
+    # (question / greeting / dismissal / farewell / ...). Recorded each turn so the NEXT
+    # turn can stay self-consistent — e.g. never deny asking right after asking. When None
+    # the affect layer infers a light heuristic act instead. Pure metadata: no control flow.
+    act: str | None = None
 
     def changes_state(self) -> bool:
         """True if this transition moves to a different node (fires target on_enter)."""

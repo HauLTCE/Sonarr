@@ -7,17 +7,39 @@ The engine is persistence-ignorant and Discord-ignorant: it walks states + memor
 """
 from __future__ import annotations
 
+import logging
 import random
 import zlib
 from dataclasses import dataclass
 
-from .matchers import MatchResult
+from .matchers import Intent, MatchResult
 from .memory import Memory
 from .normalize import normalize
 from .responses import render
 from .state import SetAction, State, Transition
 
+logger = logging.getLogger(__name__)
+
 _ON_ENTER_SALT = 0x9E3779B9  # distinct seed for on_enter vs reply in the same turn
+
+
+def _transition_desc(t: "Transition", current: str) -> str:
+    """Compact, log-friendly id of a transition: its key, matcher kind, and target."""
+    if t.matcher is None:
+        matcher = "always"
+    elif isinstance(t.matcher, Intent):
+        matcher = f"intent:{t.matcher.name}"
+    else:
+        matcher = type(t.matcher).__name__
+    if t.goto is not None:
+        target = t.goto
+    elif t.push is not None:
+        target = f"push:{t.push}"
+    elif t.pop:
+        target = "pop"
+    else:
+        target = current  # stays put (reply-only transition)
+    return f"{t.key or '?'} matcher={matcher} -> {target}"
 
 
 def _as_number(v, default=0):
@@ -81,18 +103,26 @@ class Engine:
         # Stepping a terminal state again is a no-op halt (it has no transitions/fallback).
         # Callers normally stop at halt, but be defensive so a stray extra turn can't crash.
         if state.end:
+            logger.debug("engine: state %s is terminal; no-op halt", self.current)
             return StepResult(reply="", halted=True)
 
         # Empty input never advances state — take fallback directly (DESIGN/Plan P3).
         if norm.cased == "":
+            logger.debug("engine: empty input in %s -> fallback", self.current)
             return self._take(state, state.fallback, MatchResult(True), entered=False)
 
         chosen, result = self._select(state, norm)
         if chosen is None:
+            logger.debug("engine: %s no transition matched %r -> fallback",
+                         self.current, norm.lower)
             chosen, result = state.fallback, MatchResult(True)
+        elif logger.isEnabledFor(logging.DEBUG):
+            logger.debug("engine: %s matched %s captures=%s", self.current,
+                         _transition_desc(chosen, self.current), result.captures or {})
         if chosen is None:
             # No transition matched and no fallback (validation prevents this for shipped
             # scripts; guard anyway rather than dereference None).
+            logger.debug("engine: %s no fallback available -> halt", self.current)
             return StepResult(reply="", halted=state.end)
 
         return self._fire(state, chosen, result)
@@ -141,6 +171,11 @@ class Engine:
     def _apply_sets(self, t: Transition, mr: MatchResult) -> None:
         for sa in t.sets:
             self._apply_one_set(sa, mr)
+        if t.sets and logger.isEnabledFor(logging.DEBUG):
+            # Log which slots were touched (keys + op), not the values — keeps user
+            # content out of the routine slot-write trail while still showing memory moves.
+            logger.debug("engine: slots mutated: %s",
+                         ", ".join(f"{sa.op}:{sa.key}" for sa in t.sets))
 
     def _apply_topic(self, t: Transition) -> None:
         """A transition's `topic:` sets the current topic and appends to the topic history."""
@@ -152,6 +187,7 @@ class Engine:
         if t.topic not in lst:
             lst.append(t.topic)
         self.memory.set("topics_seen", lst)
+        logger.debug("engine: topic -> %s", t.topic)
 
     def _resolve_expr(self, expr, mr: MatchResult):
         """Resolve one value expression: $capture, $$literal-dollar, or a plain literal."""
@@ -210,13 +246,16 @@ class Engine:
         """Apply goto/push/pop. Returns (state_changed, target_name)."""
         if t.push is not None:
             self.memory.push_return(self.current)
+            logger.debug("engine: push %s, goto %s", self.current, t.push)
             self.current = t.push
             return True, self.current
         if t.pop:
             ret = self.memory.pop_return()
             if ret is None:
                 # empty stack: degrade to staying put (validation catches static cases)
+                logger.debug("engine: pop with empty return stack in %s; staying", self.current)
                 return False, self.current
+            logger.debug("engine: pop %s -> %s", self.current, ret)
             self.current = ret
             return True, self.current
         if t.goto is not None and t.goto != self.current:

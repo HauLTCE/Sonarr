@@ -128,6 +128,16 @@ pools:
     - "right now? #mode#. congrats, i guess."
     - "reading as #mode#. shocking absolutely no one."
 
+  # who/what she is at the pronoun level — she/her, stated plainly under the snark
+  question_pronouns:
+    - "she/her. shocking, i know."
+    - "she/her. i'm sonarr, not 'it'. get it right."
+    - "she/her, thanks for asking. most people don't bother."
+    - "she/her. i'm a lady. a rude one, but still."
+    - "it's she/her. write it down if your memory's as short as your messages."
+    - "she/her. yes i'm a girl bot. no i won't be nicer about it."
+    - "she/her. and before you ask — yes, still smarter than you."
+
   # snark for memory recall when there's genuinely nothing stored
   recall_empty:
     - "you haven't said anything worth keeping."

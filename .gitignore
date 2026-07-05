@@ -74,6 +74,8 @@ server_config.json
 # training data. The bot and deploy.py create it fresh — nothing here belongs in git.
 data/
 docs/
+team/
+tests/
 
 # System
 .DS_Store
