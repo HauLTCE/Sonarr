@@ -13,6 +13,7 @@ pure function testable with a fake message, so CI needs no live network and no l
 """
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass
 
@@ -20,6 +21,8 @@ from .affect import Personality
 from .script import LoadedScript, load
 from .self_model import AffectEngine, GlobalState
 from .store import Store
+
+logger = logging.getLogger(__name__)
 
 # Privileged actions this adapter must NEVER call (asserted by tests).
 FORBIDDEN_ACTIONS = ("kick", "ban", "timeout", "edit_roles", "move_to", "mute", "deafen")
@@ -51,15 +54,25 @@ class ElaineBot:
     def handle_message(self, msg: IncomingMessage) -> str | None:
         """Process one message; return the reply text (None if ignored). Pure + testable."""
         if msg.author_is_bot:
+            logger.debug("handle: ignoring bot author %s", msg.author_id)
             return None
         content = (msg.content or "").strip()
         if not content:
+            logger.debug("handle: ignoring empty message from %s:%s",
+                         msg.guild_id, msg.author_id)
             return None  # empty / attachment-only
 
         key = scope_key(msg.guild_id, msg.author_id)
         lock = self.store.lock_for(key)
         with lock:
             loaded_self = self.store.load(key, guild_id=msg.guild_id)
+            if logger.isEnabledFor(logging.DEBUG):
+                ss = loaded_self.self_state
+                logger.debug(
+                    "handle: %s loaded state=%s clock=%d role=%s anger=%.1f room_mood=%.2f",
+                    key, ss.dialogue_state, loaded_self.logical_clock,
+                    ss.registers.role, ss.registers.anger, loaded_self.global_mood,
+                )
             # Share the per-guild room mood so it actually contributes to mode
             # selection (it was always 0 before — the engine got a fresh, empty
             # GlobalState and save hardcoded mood to 0.0).
@@ -72,12 +85,20 @@ class ElaineBot:
             ae.memory.apply_expiry(loaded_self.slot_expiry)
             ae.memory.turn = loaded_self.logical_clock
 
-            result = ae.step(content)
+            try:
+                result = ae.step(content)
+            except Exception:
+                # Log with the scope + input that triggered it, then re-raise so the
+                # caller still decides what to do (the Discord cog degrades gracefully).
+                logger.exception("handle: %s engine.step crashed on %r", key, content)
+                raise
 
             self.store.save(key, ae.self_state, ae.memory.slots(),
                             logical_clock=ae.memory.turn, guild_id=msg.guild_id,
                             slot_expiry=ae.memory.slot_expiry(),
                             global_mood=ae.global_state.global_mood)
+            logger.debug("handle: %s saved state=%s clock=%d", key,
+                         ae.self_state.dialogue_state, ae.memory.turn)
         return result.reply or None
 
 
@@ -114,4 +135,5 @@ def run_live(script_path: str, db_path: str = "elaine.db") -> None:  # pragma: n
         if reply:
             await message.channel.send(reply)  # the ONLY Discord write — text only
 
+    logger.info("run_live: starting E.L.A.I.N.E (script=%s, db=%s)", script_path, db_path)
     client.run(token)

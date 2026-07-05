@@ -310,6 +310,22 @@ def parse_guard(spec: Any, where: str) -> G.Guard:
 
 _SET_OPS = ("inc", "dec", "append", "clear", "rand", "put")
 
+# Closed vocabulary for a transition's `act:` (Phase 4). Kept small and declarative: each
+# names what a reply DOES in the conversation, so the next turn can react coherently
+# (the affect layer records the fired act as the `bot_last_act` slot). Extend deliberately.
+_SPEECH_ACTS = frozenset({
+    "greeting",     # opens/acknowledges contact
+    "question",     # asks something, expects an answer
+    "answer",       # answers the user's question
+    "statement",    # a plain assertion
+    "dismissal",    # brushes the user off
+    "deflect",      # dodges (flirting, prying)
+    "insult",       # attacks
+    "comeback",     # retaliates to an attack
+    "farewell",     # ends the conversation
+    "acknowledge",  # minimal ack ("noted.")
+})
+
 
 def _parse_sets(raw: dict | None, where: str) -> tuple[SetAction, ...]:
     out: list[SetAction] = []
@@ -352,7 +368,7 @@ def parse_transition(raw: dict, where: str, intents: dict[str, ParsedIntent],
                      is_fallback: bool = False, key: str = "") -> Transition:
     keys = set(raw.keys())
     known = {"match", "when", "set", "goto", "push", "pop", "reply", "affect", "remember",
-             "topic", "cooldown", "once"}
+             "topic", "cooldown", "once", "act"}
     unknown = keys - known
     if unknown:
         raise ScriptError(f"{where}: unknown transition key(s) {sorted(unknown)}")
@@ -396,6 +412,15 @@ def parse_transition(raw: dict, where: str, intents: dict[str, ParsedIntent],
     cooldown = int(raw.get("cooldown", 0))
     once = bool(raw.get("once", False))
 
+    # act: declarative speech-act label (Phase 4), validated against the closed vocabulary.
+    act = raw.get("act")
+    if act is not None:
+        act = str(act)
+        if act not in _SPEECH_ACTS:
+            raise ScriptError(
+                f"{where}: unknown act {act!r}; allowed: {sorted(_SPEECH_ACTS)}"
+            )
+
     # capture-ref reachability: every $name in set/reply/remember must be producible
     used_caps: set[str] = set()
     for sa in sets:
@@ -421,7 +446,7 @@ def parse_transition(raw: dict, where: str, intents: dict[str, ParsedIntent],
         matcher=matcher, when=when, sets=sets,
         goto=goto, push=push, pop=pop, reply=reply,
         affect=affect, remember=remember,
-        topic=topic, cooldown=cooldown, once=once, key=key,
+        topic=topic, cooldown=cooldown, once=once, key=key, act=act,
     )
 
 

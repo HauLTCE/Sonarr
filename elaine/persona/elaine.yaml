@@ -102,6 +102,7 @@ intents:
   Q_AGE:     { regex: ["how old", "your age", "when were you born"] }
   Q_PHILO:   { regex: ["meaning of life", "why are we here", "what is love", "purpose of life", "is there a god", "what happens when we die", "free will"] }
   Q_CAP:     { regex: ["what can you do", "what do you do", "are you able to", "your capabilities", "what are you capable"] }
+  Q_PRONOUN: { keyword: [pronouns], regex: ["your pronouns", "what pronouns", "how do i refer to you", "are you a (?:girl|woman|boy|man|guy|dude|she|he|female|male)", "you a (?:girl|guy|dude|boy)\\b", "he or she", "she or he"] }
   # --- new topics (batch of 50) ---
   MOVIES:    { keyword: [movie, movies, film, films, netflix, cinema, sitcom], regex: ["tv show", "watch(?:ed|ing)? (?:a |the )?(?:movie|show|series|netflix)", "favou?rite (?:movie|show|film)"] }
   ART:       { keyword: [art, painting, drawing, sculpture, museum, gallery, sketch, canvas, doodle], regex: ["i (?:paint|draw|sketch)"] }
@@ -147,6 +148,9 @@ intents:
   # --- memory / personalization ---
   SET_FAV:   { regex: ["my favou?rite (?P<favthing>\\w+) is (?P<favval>[\\w ]+)"] }
   SET_AGE:   { regex: ["i(?:'?m| am) (?P<age>\\d{1,3})(?: years old)?\\b", "my age is (?P<age>\\d{1,3})", "i turned (?P<age>\\d{1,3})"] }
+  # Explicit name declarations only. Bare "i'm X" is deliberately EXCLUDED — it stays a
+  # mood reflection ("i'm tired"), so moods/states never get stored as a name.
+  SET_NAME:  { regex: ["my name is (?P<nm>[a-z][\\w'\\-]*)", "my name'?s (?P<nm>[a-z][\\w'\\-]*)", "call me (?P<nm>[a-z][\\w'\\-]*)", "i go by (?P<nm>[a-z][\\w'\\-]*)", "the name'?s (?P<nm>[a-z][\\w'\\-]*)"] }
   RECALL_NAME: { regex: ["what(?:'?s| is) my name", "who am i", "do you (?:know|remember) my name", "say my name"] }
   RECALL_FAV: { regex: ["what(?:'?s| is) my favou?rite", "do you remember my favou?rite", "my favou?rite anything"] }
   RECALL_AGE: { regex: ["how old am i", "what(?:'?s| is) my age", "do you (?:know|remember) my age"] }
@@ -156,7 +160,6 @@ intents:
   TALK_TIME: { regex: ["how long have we (?:been )?(?:talking|chatting)", "how many (?:times|messages)", "how long (?:have|has) (?:this|it|we)"] }
   EMOJI:     { regex: ["[\\U0001F000-\\U0001FAFF\\u2600-\\u27BF]"] }
   LONGMSG:   { regex: ".{170,}" }
-  ONEWORD:   { regex: "^\\S{1,20}$" }
   D20:       { regex: ["roll a d20", "\\bd20\\b", "twenty.sided", "roll (?:a )?20"] }
   LUCKY:     { regex: ["lucky number", "pick a number for me", "give me a (?:random )?number"] }
   RECALL_LUCKY: { regex: ["what(?:'?s| is) my lucky number", "my lucky number again"] }
@@ -218,11 +221,23 @@ states:
       emoji_react: ["using your words is optional, i see.", "an emoji. groundbreaking.", "i don't speak hieroglyphics.", "cave paintings. how evolved."]
       caps_react: ["why are we yelling?", "caps lock won't make you righter.", "lower your voice. and your expectations.", "SHOUTING back would be undignified. so — calm down."]
       long_react: ["i'm not reading all that. i'm sure it was riveting though.", "tl;dr?", "that's a lot of words to say nothing.", "a whole essay. for me? you shouldn't have. really."]
-      oneword_react: ["one word? riveting.", "wow, a whole word. slow down.", "use a sentence next time.", "a single word. bold minimalist choice."]
       d20_react: ["natural 20? in your dreams.", "roll again, coward.", "the dice don't lie. you do.", "mid roll, like everything about you."]
       link_react: ["i don't click random links. i'm not new here.", "a link. how thoughtful. no.", "not clicking that. nice try."]
       mention_react: ["i'm right here. no need to @ me.", "@ing me won't speed anything up.", "yes, that's me. what do you want."]
       followup: ["about #topic#? still don't care.", "#topic#? we covered that.", "you mean #topic#. moving on.", "more about #topic#? no."]
+      # First-contact greeting lines: dismissive, but WITHOUT the "we just talked" /
+      # "you again?" assumptions that only make sense on a repeat hello (Phase 2).
+      greeting_first: ["what do you want?", "something you need?", "state your business.", "make it quick.", "yeah? what.", "what is it.", "go on then.", "what.", "i'm listening. allegedly."]
+      # Reactions when she just asked and the user gives a non-answer / declines (Phase 3).
+      # These CLOSE the loop she opened, instead of pretending she never spoke.
+      nonanswer_reaction: ["then why'd you ping me?", "so, nothing. cool.", "you pinged me for nothing. classic.", "then stop wasting my time.", "a whole lot of nothing. great.", "then why are we talking?", "riveting non-answer.", "so we're done here. good."]
+      # Generic deflect used ONLY when she just asked a question — a safe subset that never
+      # denies asking (Phase 2). The normal #brush_off# still covers unprompted statements.
+      brush_off_after_question: ["#neutral_safe#", "#social_chitchat#", "#ack#"]
+      neutral_safe: ["okay. and?", "noted. moving on.", "riveting.", "fascinating. not.", "sure, whatever.", "cool story.", "is there a point to this?", "okay?", "moving on then.", "if you say so."]
+      # Acknowledge a name she just learned/updated (reads the {name} slot set on the same
+      # transition, so it reflects the new value).
+      name_ack: ["fine, {name}. noted.", "{name}, huh. i'll allow it.", "ugh, fine — {name}. happy now?", "noted: {name}. now what.", "{name}. got it. don't make me regret remembering it.", "so you're {name} now. thrilling."]
     mode_grammar:
       ANNOYED:
         opener: ["ugh.", "what now.", "seriously?"]
@@ -305,6 +320,13 @@ states:
         affect: { amusement: +1 }
         reply: "#compliment_req#"
       # --- memory / personalization (recall before questions; set before mood regex) ---
+      # Set / UPDATE the user's name mid-conversation. Name capture used to live only in
+      # GREET, so once in CHAT she could never learn a name or change the "friend" default.
+      # Overwrites unconditionally, so "my name is X" fixes a stale/placeholder name.
+      - match: { intent: SET_NAME }
+        act:   acknowledge
+        set:   { name: "$nm" }
+        reply: "#name_ack#"
       - match: { intent: RECALL_NAME }
         when:  { has: name }
         reply: "you're {name}. i was listening. barely."
@@ -474,24 +496,40 @@ states:
         reply: "#request_play_music#"
       - match: { intent: CHOOSE }
         reply: "#request_choose#"
+      # Greetings pose a question ("what do you want?"), so they carry act: question and set
+      # an `awaiting` expectation (ttl 2) — a non-answer next turn then gets a coherent
+      # close instead of the generic deflect (Phases 3 & 4). Ordering: time-of-day, then
+      # the score-keeping repeat, then any repeat, then first contact.
       # time-of-day aware greeting (the adapter sets time_of_day; engine stays clock-only).
       - match: { intent: GREETING }
         when:  { has: time_of_day }
-        set:   { hello_count: { inc: 1 } }
-        reply: "good #daypart#. #social_greeting#"
+        act:   question
+        set:   { hello_count: { inc: 1 }, awaiting: { value: purpose, ttl: 2 } }
+        reply: "good #daypart#. #greeting_first#"
       # greeting counter: after enough repeats she starts keeping score (slot_ge + inc).
       - match: { intent: GREETING }
         when:  { slot_ge: [hello_count, 3] }
-        set:   { hello_count: { inc: 1 } }
+        act:   question
+        set:   { hello_count: { inc: 1 }, awaiting: { value: purpose, ttl: 2 } }
         reply: "that's hello number {hello_count}. we've established the hellos. what do you want."
+      # seen us greet before -> the repeat-contact lines ("you again?") now make sense.
       - match: { intent: GREETING }
-        set:   { hello_count: { inc: 1 } }
+        when:  { slot_ge: [hello_count, 1] }
+        act:   question
+        set:   { hello_count: { inc: 1 }, awaiting: { value: purpose, ttl: 2 } }
         reply: "#social_greeting#"
+      # first hello of the session -> no "we just talked" assumptions.
+      - match: { intent: GREETING }
+        act:   question
+        set:   { hello_count: { inc: 1 }, awaiting: { value: purpose, ttl: 2 } }
+        reply: "#greeting_first#"
       # --- questions answered in ONE turn (routed by subtype), then a general deflect ---
       - match: { intent: HOWRU }
         reply: "#howru#"
       - match: { intent: Q_REL }
         reply: "#question_relationship#"
+      - match: { intent: Q_PRONOUN }
+        reply: "#question_pronouns#"
       - match: { intent: Q_BOT }
         reply: "#question_about_bot#"
       - match: { intent: Q_AGE }
@@ -518,7 +556,16 @@ states:
         affect: { warmth: +1 }
         reply: "sure thing, {name}. #shrug#"
       - match: { intent: BYE }
+        act:   farewell
         goto:  BYE
+      # --- adjacency pair: she just asked, so treat a refusal / non-answer AS the answer
+      #     and close the loop she opened (Phase 3). Guarded by a live `awaiting`
+      #     expectation, so a substantive reply falls through to the normal routing above.
+      - when:  { has: awaiting }
+        match: { regex: "\\b(?:no|nope|nah|none|nothing|not really|not particular(?:ly)?|nvm|never ?mind|forget it|no reason|dunno|idk|i don'?t know|i dont know|just (?:saying )?hi|nothing much)\\b" }
+        act:   dismissal
+        set:   { awaiting: { clear: true } }
+        reply: "#nonanswer_reaction#"
       # --- flavor reactions: only reached when nothing more specific matched ---
       - match: { url: true }
         reply: "#link_react#"
@@ -531,9 +578,14 @@ states:
         reply: "#caps_react#"
       - match: { intent: LONGMSG }
         reply: "#long_react#"
-      - match: { intent: ONEWORD }
-        reply: "#oneword_react#"
+      # --- self-consistency net (Phase 2): she asked something last turn but nothing above
+      #     matched this one. A generic deflect must NOT deny asking, so route to a safe
+      #     pool. The normal #brush_off# below still covers truly unprompted statements.
+      - when:  { equals: [bot_asked, true] }
+        act:   dismissal
+        reply: "#brush_off_after_question#"
     fallback:
+      act:   dismissal
       reply: "#brush_off#"
 
   ARGUMENT:

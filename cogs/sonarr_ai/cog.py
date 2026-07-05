@@ -74,6 +74,10 @@ class SonarrAI(commands.Cog):
         # so the FSM produces something in-character instead of silently ignoring it.
         text = self._clean_mentions(message.content) or "hey"
 
+        trigger = "reply" if replied_to_bot else "mention"
+        logger.info("[SonarrAI] %s from %s (guild=%s chan=%s): %r", trigger,
+                    message.author.display_name, message.guild.id, message.channel.id, text)
+
         incoming = IncomingMessage(
             guild_id=str(message.guild.id),
             author_id=str(message.author.id),
@@ -82,11 +86,22 @@ class SonarrAI(commands.Cog):
         )
 
         # handle_message is synchronous (SQLite + a per-user lock); run it off the loop.
-        async with message.channel.typing():
-            reply = await asyncio.to_thread(self.engine.handle_message, incoming)
+        # Guard it: a bug in the engine must not bubble up as an unhandled on_message
+        # error — Elaine is reply-only, so a failure just means she stays quiet (logged).
+        try:
+            async with message.channel.typing():
+                reply = await asyncio.to_thread(self.engine.handle_message, incoming)
+        except Exception:
+            logger.exception("[SonarrAI] E.L.A.I.N.E failed handling a message from %s",
+                             message.author.display_name)
+            return
 
         if reply and reply.strip():
+            logger.info("[SonarrAI] replied to %s (%d chars)",
+                        message.author.display_name, len(reply))
             await message.reply(reply, mention_author=False)
+        else:
+            logger.debug("[SonarrAI] no reply generated for %s", message.author.display_name)
 
 
 async def setup(bot):

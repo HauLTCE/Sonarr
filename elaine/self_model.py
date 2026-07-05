@@ -13,6 +13,7 @@ The engine stays affect-ignorant; this layer reads/writes Registers around it.
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 
 from . import sentiment as S
@@ -30,6 +31,30 @@ from .episodic import AffectFetchContext, EpisodicLog
 from .grammar import expand_entry, expand_template
 from .metrics import Metrics
 from .normalize import normalize
+
+logger = logging.getLogger(__name__)
+
+
+def _regs_snapshot(r: "Registers") -> dict[str, float]:
+    """Copy the continuous mood axes so we can log before/after deltas for one turn."""
+    return {
+        "anger": r.anger, "warmth": r.warmth, "amusement": r.amusement,
+        "boredom": r.boredom, "confidence": r.confidence, "energy": r.energy,
+    }
+
+
+def _delta(before: float, after: float) -> str:
+    """Render a register as 'x.y' if unchanged this turn, else 'before->after'."""
+    if abs(before - after) < 1e-9:
+        return f"{after:.1f}"
+    return f"{before:.1f}->{after:.1f}"
+
+
+def _short(text, limit: int = 140) -> str:
+    """One-line, length-bounded form of a value for readable log lines (ASCII-safe)."""
+    s = text if isinstance(text, str) else ("" if text is None else str(text))
+    s = s.replace("\n", " ").replace("\r", " ")
+    return s if len(s) <= limit else s[: limit - 3] + "..."
 
 
 @dataclass
@@ -133,6 +158,9 @@ class AffectEngine:
 
     def step(self, user_text: str) -> StepResult:
         r = self.self_state.registers
+        prev_state = self.engine.current
+        debug = logger.isEnabledFor(logging.DEBUG)
+        before = _regs_snapshot(r) if debug else None
         norm = normalize(user_text)
 
         # 1. sentiment classification -> register
@@ -189,9 +217,90 @@ class AffectEngine:
         self.self_state.dialogue_state = self.engine.current
         self.self_state.last_mode = self.current_mode()
 
+        # 5b. self-consistency (Phases 1 & 4): the engine has no memory of its OWN outputs,
+        # so a reply could contradict the previous turn — famously "i don't remember asking."
+        # right after she asked. Record a tiny, persisted trace of what she just said/did so
+        # the NEXT turn's guards can stay coherent. Must run on the FINAL (post-cooldown)
+        # result and after the mode is settled.
+        self._record_self_act(result)
+
         self._record_metrics()
         self.global_state.global_clock += 1
+
+        # ---- observability (Phase: better chat logging) --------------------
+        # One INFO line tells the whole turn's story: what came in, how it was read,
+        # where the FSM moved, the active mode, which matcher fired, and what went out.
+        # DEBUG adds the per-register affect deltas + relational state, which is what
+        # you actually need when a reply or a mood looks wrong.
+        logger.info(
+            "turn=%d %s->%s sentiment=%s mode=%s fired=%s | in=%r out=%r",
+            self.memory.turn, prev_state, self.engine.current, label,
+            self.self_state.last_mode, self._fired_label(),
+            _short(user_text), _short(result.reply),
+        )
+        if before is not None:
+            logger.debug(
+                "  affect: anger %s warmth %s amus %s bore %s conf %s energy %s | "
+                "rel=%.1f trust=%.1f role=%s grudge=%s insults=%d | room_mood=%.2f reps=%d",
+                _delta(before["anger"], r.anger), _delta(before["warmth"], r.warmth),
+                _delta(before["amusement"], r.amusement), _delta(before["boredom"], r.boredom),
+                _delta(before["confidence"], r.confidence), _delta(before["energy"], r.energy),
+                r.relationship, r.trust, r.role, r.grudge, r.times_insulted,
+                self.global_state.global_mood, reps,
+            )
         return result
+
+    def _fired_label(self) -> str:
+        """Human-readable id of the transition that fired this turn (for logs/metrics)."""
+        from .matchers import Intent
+        t = getattr(self.engine, "_last_transition", None)
+        if t is None:
+            return "none"
+        if t.matcher is None:
+            return "always/fallback"
+        if isinstance(t.matcher, Intent):
+            return f"intent:{t.matcher.name}"
+        return type(t.matcher).__name__
+
+    def _record_self_act(self, result: StepResult) -> None:
+        """Persist Elaine's own last speech act so the next turn stays self-consistent.
+
+        Writes three slots (slots, not registers, so they persist AND expire via TTL):
+          bot_asked     — did this reply pose a question? (explicit act:question OR a
+                          '?'-terminated reply). This is what stops "i don't remember
+                          asking." from firing right after she asked.
+          bot_last_act  — the declared `act:` tag, else a light heuristic.
+          bot_last_reply— the emitted text (bounded); handy for logs / echo-avoidance.
+        TTL is 2 logical turns for the boolean (live for exactly the next turn, then gone)
+        and 3 for the descriptive slots. Slots persist across Discord messages via store.py.
+        """
+        t = getattr(self.engine, "_last_transition", None)
+        act = getattr(t, "act", None) if t is not None else None
+        reply = result.reply or ""
+        ended_q = reply.rstrip().endswith("?")
+        if act is None:
+            act = "question" if ended_q else self._fired_act_hint()
+        asked = ended_q or act == "question"
+        self.memory.set("bot_asked", bool(asked), ttl=2)
+        self.memory.set("bot_last_act", act, ttl=3)
+        if reply:
+            self.memory.set("bot_last_reply", _short(reply, 200), ttl=3)
+
+    def _fired_act_hint(self) -> str:
+        """Best-effort speech act when the fired transition declares no explicit `act:`.
+
+        Deliberately conservative: only the cases we can read off the matcher cheaply.
+        Everything else is a plain 'statement'. Explicit `act:` tags in the script always
+        win over this (see _record_self_act).
+        """
+        from .matchers import Intent
+        t = getattr(self.engine, "_last_transition", None)
+        if t is not None and isinstance(t.matcher, Intent):
+            if t.matcher.name == "GREETING":
+                return "greeting"
+            if t.matcher.name == "BYE":
+                return "farewell"
+        return "statement"
 
     def _record_metrics(self) -> None:
         from .matchers import Intent
@@ -222,7 +331,10 @@ class AffectEngine:
                 r.anger = min(r.anger, enter - 2.0)
                 chat = self.loaded.states.get("CHAT")
                 text = self._render(chat.on_enter, {}, "CHAT", 0) if chat and chat.on_enter else ""
+                logger.info("cooldown: RELEASE after %d msg(s) -> CHAT (anger now %.1f)",
+                            since, r.anger)
                 return StepResult(reply=text, halted=False)
+            logger.debug("cooldown: holding (%d/%d msg(s), anger=%.1f)", since, duration, r.anger)
             return result
 
         # Enter cooldown when anger crosses the threshold (and we're not terminal).
@@ -231,6 +343,8 @@ class AffectEngine:
             self._set_cooldown_since(self.memory.turn)
             state = self.loaded.states[cooldown_state]
             text = self._render(state.on_enter, {}, cooldown_state, 0) if state.on_enter else ""
+            logger.info("cooldown: ENTER at anger=%.1f (>= %.1f); holding %d msg(s)",
+                        r.anger, enter, duration)
             return StepResult(reply=text, halted=False)
         return result
 
