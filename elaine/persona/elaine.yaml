@@ -190,6 +190,16 @@ states:
         set:   { name: "$name" }
         goto:  CHAT
         reply: "#name_got# #jab_soft#"
+      # First-contact identity questions ("who/what are you", "your name", "your
+      # pronouns"). GREET had NO identity handling, so a first-turn "who are you?" fell
+      # through to the give_up fallback and she never said she's sonarr. Answer with the
+      # same pools CHAT uses, then re-prompt for the user's name (stay in GREET so the
+      # onboarding still finishes — going to CHAT without a name would crash {name}).
+      # The regexes are specific, so they never steal a greeting or a real name.
+      - match: { intent: Q_PRONOUN }
+        reply: "#question_pronouns# #prompt#"
+      - match: { intent: Q_BOT }
+        reply: "#question_about_bot# #prompt#"
       - match: { intent: DENY }
         set:   { name: "friend" }
         goto:  CHAT
@@ -199,6 +209,16 @@ states:
         reply: "we haven't even started. #scoff#"
       - match: { intent: GREETING }
         reply: "#greet_back#"
+      # She just asked for a name, so a BARE single word is almost always that name —
+      # accept it instead of dismissing it. Before this, only the 2+ word forms ("i'm X",
+      # "call me X") registered a name; a lone "bob" got "not even a name? typical." and
+      # was renamed "friend" (the "single word is ignored unless it's 2+ words" bug).
+      # Greetings/denials/insults/identity questions are handled above, so only a real
+      # name-ish token reaches here. Digits/symbols/multi-word still fall to give_up.
+      - match: { regex: "^(?P<name>[a-z][a-z'\\-]{0,19})$" }
+        set:   { name: "$name" }
+        goto:  CHAT
+        reply: "#name_got# #jab_soft#"
     fallback:
       set:   { name: "friend" }
       goto:  CHAT
