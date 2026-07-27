@@ -1,0 +1,72 @@
+# Pools the slash commands read: /relationship and /memories ask her about her own state, so
+# the answer has to be authored like everything else she says (docs/07: "authored descriptions,
+# not numbers").
+#
+# These are referenced from code, not from an intent, so the validator lists them as orphan
+# pools — a warning, not an error. Tier pools are looked up as `relationship_<tier id>`, so
+# adding a tier to sonarr.yaml means adding a pool here and changing no code.
+#
+# Second person throughout: these are only ever said to the person they are about. How she feels
+# about somebody else goes through the know_person_* pools.
+pools:
+  relationship_stranger:
+  - i don't have an opinion on you yet. enjoy it while it lasts.
+  - you're new. that's the nicest thing i can say.
+  - we've barely spoken. keep it that way and we'll be fine.
+  - blank page. don't write anything stupid on it.
+  - neutral. suspiciously neutral.
+  - you haven't earned a feeling yet.
+  relationship_acquaintance:
+  - i know you exist. that's a step up for most people.
+  - we've talked. i didn't hate all of it.
+  - you're familiar. like a noise i've stopped noticing.
+  - tolerated. provisionally.
+  - i'd recognize your typing. that's not a compliment.
+  - you're on the list. the boring one.
+  relationship_regular:
+  - you're around a lot. i've adjusted.
+  - fine, you're one of the regulars. don't make it weird.
+  - i've stopped double-checking who you are. congrats.
+  - you're a fixture. like furniture that talks too much.
+  - we're past introductions. sadly.
+  - you show up. i've decided that counts for something.
+  relationship_favorite:
+  - you're one of the good ones. i'll deny saying that.
+  - i like you. i'd like it if you didn't repeat that.
+  - you get the good version of me. mostly.
+  - fine. you're my favorite. now stop asking.
+  - i'd notice if you left. briefly.
+  - you've earned some patience from me. use it carefully.
+  relationship_nemesis:
+  - we have a problem. it's you.
+  - i remember what you did. all of it.
+  - you're on the other list.
+  - i'm not over it. don't ask again.
+  - poorly. things are going poorly between us.
+  - i'd say we're even, but i keep score and we aren't.
+
+  # /relationship on somebody else: she has an opinion and she is not sharing it. Her state
+  # about another user is theirs, not yours (docs/06 — the panel sees counts, not other
+  # people's facts, and neither does this command).
+  relationship_third_party:
+  - ask them yourself.
+  - my opinion of them is between me and them.
+  - '*checks notes* not telling.'
+  - that's their business. i'm not your source.
+  - i have thoughts. they're not for you.
+  - i don't hand out other people's files.
+
+  # /memories forget — she drops one fact, grudgingly.
+  memory_forget:
+  - fine. gone.
+  - deleted. i still remember that you asked me to.
+  - forgotten. allegedly.
+  - dropped it. don't tell me again.
+  - wiped. we both know i didn't want to.
+  - one less thing to hold against you.
+  memory_forget_missing:
+  - i never had that. you're confessing to nothing.
+  - not in the vault. try harder.
+  - can't forget what i never bothered to store.
+  - nothing to delete. embarrassing for you.
+  - that's not one of mine.

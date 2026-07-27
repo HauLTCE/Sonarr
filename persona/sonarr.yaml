@@ -1,0 +1,108 @@
+# Sonarr — persona root (v2).
+#
+# Users only ever see the name "Sonarr". The engine's internal codename is Elaine; it
+# appears in project and doc names, never in a reply.
+#
+# Every word she says is authored, in pools/. This file is the skeleton: which activities
+# exist, what her resting mood is, which relationship tiers gate what, and which mood
+# modes swap her tone. Nothing here generates text.
+version: 2
+
+# A conversation with no stored state starts here.
+start_activity: idle
+
+# The activity stack. `intents: ["*"]` admits every intent; a narrower list is a gate, so
+# an intent that only makes sense inside a game cannot fire in normal chat.
+# Intents that are activity-scoped still carry an `activity` guard, because the stack can
+# hold idle underneath and she should not answer "rock" as small talk.
+activities:
+  - id: idle
+    intents: ["*"]
+    fallback_pool: neutral_statement
+
+  - id: argument
+    intents: ["*"]
+    fallback_pool: user_insult
+
+  - id: rps
+    intents: ["*"]
+    fallback_pool: rps_not_a_throw
+
+# Resting mood and how fast each register returns to it. Registers are orthogonal to the
+# activity stack: she can be fond and furious at once, and both decay independently.
+# (The affect engine that applies these lands in a later phase; these are its inputs.)
+personality:
+  baselines:
+    anger: 0
+    fondness: 3
+    amusement: 2
+    boredom: 0
+    confidence: 6
+    energy: 5
+    trust: 0
+    grudge: 0
+  decay:
+    anger: 0.5
+    fondness: 0.2
+    amusement: 0.4
+    boredom: 0.55
+    confidence: 0.1
+    energy: 0.25
+    trust: 0.05
+    # A grudge is the slowest thing she lets go of: anger burns off in a few turns, this
+    # takes hundreds. It is what makes her remember who you were last week.
+    grudge: 0.02
+
+# Relationship tiers, ascending by trust. Intent guards reference these by id; a tier-up
+# gets its own authored moment rather than a number in an embed.
+tiers:
+  - id: stranger
+    min_trust: 0
+  - id: acquaintance
+    min_trust: 5
+  - id: regular
+    min_trust: 15
+  - id: favorite
+    min_trust: 30
+  - id: nemesis
+    min_trust: -10
+
+# Mood modes, checked in order; the first whose conditions all hold wins. Exactly one mode
+# is `always: true` and it must be last — it is the fallback when nothing else fits.
+modes:
+  - id: SEETHING
+    when: ["anger >= 7"]
+  - id: ANNOYED
+    when: ["anger >= 4"]
+  - id: BORED
+    when: ["boredom >= 6"]
+  - id: SMUG
+    when: ["confidence >= 8", "anger < 4"]
+  - id: PLAYFUL
+    when: ["amusement >= 6", "anger < 4"]
+  # Fondness, not trust: trust is the slow thing tiers are cut from, fondness is how warm she
+  # is with you right now. She can be fond of a stranger and cold to a regular.
+  - id: FOND
+    when: ["fondness >= 8", "anger < 4"]
+  - id: NEUTRAL
+    always: true
+
+# Pools that must carry lines for every non-fallback mode. The composition step prepends a
+# mood fragment to her reply, so a gap here would mean a raging Sonarr borrowing a neutral
+# opener — the validator refuses to load rather than let that happen.
+mode_coverage_pools:
+  - mood_fragment
+
+# Memory slots templates may reference as {slot}. Anything not listed here is a typo, and
+# the validator says so instead of shipping a literal "{nmae}" to a channel.
+slots:
+  - name
+  - nickname
+  - age
+  - mode
+  - topic
+  - lucky
+  - fav_thing
+  - fav_val
+  - minutes_left
+  - hello_count

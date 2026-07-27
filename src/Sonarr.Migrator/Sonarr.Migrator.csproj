@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sonarr.Infrastructure\Sonarr.Infrastructure.csproj" />
+    <ProjectReference Include="..\Sonarr.Domain\Sonarr.Domain.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+</Project>

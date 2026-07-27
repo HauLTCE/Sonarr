@@ -1,0 +1,116 @@
+using Microsoft.EntityFrameworkCore;
+using Sonarr.Domain.Abstractions;
+using Sonarr.Domain.Entities.Core;
+
+namespace Sonarr.Infrastructure.Persistence.Repositories;
+
+/// <inheritdoc cref="IMemberRepository"/>
+public sealed class MemberRepository(SonarrDbContext db) : IMemberRepository
+{
+    public Task<Member?> GetAsync(long guildId, long userId, CancellationToken ct = default)
+        => db.Members
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.GuildId == guildId && m.UserId == userId, ct);
+
+    public async Task<Member> UpsertAsync(
+        long guildId,
+        long userId,
+        string username,
+        string displayName,
+        CancellationToken ct = default)
+    {
+        Member? member = await db.Members
+            .FirstOrDefaultAsync(m => m.GuildId == guildId && m.UserId == userId, ct);
+
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        if (member is null)
+        {
+            member = new Member
+            {
+                GuildId = guildId,
+                UserId = userId,
+                Username = Trim(username),
+                DisplayName = Trim(displayName),
+                FirstSeenAt = now,
+                LastActiveAt = now,
+            };
+            db.Members.Add(member);
+        }
+        else
+        {
+            member.Username = Trim(username);
+            member.DisplayName = Trim(displayName);
+            member.UpdatedAt = now;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return member;
+    }
+
+    public async Task ApplyActivityAsync(
+        IReadOnlyCollection<MemberActivityDelta> deltas,
+        CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(deltas);
+        if (deltas.Count == 0)
+        {
+            return;
+        }
+
+        // ponytail: one UPDATE per member. Fine at this scale (a flush touches a few
+        // rows); if a flush ever spans hundreds, swap for a single UNNEST-join update.
+        foreach (MemberActivityDelta d in deltas)
+        {
+            await db.Members
+                .Where(m => m.GuildId == d.GuildId && m.UserId == d.UserId)
+                .ExecuteUpdateAsync(
+                    s => s
+                        .SetProperty(m => m.MessageCount, m => m.MessageCount + d.MessageCount)
+                        .SetProperty(m => m.LastActiveAt, d.LastActiveAt)
+                        .SetProperty(m => m.UpdatedAt, d.LastActiveAt),
+                    ct);
+        }
+    }
+
+    public Task SetTimezoneAsync(
+        long guildId,
+        long userId,
+        string? ianaTimezone,
+        CancellationToken ct = default)
+        => db.Members
+            .Where(m => m.GuildId == guildId && m.UserId == userId)
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(m => m.Timezone, ianaTimezone)
+                    .SetProperty(m => m.UpdatedAt, DateTimeOffset.UtcNow),
+                ct);
+
+    public Task SetBirthdayAsync(
+        long guildId,
+        long userId,
+        DateOnly? birthday,
+        CancellationToken ct = default)
+        => db.Members
+            .Where(m => m.GuildId == guildId && m.UserId == userId)
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(m => m.Birthday, birthday)
+                    .SetProperty(m => m.UpdatedAt, DateTimeOffset.UtcNow),
+                ct);
+
+    public async Task<IReadOnlyList<Member>> GetBirthdaysAsync(
+        long guildId,
+        int month,
+        int day,
+        CancellationToken ct = default)
+        => await db.Members
+            .AsNoTracking()
+            .Where(m => m.GuildId == guildId
+                && m.Birthday != null
+                && m.Birthday.Value.Month == month
+                && m.Birthday.Value.Day == day)
+            .ToListAsync(ct);
+
+    private static string Trim(string value)
+        => value.Length <= 64 ? value : value[..64];
+}

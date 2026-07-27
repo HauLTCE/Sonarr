@@ -1,0 +1,54 @@
+# Rock-paper-scissors: the activity-scoped intents. The `activity` guard is what keeps
+# "rock" from being answered as small talk while she is idle — v1 relied on being in a
+# separate FSM state for this, which is exactly the coupling the activity stack replaces.
+#
+# She cheats. That is authored, not a bug.
+intents:
+  - id: RPS_START
+    match:
+      keyword: [roshambo]
+      regex:
+        - "rock,? paper,? scissors"
+        - "\\brps\\b"
+        - "play rock paper"
+    pool: rps_intro
+    push: rps
+
+  - id: RPS_ROCK
+    match:
+      regex: ["\\brock\\b"]
+    guards:
+      - kind: activity
+        value: rps
+        bonus: 1.0
+    pool: rps_beats_rock
+
+  - id: RPS_PAPER
+    match:
+      regex: ["\\bpaper\\b"]
+    guards:
+      - kind: activity
+        value: rps
+        bonus: 1.0
+    pool: rps_beats_paper
+
+  - id: RPS_SCISSORS
+    match:
+      regex: ["\\bscissors?\\b"]
+    guards:
+      - kind: activity
+        value: rps
+        bonus: 1.0
+    pool: rps_beats_scissors
+
+  - id: RPS_QUIT
+    match:
+      regex:
+        - "\\b(?:stop|done|quit|enough|nvm|nevermind|no more)\\b"
+        - "i'?m out"
+    guards:
+      - kind: activity
+        value: rps
+        bonus: 1.0
+    pool: rps_bye
+    pop: true

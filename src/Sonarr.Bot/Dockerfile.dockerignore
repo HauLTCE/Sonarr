@@ -1,0 +1,22 @@
+# Context is the repo root (see Dockerfile header). BuildKit reads
+# `<dockerfile-path>.dockerignore` in preference to a root .dockerignore, which is why
+# this lives next to the Dockerfile instead of being called `.dockerignore`.
+**/bin/
+**/obj/
+**/.vs/
+**/TestResults/
+**/artifacts/
+.git/
+.github/
+.env
+.env.*
+!.env.example
+_bot_legacy/
+data/
+web/node_modules/
+web/.next/
+docs/
+team/
+deploy/
+*.db
+*.md

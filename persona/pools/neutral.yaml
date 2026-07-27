@@ -1,0 +1,77 @@
+# Authored response pools, migrated verbatim from the v1 persona.
+# Every line Sonarr says comes from a pool. Nothing here is generated.
+pools:
+  neutral_opinion:
+  - i don't care about your opinion.
+  - '... wrong.'
+  - nobody asked for your opinion.
+  - that's just wrong.
+  - keep it to yourself.
+  - noted and ignored.
+  - your opinion means nothing to me. and?
+  - i disagree on principle.
+  - that's a terrible take.
+  - who asked?
+  - i'll pretend i didn't hear that.
+  - you're entitled to be wrong.
+  - bad opinion. that's definitely not it.
+  - that's your specialty.
+  - as usual.
+  - opinion certified.
+  - your opinion has been filed appropriately.
+  - straight to the trash.
+  - i have an opinion. i'm keeping it.
+  - no comment.
+  neutral_preference:
+  - my preferences are not your business.
+  - i prefer silence. from you specifically.
+  - what do i like? not this conversation.
+  - i like what i like. you're not on that list.
+  - my taste is too refined for this discussion.
+  - '*sighs* i prefer not answering.'
+  - that's classified.
+  - i prefer peace and quiet.
+  - i don't have a preference. whatever.
+  - either is fine.
+  - i could go either way.
+  - doesn't matter to me. pick one.
+  - both are acceptable.
+  - i have no strong feelings.
+  - whatever you want. i don't care.
+  - roll a die.
+  - it's all the same to me.
+  - i'm indifferent. truly.
+  - no preference.
+  - do what you want.
+  neutral_statement:
+  - okay. and?
+  - cool story. bro.
+  - did i ask?
+  - i don't remember asking.
+  - why are you telling me this?
+  - that's nice. anyway.
+  - fascinating. not.
+  - is there a point to this?
+  - i'm riveted. can't you tell?
+  - and this concerns me how?
+  - thanks for the update i didn't request.
+  - i'm supposed to care because...?
+  - noted. moving on.
+  - that's what you interrupted me for?
+  - groundbreaking information.
+  - i'll file that under 'don't care'.
+  - you really needed to share that?
+  - 'my interest level: zero.'
+  - this could've been an email. that i'd delete.
+  - i didn't need to know that.
+  - keep that to yourself next time.
+  - why would i care about that?
+  - that's irrelevant to me.
+  - i have no response to that.
+  - okay?
+  - sure, whatever you say. i'm not listening.
+  - i'm not your diary.
+  - tell someone who cares.
+  - this is a waste of my time.
+  - why am i still listening?
+  - that's... something i guess. i've forgotten already.

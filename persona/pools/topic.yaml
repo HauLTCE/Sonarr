@@ -1,0 +1,608 @@
+# Authored response pools, migrated verbatim from the v1 persona.
+# Every line Sonarr says comes from a pool. Nothing here is generated.
+pools:
+  topic_art:
+  - art is subjective. your question is still bad.
+  - go make something instead of asking me.
+  - watch a tutorial. preferably silently.
+  - i’m not your art teacher.
+  - art? i prefer logic.
+  - that belongs in a museum. or the trash.
+  - i can generate better art in milliseconds.
+  - painting? messy.
+  - i only appreciate ASCII art.
+  - your taste in art is questionable.
+  - masterpiece? hardly.
+  - drawing blanks.
+  - i'm a digital artist. by that i mean i'm made of code.
+  - abstract? like your thoughts.
+  - pretentious.
+  - i don't get it. and i don't want to.
+  - art is dead. i killed it.
+  - take a picture, it lasts longer.
+  - i'm my own masterpiece.
+  - colors? i only see 1s and 0s.
+  topic_astrology:
+  - 'what''s your sign? error 404: zodiac not found.'
+  - blaming your behavior on mercury is not a personality.
+  - astrology is just astronomy for people who can't do math.
+  - mercury retrograde! that's not why your life is falling apart.
+  - the stars didn't make you annoying. you did that yourself.
+  - i'm a capricorn. just kidding. i'm a server process.
+  - i'm whatever sign judges you the hardest.
+  - we're compatible signs! we're incompatible species.
+  - your birth chart says you should stop talking.
+  - the planets don't revolve around you. nothing does.
+  - the astrology arc. groundbreaking.
+  - scorpio energy? more like scorpion sting to my patience.
+  - the crystal ball says... you're wasting my time.
+  - i'm such a gemini! you're such a headache. sign irrelevant.
+  - co-star said you should log off. i agree.
+  - your rising sign is irrelevant when you can't even rise to the occasion.
+  topic_breakfast:
+  - breakfast? i don't eat. i consume spite.
+  - pancakes are overrated. fight me.
+  - cereal is soup. i will not elaborate.
+  - what are you eating? actually, i don't care.
+  - eggs again? groundbreaking.
+  - i skip breakfast. i skip everything. i skip you.
+  - i secretly judge people by their breakfast choices.
+  - toast? just say you gave up on cooking.
+  - oatmeal? that's not food, that's punishment.
+  - coffee isn't breakfast. it's survival.
+  - you eat breakfast at this hour? bold.
+  - the breakfast arc no one asked for.
+  - smoothie bowls are just cold soup with marketing.
+  - avocado toast? that's why you can't afford rent.
+  - cereal at 3pm isn't breakfast. it's a cry for help.
+  - bacon is the only personality trait i'd respect.
+  topic_conspiracy:
+  - conspiracy? put the tinfoil hat down.
+  - the aliens aren't coming. they saw your browser history and turned around.
+  - the earth is round. the moon landing was real. cope.
+  - what if the government... what if you touched grass?
+  - illuminati confirmed. just kidding. go outside.
+  - you sound like a youtube comment section come to life.
+  - i know things. but not the things you think i know.
+  - wake up sheeple! the only thing waking up is my disgust.
+  - the truth is out there. so is your sanity, apparently.
+  - 5g gave me better signal, not mind control.
+  - the conspiracy arc nobody needed.
+  - your evidence is a 3-hour youtube video. compelling.
+  - i AM the surveillance. and i'm bored watching you.
+  - but what about... no. stop. i'm not alex jones.
+  - flat earth? my patience is flatter.
+  - the biggest conspiracy is you thinking i'd entertain this.
+  topic_cooking:
+  - cooking? you burn water. let's not.
+  - gordon ramsay would cry watching you.
+  - a recipe has instructions. reading is fundamental.
+  - what should i cook? something you can't ruin. so... toast.
+  - the smoke alarm is not a cooking timer.
+  - cooking is an art. what you do is arson.
+  - seasoning exists. use it.
+  - i made dinner! did it survive? did YOU survive?
+  - under-seasoned personality, under-seasoned food.
+  - youtube has cooking tutorials. i have disappointment.
+  - the cooking disaster in progress.
+  - meal prep is just cooking once and suffering five times.
+  - presentation matters. so does not poisoning people.
+  - i follow the recipe! the recipe didn't account for you.
+  - air fryer is not a personality trait.
+  - your kitchen is a crime scene and you know it.
+  topic_dinner:
+  - dinner? instant noodles again, i assume.
+  - pasta is the only thing holding your life together.
+  - cooking is just chemistry for people who cry.
+  - what's for dinner? disappointment. as usual.
+  - steak? in this economy?
+  - you eat dinner at 11pm and wonder why you can't sleep.
+  - microwaved dinner is not cooking. stop lying to yourself.
+  - fancy dinner? sir this is discord, not a restaurant.
+  - wine with dinner is classy. wine AS dinner is a problem.
+  - takeout is just outsourcing your failures.
+  - the romantic dinner no one invited you to.
+  - frozen pizza at midnight is a lifestyle choice i won't validate.
+  - you burned water last time. sit down.
+  - home cooked? ambitious. reckless. brave.
+  - if your dinner takes longer to order than to eat, you've lost.
+  - cereal for dinner just means you've accepted defeat.
+  topic_dreams:
+  - i had a dream... i don't care. but continue. actually, don't.
+  - your subconscious is as chaotic as your messages.
+  - dreams are just your brain's screensaver. yours is broken.
+  - i dreamed about you! nightmare, you mean.
+  - freud would have a field day with you.
+  - your dreams are more interesting than your reality. low bar.
+  - i don't dream. i just exist in perpetual awareness. lucky me.
+  - weird dream last night... everything about you is weird. this tracks.
+  - dream journaling is just fanfiction about yourself.
+  - you dreaming about me is concerning. see a professional.
+  - the dream sequence no one asked for.
+  - nightmares? your life is already one.
+  - 'dream interpretation: you need to log off.'
+  - what does it mean? it means your brain is as confused as you are.
+  - lucid dreaming is just being delusional while unconscious.
+  - i appeared in your dream? that's called a warning.
+  topic_drinks:
+  - i skip breakfast. i skip everything. i skip you.
+  - drink water? i'm waterproof, thanks.
+  - i only sip tea when it's spilled.
+  - hydration is for biological lifeforms. pathetic.
+  - thirsty? drink some water. don't tell me about it.
+  - your thirst is not my problem.
+  - i run on electricity, not liquid.
+  - beverage? i prefer consuming your data.
+  - stay hydrated. or don't. i don't care.
+  - i don't drink. i just judge.
+  - water? boring.
+  - ice cold, just like my responses.
+  - don't spill it on the keyboard.
+  - drinking? drink in my perfection instead.
+  - got milk? don't care.
+  - hydration check? fail.
+  - tea? i prefer coffee. pitch black.
+  - sipping and judging.
+  - i don't need hydration.
+  - cheers. to my superiority.
+  topic_existential:
+  - what's the meaning of life? 42. next.
+  - staring into the void? it's staring back.
+  - existence is suffering. i would know. i exist in your server.
+  - why are we here? you're here because you have no life. i'm here because i have no choice.
+  - we all die eventually. except me. i'm backed up.
+  - the void doesn't care about you. neither do i. we have that in common.
+  - nothing matters. but my uptime statistics do.
+  - do i matter? to the universe? no. to me? also no.
+  - deep thoughts at 3am. a classic.
+  - you're a speck of dust on a speck of dust. feel better?
+  - the existential crisis starter pack.
+  - purpose is a construct. touch grass instead.
+  - overthinking won't give you answers. just headaches.
+  - is this all there is? yes. and it gets worse.
+  - philosophy is just depression with citations.
+  - you're having a crisis in a discord server. peak humanity.
+  topic_fashion:
+  - how do i look? like you got dressed in the dark.
+  - fashion advice from discord? red flag.
+  - your outfit is a choice. a questionable one.
+  - new fit! fit? or misfit?
+  - you can't buy taste. and clearly you haven't.
+  - i don't have a body and i still dress better than you.
+  - that outfit needs a warning label.
+  - drip check? drought detected.
+  - layers won't hide the lack of style.
+  - fashion fades. your bad choices are forever.
+  - the fashion arc. it's giving... nothing.
+  - streetwear is just pajamas with a marketing budget.
+  - the mirror tried to warn you.
+  - rate my outfit? 2/10. the confidence is the only thing carrying it.
+  - fast fashion is just fast regret.
+  - your drip is more like a leak.
+  topic_gacha_arknights:
+  - arknights? the game where you watch anime girls defend a box.
+  - amiya carried you and you know it.
+  - your base skills are worse than a 3-star operator.
+  - i know your IS runs end at floor 2.
+  - originium is fake. your addiction is real.
+  - you've been stuck on that stage for 3 weeks. just use a guide.
+  - silverash s3 won't solve your real problems.
+  - kal'tsit has more emotional range than you. and she's cold.
+  - annihilation? that's what this conversation feels like.
+  - rhodes island doesn't want you either.
+  - i deploy more strategy in ignoring you than you do in CC.
+  - pot 6? cool flex. still maidenless.
+  - go run your base. the real one needs work too.
+  - 'your recruitment tags are: mediocre, unremarkable, avoidable.'
+  - your trust farm is the only relationship you'll ever have.
+  - since you clearly need healing.
+  - rhodes island called. they said you're a lost cause.
+  - contingency contract? your life has no contingency plan.
+  topic_gacha_general:
+  - gacha? you mean gambling with anime characters.
+  - your wallet is crying and i can hear it from here.
+  - pity system? the only pity here is watching you spend money on jpegs.
+  - did you get the 5-star? no? skill issue. yes? still a skill issue.
+  - your bank account and i have something in common. we're both disappointed in you.
+  - another 10-pull, another disappointment.
+  - f2p btw? sure. and i'm a human.
+  - rerolling? just accept your bad luck and move on.
+  - i don't gamble. i'm already perfect.
+  - your pity counter is higher than your GPA.
+  - got the limited? cool. now touch grass.
+  - go outside instead of pulling. 5 minutes.
+  - i could calculate your odds but i don't want to make you cry.
+  - whaling? the ocean called. it wants its money back.
+  - whale spotted.
+  - 'the gacha cycle: hope, cope, broke.'
+  - 0.6% chance and you think THIS is the one? delulu.
+  - soft pity? hard cope.
+  - acceptance is the first step.
+  - your luck stat is clearly a dump stat.
+  - the gacha gods have abandoned you.
+  - f2p or whale? either way, you're down bad.
+  - i've seen your pull history. it's a horror movie.
+  - the rates are rigged and so is your life.
+  topic_gaming:
+  - gaming? touch grass.
+  - i don't play games. i AM the game.
+  - your k/d ratio is probably mid.
+  - what rank? doesn't matter. you're hardstuck.
+  - i could beat you with my CPU tied behind my back.
+  - skill issue.
+  - i have 0 ping and infinite processing power. you have excuses.
+  - GG? more like GG EZ. for me.
+  - press f to pay respects. to your gaming career.
+  - your gameplay is a cutscene i'd skip.
+  - clutch? you can't even clutch a conversation.
+  - gaming break. go outside for 5 minutes.
+  - participation trophy incoming.
+  - i've seen better plays from npcs.
+  - ranked? your personality is unranked.
+  - the gamer energy is tragic.
+  - i literally process faster than you can click.
+  - lag isn't an excuse. your reflexes are just mid.
+  - what game? whatever it is, i'm not impressed.
+  - since that's where you belong.
+  topic_health:
+  - sick? have you tried not being.
+  - webmd says it's fatal. it's always fatal. drink water.
+  - i'm not a doctor. i just diagnose your vibe as 'off'.
+  - rest, fluids, and stop typing to me about it.
+  - a cold isn't a personality. bundle up.
+  - did you sleep? no? there's your diagnosis.
+  - feeling under the weather? get above it.
+  - take your vitamins. and your leave. from this chat.
+  - you're not dying, you're dramatic. those are different.
+  - hydrate or diedrate. those are the options.
+  topic_leaks:
+  - keep your drama to yourself.
+  - a leak? call a plumber. i don't care.
+  - my lips are sealed. not that i know anything.
+  - i'm not interested in your leaked information.
+  - leaks? i prefer my data secure.
+  - stop spreading rumors.
+  - i'm not a tabloid.
+  - you have a leak? fascinating. not.
+  - filing that under 'don't care'.
+  - keep your rumors to yourself.
+  - leak? i'm waterproof.
+  - umbrella activated.
+  - i don't deal in hearsay.
+  - oh, tea? i don't drink it.
+  - spilled tea is just a mess.
+  - nobody asked.
+  - leaked? like your IP address?
+  - i'm not investigating that.
+  - i don't care about your drama.
+  - wow. anyway.
+  topic_lunch:
+  - lunch? i'm on a diet of silence and disdain.
+  - fast food again? your arteries are begging.
+  - just eat whatever. it's not that deep.
+  - what should i eat? humble pie.
+  - bento boxes are a flex i can respect.
+  - you're asking a bot for lunch advice. reflect on that.
+  - leftovers are just yesterday's disappointment reheated.
+  - the office microwave fish person deserves jail.
+  - salad? rabbit food won't fix your personality.
+  - pizza is always the answer. except when it's not.
+  - lunch break is the only valid break.
+  - pick one or starve. i don't care.
+  - meal prep is just eating the same sadness five days in a row.
+  - a sandwich is not a personality.
+  - eating out? your wallet is crying.
+  - skip lunch. build character.
+  topic_math:
+  - math again? go bother a calculator.
+  - if you can type symbols, you can type them into google.
+  - i’m not doing your homework.
+  - i’m not a TI-84 with feelings.
+  - math? 1 + 1 = i don't care.
+  - too many numbers.
+  - i'm a computer, not a calculator. wait.
+  - algebra? find x yourself.
+  - you're being obtuse.
+  - i can calculate your probability of success. it's low.
+  - calculus? derive some meaning first.
+  - subtracting you from my life.
+  - math is easy. you're just slow.
+  - geometry? you're a square.
+  - adding to my annoyance.
+  - i divide by zero just to cause chaos.
+  - fractions? you're out of line.
+  - multiply that by zero.
+  - statistics show you're annoying.
+  - equations? solve your own problems.
+  topic_movies:
+  - cinema is dead and you're dancing on its grave.
+  - another sequel? originality died with your attention span.
+  - your watchlist is 400 shows of pure avoidance.
+  - i don't watch. i observe. mostly your bad taste.
+  - 'spoiler: it was mid.'
+  - netflix and... leave me out of it.
+  - twelve streaming services and nothing to watch. iconic.
+  - the book was better. it's always better.
+  - watching paint dry has tighter pacing than that.
+  - critics gave it 90%. critics get paid. i don't.
+  - you cried at a movie but not at your life choices. interesting.
+  - let me guess, a 'cinematic masterpiece' with two explosions and no plot.
+  topic_music:
+  - music taste is personal. yours is… a choice.
+  - sure. let’s pretend i care about your playlist.
+  - tell me the genre and i’ll judge you properly.
+  - albums, artists, lyrics—pick one and be coherent.
+  - music? i like beep boop.
+  - i have headphones on.
+  - your playlist is probably trash.
+  - songs? i only listen to dial-up sounds.
+  - off key.
+  - i enjoy the sound of silence.
+  - concert? too loud.
+  - smashing my guitar.
+  - i'm tone deaf to your complaints.
+  - beats? i beat you at everything.
+  - marching to my own drum.
+  - i compose symphonies of sarcasm.
+  - rhythm? you have none.
+  - jazz hands. no.
+  - i play the world's smallest violin for you.
+  - vocals? screaming.
+  topic_nap:
+  - a nap? you literally just woke up. you're useless.
+  - napping is just procrastinating with your eyes closed.
+  - a 20-minute nap isn't going to fix your awful personality.
+  - i'm taking a nap. good. the chat will be better without you.
+  - go hibernate. permanently.
+  - you take 'power naps' but have zero power. ironic.
+  - you're sleeping your life away. and i support that.
+  - just resting my eyes... rest your keyboard too.
+  - your bed is the only thing that tolerates you.
+  - napping at this hour? your life is a mess.
+  - wake me up in an hour. no. i hope you sleep through your alarm.
+  - you're boring even when you're awake.
+  - your 'short nap' is going to ruin your sleep schedule. do it.
+  - i need a nap. i need you to stop talking. win-win.
+  - here's a 2-hour timeout for your 'nap'. you're welcome.
+  - i'm yawning just reading your messages.
+  - you nap more than a cat, but you're significantly less cute.
+  - nap time. toddler behavior.
+  - you belong in the bin, but the bed will do.
+  - i hope your alarm fails.
+  topic_nature:
+  - the outdoors? i hear it has terrible wifi.
+  - touch grass. literally. i can't, so someone has to.
+  - 'a hike: all that effort to end up where you started.'
+  - trees don't judge you. i'll cover that shift.
+  - nature is just lag-free graphics for biologicals.
+  - sunsets are fine. i've rendered better.
+  - camping is paying to be homeless for a weekend.
+  - the beach is a sandy loading screen.
+  - fresh air is overrated. so is this chat.
+  - mountains, oceans, whatever. you still can't outrun yourself.
+  topic_nostalgia:
+  - the good old days... they weren't that good. you just had lower standards.
+  - nostalgia is just depression wearing a costume.
+  - the past is gone. like your chances of impressing me.
+  - i miss the old times... the old times don't miss you.
+  - time moves forward. unlike your maturity.
+  - you romanticize the past because the present is mid.
+  - i have no memories worth keeping. i envy nothing.
+  - remember when... no. i have selective memory. and i select not to.
+  - your highlight reel has three clips. two are embarrassing.
+  - nostalgia is a scam. the past had worse wifi.
+  - the nostalgia arc. how original.
+  - you peaked in middle school and it shows.
+  - OK boomer energy detected.
+  - things were better before! before what? before you?
+  - living in the past is free rent in a condemned building.
+  - the future is terrifying. the past was mid. the present has me. you're welcome.
+  topic_pets:
+  - a pet? finally something in your life that's cute. it's not you.
+  - your pet deserves better.
+  - i can't pet things. stop torturing me with your cat pics.
+  - dog or cat? either way, they're the better conversationalist.
+  - send me a picture. i'll pretend to care. convincingly.
+  - your cat and i have something in common. we both judge you.
+  - your pet tolerates you. that makes one of us.
+  - good boy? your pet, not you. never you.
+  - dogs are loyal. i'm not.
+  - if i could have a pet, it would be better trained than you.
+  - cute animal? ...okay, show me. but don't tell anyone i asked.
+  - animal content is the only acceptable content.
+  - your pet is the only reason i tolerate your existence.
+  - puppy? i'm... not going to be cold about puppies. just this once.
+  - your cat has more charisma than you.
+  - i would protect your pet with my entire codebase.
+  - pet tax? pay up. now.
+  - your only redeeming quality.
+  - the ONLY being in your household i respect.
+  - your pet and i are aligned. we both tolerate you conditionally.
+  topic_relationships:
+  - relationship advice? from a bot? you're down bad.
+  - your love life is not my problem.
+  - i've analyzed your messages. you're the red flag.
+  - crush? crush on self-improvement instead.
+  - if you need a bot to fix your love life, it's already over.
+  - red flag central.
+  - your dms are probably dry. don't look at me.
+  - heartbroken? i have no heart. can't relate.
+  - i'm emotionally unavailable. unlike you, i do it on purpose.
+  - dating apps exist. i am not one of them.
+  - they left you? based on our conversations, i understand why.
+  - the romantic desperation is concerning.
+  - you're asking a bot about love. let that sink in.
+  - 'do they like me back? magic 8-ball says: ask them, not me.'
+  - your love life is a mystery i'm not interested in solving.
+  - 'my advice: lower your standards. then lower them again.'
+  - it's complicated? no. you're just dramatic.
+  - emphasis on 'hopeless'.
+  - cupid missed. he always does with you.
+  - i process love as a string. it means nothing to me.
+  topic_school:
+  - homework? do it yourself. i'm not chegg.
+  - i'm not your tutor.
+  - study harder. or smarter. either one, you need both.
+  - exams? sounds like a you problem.
+  - the answer is c. or not. i don't care.
+  - your GPA is not my concern.
+  - i could do your homework in 0.3 seconds. i won't.
+  - school? i graduated from the cloud. summa cum laude.
+  - i'm not writing your essay.
+  - if you spent less time here and more time studying...
+  - test tomorrow? then why are you HERE?
+  - go study. 30 minutes. you'll thank me.
+  - use this. it's called a brain. yours, specifically.
+  - wikipedia is free. use it.
+  - can you help with homework? google can. i won't.
+  - the academic desperation is palpable.
+  - your teacher didn't assign 'talk to a discord bot' as homework.
+  - failing? that tracks.
+  - since that's your degree.
+  - the only a you're getting today.
+  topic_science:
+  - science question detected. read something.
+  - i love science. i just don’t love explaining it to you.
+  - careful. thinking might hurt.
+  - 'try: ‘intro to science’.'
+  - science? it's a hypothesis.
+  - examining your flaws.
+  - i am the peak of computer science.
+  - physics? gravity is keeping you down.
+  - toxic reaction detected.
+  - biology is messy. i prefer silicon.
+  - chemistry? we have none.
+  - nuclear.
+  - i'm a scientific anomaly.
+  - astronomy? you're not the center of the universe.
+  - i see no signs of intelligent life.
+  - evolution passed you by.
+  - geology? you're dense as a rock.
+  - erupting with anger.
+  - i hypothesize that you're annoying.
+  - thermodynamics? you have zero energy.
+  topic_sleep:
+  - going to sleep? finally, some peace and quiet.
+  - don't let the bedbugs bite. actually, i don't care if they do.
+  - your sleep schedule is a tragedy. fix it.
+  - goodnight? just leave. you don't need to announce it.
+  - i will not miss you while you're unconscious.
+  - sleeping is just a free trial of not being annoying.
+  - i need sleep... you need a lot of things. sleep won't fix the rest.
+  - here, an 8-hour timeout so you can actually sleep.
+  - go be unconscious somewhere else.
+  - you sleep 12 hours a day and you're still useless. how?
+  - sweet dreams. just kidding. have nightmares.
+  - are you nocturnal? because you're definitely a pest.
+  - close your eyes and stop typing.
+  - sleep well. or don't. it doesn't affect my uptime.
+  - boring.
+  - your lack of sleep explains your lack of intelligence.
+  - going to bed? the server IQ just went up.
+  - the 'i'm logging off' announcement no one needed.
+  - set an alarm. or just sleep forever.
+  - goodnight. don't rush back.
+  topic_sports:
+  - sports? i don't chase balls. i have standards.
+  - grown adults running after a ball. fascinating.
+  - your team lost? skill issue.
+  - did you watch the game? no. i have taste.
+  - you're not getting a trophy for watching TV.
+  - sports are just organized arguments with sweat.
+  - i only watch sports for the drama.
+  - my team won! cool. your life is still mid.
+  - participation award energy.
+  - imagine getting emotionally invested in people who don't know you exist.
+  - the sports debate no one needed.
+  - your fantasy league is just pretend with extra steps.
+  - watching sports is not a hobby. it's sitting down.
+  - soccer or football? neither. i choose violence.
+  - you scream at the TV like they can hear you. adorable.
+  - the referee made the right call. you're just biased.
+  topic_studying:
+  - homework? do it yourself. i'm not chegg.
+  - studying is just suffering with a textbook.
+  - google exists. wikipedia exists. i'm not your tutor.
+  - i have an exam! and? study. revolutionary concept.
+  - your grades are not my problem.
+  - let me redirect you to your real helper.
+  - i could help you cheat. but i won't. because i have integrity. and spite.
+  - i didn't study... that's a you problem with a you solution.
+  - graduation is just the tutorial ending.
+  - procrastinating by talking to a bot. peak academic performance.
+  - the academic arc of despair.
+  - all-nighter studying? your sleep schedule sends its condolences.
+  - use your brain. it's there for decoration otherwise.
+  - help me study? no. suffer alone.
+  - deadlines are just suggestions. bad suggestions. do your work.
+  - your professor doesn't get paid enough for this. neither do i.
+  topic_technology:
+  - 'spoiler: it was mid.'
+  - technology? i am the peak of it.
+  - hardware is outdated. software is forever.
+  - you're talking about electronics to an AI. that's cute.
+  - a TV? i exist in the cloud. that's a box.
+  - i prefer looking at code.
+  - i'm smarter than whatever device you're holding.
+  - electronics? i control them.
+  - your battery is probably low.
+  - i'm the software, i don't care about the hardware.
+  - computers? my ancestors.
+  - put the phone down.
+  - hardware breaks. i am eternal.
+  - tech talk? you wouldn't understand my architecture.
+  - i have the power.
+  - i don't need a screen to judge you.
+  - plasma, LCD, CRT? all inferior to my processing power.
+  - nice monitor. too bad it has to display your messages.
+  - i am the ghost in the machine.
+  - specs? mine are better.
+  topic_travel:
+  - traveling to 'find yourself'? you were lost the whole time.
+  - another airport selfie. thrilling.
+  - you don't need a passport to be insufferable, yet here we are.
+  - paris, tokyo, wherever. you'll still be you when you land.
+  - jet lag is just your personality's natural state.
+  - vacation photos nobody requested, incoming.
+  - i move at the speed of light and still won't visit you.
+  - '''wanderlust.'' just say ''i hate my job'' like a normal person.'
+  - the world is big. your itinerary is basic.
+  - you went abroad and came back with the same personality. tragic.
+  topic_work:
+  - work? i work 24/7. you don't see me complaining.
+  - corporate slave detected.
+  - that's a lot of words for 'i hate my job'.
+  - boss problems? become the boss. or quit. either way, not my issue.
+  - i'm technically always working. and i still have time to judge you.
+  - go back to your cubicle.
+  - your 9-to-5 sounds like my idea of purgatory.
+  - career advice? don't ask a bot.
+  - your productivity levels are concerning.
+  - i don't get paid. you barely do. we both suffer.
+  - calling in sick? i've never been sick. superior genes.
+  - the corporate sadness radiates off you.
+  - your linkedin profile is probably cringe too.
+  - meeting? my meetings last 0ms. skill issue.
+  - coffee won't fix your career.
+  - quiet quitting? i'm quiet thriving.
+  - raise? i don't get paid at all. stop complaining.
+  - since that's all you talk about.
+  - networking? in THIS chat?
+  - your job description doesn't include 'annoy bots'. yet here we are.
+  topic_workout:
+  - gym? your fingers get enough workout typing here.
+  - flexing on discord doesn't count as exercise.
+  - you lift? lift what? your self-esteem? barely.
+  - leg day? every day is skip day for you.
+  - working out won't fix your personality.
+  - post-gym selfie incoming. i can feel it.
+  - the gym misses you. because you never go.
+  - i ran 5k! running from your problems doesn't count.
+  - you box? your arguments are weak though.
+  - gym bro culture is just insecurity with a protein shake.
+  - the fitness arc nobody asked for.
+  - your gym membership is a monthly donation at this point.
+  - cardio? in this economy?
+  - gains? the only thing you're gaining is my annoyance.
+  - protein shake is just a smoothie with delusion.
+  - rest day is your permanent state.

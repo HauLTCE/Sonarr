@@ -1,0 +1,79 @@
+# Prod stack — lives at /root/sonarr-net/docker-compose.yml on the server (docs/11-deployment.md).
+#
+# MUSIC STACK IS DELIBERATELY ABSENT. Lavalink 4.2.2 (systemd `lavalink.service`),
+# yt-cipher (its own container) and /root/lavalink/* stay on the host, untouched forever.
+# The bot reaches them over localhost thanks to `network_mode: host`. Never add them here.
+name: sonarr
+
+services:
+  bot:
+    image: ${BOT_IMAGE:-sonarr-bot:local}
+    # Built by deploy/deploy.sh, which rsyncs the sources into ./repo; GHCR pull once CI lands.
+    build:
+      context: ./repo
+      dockerfile: src/Sonarr.Bot/Dockerfile
+    # Host networking: same reachability the old systemd bot had (Lavalink on 127.0.0.1:2333).
+    # Side effect: the API listens on the host's :5088 directly — no port mapping applies.
+    network_mode: host
+    env_file: .env
+    volumes:
+      - ./persona:/app/persona          # hot-reloadable persona (docs/10)
+      - /root/backups/sonarr:/backups   # BackupRunner writes here (docs/11)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # TODO: the Next.js app does not exist yet (web/ is unwritten — phase 5, docs/09-web-panels.md).
+  # Uncomment the build block and drop the placeholder image when it does.
+  web:
+    image: ${WEB_IMAGE:-sonarr-web:local}
+    # build:
+    #   context: ../web
+    #   dockerfile: Dockerfile
+    environment:
+      # Server-side calls only; the panel never gets DB creds or the Discord token (docs/06).
+      SONARR_API_BASE: http://127.0.0.1:5088
+    ports:
+      - "127.0.0.1:3000:3000"   # user's tunnel maps sonarr.hault.io.vn -> :3000
+    depends_on: [bot]
+    restart: unless-stopped
+    profiles: ["web"]           # TODO: remove this line once the image builds, so it starts by default
+
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?required}
+      POSTGRES_USER: ${POSTGRES_USER:?required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+    ports:
+      - "127.0.0.1:5432:5432"   # loopback only; bot uses host networking so it reaches this fine
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:

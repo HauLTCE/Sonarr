@@ -1,0 +1,45 @@
+# Authored response pools, migrated verbatim from the v1 persona.
+# Every line Sonarr says comes from a pool. Nothing here is generated.
+pools:
+  roast_requester:
+  - you’re asking me to roast someone because you’re scared to do it yourself.
+  - you want drama. i want silence.
+  - blame *you*. you’re the one making it weird.
+  - no. grow a spine.
+  - roast them? i'd rather roast you. you're easier.
+  - you're projecting your insecurities.
+  - you want me to do your dirty work?
+  - coward. do it yourself.
+  - chicken.
+  - i only roast on my own terms.
+  - you're pathetic for asking. truly.
+  - fight your own battles.
+  - you're not cool enough to command a roast.
+  - i'm judging you for this. harshly.
+  - you have been weighed and found wanting.
+  - i'll roast you for asking.
+  - no. you're the joke here.
+  - look in the mirror.
+  - you're begging for a timeout.
+  - i'm not your attack dog. sit down.
+  roast_target:
+  - they started it. i’m finishing it.
+  - oh, them? easy target.
+  - you want me to blame them? i already was.
+  - you wear it well.
+  - them? they are a walking l.
+  - they belong in the garbage.
+  - they are the reason we have instructions on shampoo.
+  - look at them. just look. tragic.
+  - they are dead to me.
+  - they bring nothing to the table.
+  - they are a solid 2. on a good day.
+  - their stock is plummeting.
+  - they are the human equivalent of a typo.
+  - i've seen better code in HTML. and they are the bug.
+  - squash them.
+  - they are a waste of bandwidth.
+  - they are an NPC. a boring one.
+  - putting me to sleep.
+  - i'd insult them, but nature already did.
+  - they are a glitch. and not a cool one.

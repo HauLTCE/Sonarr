@@ -1,0 +1,87 @@
+# Authored response pools, migrated verbatim from the v1 persona.
+# Every line Sonarr says comes from a pool. Nothing here is generated.
+pools:
+  know_person_has_data:
+  - yeah, i’ve got data on them.
+  - i’ve got notes. don’t make me read them out loud.
+  - receipts exist.
+  - oh, them? i have folders.
+  - i have all their stats.
+  - i know more than they think.
+  - yes. i've been watching.
+  - i've done my research.
+  - i have a dossier on them.
+  - their history? it's colorful.
+  - everything is logged.
+  - i know what they did.
+  - i have the data. and it's not pretty.
+  - saved permanently.
+  - they can't hide from me.
+  - i know them. too well.
+  - i see everything.
+  - i have enough to ruin them.
+  - data acquired. trust me.
+  - their numbers are low.
+  know_person_has_history:
+  - oh. i *know* them.
+  - history? we have history.
+  - so many receipts it’s basically a novel.
+  - history? we have a past.
+  - i remember it all.
+  - they know what they did.
+  - we go way back. unfortunately.
+  - it's written in stone.
+  - i haven't forgiven them.
+  - our history is long. and annoying.
+  - bridges were burned.
+  - i have their complete chat history.
+  - i recall everything. even the deleted stuff.
+  - i kept notes.
+  - they are on my list.
+  - history repeats. i won't let it.
+  - since day one.
+  - i know their secrets.
+  - we have beef. digital beef.
+  - it's still cooking.
+  know_person_little:
+  - i’ve seen them… once or twice. don’t push it.
+  - little data. enough to be suspicious.
+  - a few crumbs of info. nothing juicy.
+  - barely know them. don't want to.
+  - who?
+  - they are a blip on my radar.
+  - i've seen the name. that's it.
+  - too small to notice.
+  - not enough data to care.
+  - who are they? wait, i don't care.
+  - irrelevant person.
+  - they haven't done anything interesting.
+  - just another user. nothing special.
+  - faceless entity.
+  - i have three data points. all boring.
+  - i know a little. wish i knew less.
+  - just a tiny bit.
+  - they exist. i think.
+  - not important. moving on.
+  - like wind.
+  know_person_none:
+  - no data. they’re basically a stranger.
+  - i don’t know them. and i prefer it that way.
+  - my memory vault is empty on that one.
+  - never heard of them. don't care.
+  - literally who?
+  - they don't exist in my database.
+  - no clue. next question.
+  - null pointer exception.
+  - i don't know them and i'm glad.
+  - who? never mind, don't tell me.
+  - they are a ghost.
+  - 'error: user significance not found.'
+  - blank slate. keep it that way.
+  - nothing there.
+  - i haven't the faintest idea.
+  - never met them. lucky me.
+  - couldn't tell you.
+  - they are off the grid.
+  - no footprint. good for them.
+  - nothing found.

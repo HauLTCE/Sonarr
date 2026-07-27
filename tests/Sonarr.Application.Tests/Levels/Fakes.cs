@@ -1,0 +1,351 @@
+using Microsoft.Extensions.Logging.Abstractions;
+using Sonarr.Application.Levels;
+using Sonarr.Domain.Abstractions;
+using Sonarr.Domain.Caching;
+using Sonarr.Domain.Configuration;
+using Sonarr.Domain.Entities.Core;
+using Sonarr.Domain.Entities.Levels;
+using Sonarr.Domain.Levels;
+
+namespace Sonarr.Application.Tests.Levels;
+
+/// <summary>In-memory levels.progress.</summary>
+internal sealed class FakeLevelProgressRepository : ILevelProgressRepository
+{
+    private readonly Dictionary<(long GuildId, long UserId), LevelProgress> _rows = [];
+
+    public int Saves { get; private set; }
+
+    public LevelProgress Seed(long guildId, long userId, Action<LevelProgress> setup)
+    {
+        LevelProgress row = new() { GuildId = guildId, UserId = userId, Level = LevelCurve.FirstLevel };
+        setup(row);
+        _rows[(guildId, userId)] = row;
+        return row;
+    }
+
+    public Task<LevelProgress?> GetAsync(long guildId, long userId, CancellationToken ct = default)
+        => Task.FromResult(_rows.GetValueOrDefault((guildId, userId)));
+
+    public Task<LevelProgress> GetOrCreateAsync(long guildId, long userId, CancellationToken ct = default)
+    {
+        if (!_rows.TryGetValue((guildId, userId), out LevelProgress? row))
+        {
+            row = new LevelProgress { GuildId = guildId, UserId = userId, Level = LevelCurve.FirstLevel };
+            _rows[(guildId, userId)] = row;
+        }
+
+        return Task.FromResult(row);
+    }
+
+    public Task SaveAsync(LevelProgress progress, CancellationToken ct = default)
+    {
+        Saves++;
+        _rows[(progress.GuildId, progress.UserId)] = progress;
+        return Task.CompletedTask;
+    }
+
+    public async Task<LevelProgress> AddVoiceAsync(
+        long guildId, long userId, long seconds, long xp, int newLevel, CancellationToken ct = default)
+    {
+        LevelProgress row = await GetOrCreateAsync(guildId, userId, ct);
+        row.Xp += xp;
+        row.VoiceSeconds += seconds;
+        row.Level = newLevel;
+        return row;
+    }
+
+    public Task<int> GetRankAsync(long guildId, long userId, CancellationToken ct = default)
+    {
+        if (!_rows.TryGetValue((guildId, userId), out LevelProgress? mine))
+        {
+            return Task.FromResult(0);
+        }
+
+        return Task.FromResult(_rows.Values.Count(r => r.GuildId == guildId && r.Xp > mine.Xp) + 1);
+    }
+
+    public Task<int> CountAsync(long guildId, CancellationToken ct = default)
+        => Task.FromResult(_rows.Values.Count(r => r.GuildId == guildId));
+
+    public Task<IReadOnlyList<LeaderboardEntry>> GetTopAsync(
+        long guildId, int skip, int take, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<LeaderboardEntry>>(
+            [.. _rows.Values
+                .Where(r => r.GuildId == guildId)
+                .OrderByDescending(r => r.Xp)
+                .ThenBy(r => r.UserId)
+                .Skip(skip)
+                .Take(take)
+                .Select((r, i) => new LeaderboardEntry(skip + i + 1, (ulong)r.UserId, r.Xp, r.Level))]);
+}
+
+/// <summary>In-memory levels.reward.</summary>
+internal sealed class FakeLevelRewardRepository : ILevelRewardRepository
+{
+    private readonly Dictionary<(long GuildId, int Level), long> _rows = [];
+
+    public FakeLevelRewardRepository With(long guildId, int level, long roleId)
+    {
+        _rows[(guildId, level)] = roleId;
+        return this;
+    }
+
+    public Task<IReadOnlyList<LevelReward>> GetAllAsync(long guildId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<LevelReward>>([.. Rows(guildId)]);
+
+    public Task<IReadOnlyList<LevelReward>> GetEarnedAsync(long guildId, int level, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<LevelReward>>([.. Rows(guildId).Where(r => r.Level <= level)]);
+
+    public Task SetAsync(long guildId, int level, long roleId, CancellationToken ct = default)
+    {
+        _rows[(guildId, level)] = roleId;
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> RemoveAsync(long guildId, int level, CancellationToken ct = default)
+        => Task.FromResult(_rows.Remove((guildId, level)));
+
+    private IEnumerable<LevelReward> Rows(long guildId)
+        => _rows
+            .Where(r => r.Key.GuildId == guildId)
+            .OrderBy(r => r.Key.Level)
+            .Select(r => new LevelReward { GuildId = guildId, Level = r.Key.Level, RoleId = r.Value });
+}
+
+/// <summary>In-memory levels.season. Empty unless a test seeds it.</summary>
+internal sealed class FakeSeasonRepository : ISeasonRepository
+{
+    private readonly List<Season> _seasons = [];
+    private readonly Dictionary<long, List<LeaderboardEntry>> _results = [];
+
+    public FakeSeasonRepository With(long seasonId, long guildId, string status, params LeaderboardEntry[] results)
+    {
+        _seasons.Add(new Season
+        {
+            SeasonId = seasonId,
+            GuildId = guildId,
+            StartsAt = DateTimeOffset.UnixEpoch,
+            EndsAt = DateTimeOffset.UnixEpoch.AddDays(30),
+            Status = status,
+        });
+        _results[seasonId] = [.. results];
+        return this;
+    }
+
+    public Task<IReadOnlyList<Season>> GetAllAsync(long guildId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<Season>>(
+            [.. _seasons.Where(s => s.GuildId == guildId).OrderByDescending(s => s.SeasonId)]);
+
+    public Task<Season?> GetAsync(long seasonId, CancellationToken ct = default)
+        => Task.FromResult(_seasons.Find(s => s.SeasonId == seasonId));
+
+    public Task<Season?> GetActiveAsync(long guildId, CancellationToken ct = default)
+        => Task.FromResult(_seasons.Find(s => s.GuildId == guildId && s.Status == SeasonStatus.Active));
+
+    public Task<IReadOnlyList<LeaderboardEntry>> GetResultsAsync(
+        long seasonId, int skip, int take, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<LeaderboardEntry>>(
+            [.. _results.GetValueOrDefault(seasonId, []).Skip(skip).Take(take)]);
+
+    public Task<int> CountResultsAsync(long seasonId, CancellationToken ct = default)
+        => Task.FromResult(_results.GetValueOrDefault(seasonId, []).Count);
+}
+
+/// <summary>In-memory core.member — only what /userstats reads.</summary>
+internal sealed class FakeMemberRepository : IMemberRepository
+{
+    private readonly Dictionary<(long GuildId, long UserId), Member> _rows = [];
+
+    public List<MemberActivityDelta> Applied { get; } = [];
+
+    public Task<Member?> GetAsync(long guildId, long userId, CancellationToken ct = default)
+        => Task.FromResult(_rows.GetValueOrDefault((guildId, userId)));
+
+    public Task<Member> UpsertAsync(
+        long guildId, long userId, string username, string displayName, CancellationToken ct = default)
+    {
+        if (!_rows.TryGetValue((guildId, userId), out Member? row))
+        {
+            row = new Member { GuildId = guildId, UserId = userId };
+            _rows[(guildId, userId)] = row;
+        }
+
+        return Task.FromResult(row);
+    }
+
+    public Task ApplyActivityAsync(IReadOnlyCollection<MemberActivityDelta> deltas, CancellationToken ct = default)
+    {
+        Applied.AddRange(deltas);
+        foreach (MemberActivityDelta delta in deltas)
+        {
+            Member row = _rows.TryGetValue((delta.GuildId, delta.UserId), out Member? existing)
+                ? existing
+                : _rows[(delta.GuildId, delta.UserId)] = new Member { GuildId = delta.GuildId, UserId = delta.UserId };
+
+            row.MessageCount += delta.MessageCount;
+            row.LastActiveAt = delta.LastActiveAt;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task SetTimezoneAsync(long guildId, long userId, string? ianaTimezone, CancellationToken ct = default)
+        => Task.CompletedTask;
+
+    public Task SetBirthdayAsync(long guildId, long userId, DateOnly? birthday, CancellationToken ct = default)
+        => Task.CompletedTask;
+
+    public Task<IReadOnlyList<Member>> GetBirthdaysAsync(
+        long guildId, int month, int day, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<Member>>([]);
+}
+
+/// <summary>
+/// The XP cooldown gate. <see cref="Available"/> false is "Redis unreachable" — the store's
+/// contract says that FAILS CLOSED, so it answers false and nobody gets XP.
+/// </summary>
+internal sealed class FakeCooldownStore : ICooldownStore
+{
+    private readonly HashSet<(ulong, ulong)> _held = [];
+
+    public bool Available { get; set; } = true;
+
+    public int Attempts { get; private set; }
+
+    public Task<bool> TryAcquireXpAsync(ulong guildId, ulong userId, CancellationToken ct = default)
+    {
+        Attempts++;
+
+        if (!Available)
+        {
+            return Task.FromResult(false);
+        }
+
+        return Task.FromResult(_held.Add((guildId, userId)));
+    }
+
+    // The rest of the store belongs to other slices; levels only ever calls the XP window.
+    public Task<bool> TryAcquireCommandAsync(ulong userId, CancellationToken cancellationToken = default)
+        => Task.FromResult(true);
+
+    public Task<bool> TryConsumeLoginAsync(string identifier, CancellationToken cancellationToken = default)
+        => Task.FromResult(true);
+
+    public Task<int> RecordMessageHashAsync(
+        ulong guildId, ulong userId, string messageHash, CancellationToken cancellationToken = default)
+        => Task.FromResult(1);
+
+    public Task ClearMessageHashesAsync(ulong guildId, ulong userId, CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
+}
+
+/// <summary>Guild config as a flat key → raw-value map, no Postgres and no cache in the way.</summary>
+internal sealed class FakeGuildConfigService : IGuildConfigService
+{
+    private readonly Dictionary<string, string> _values = [];
+
+    public FakeGuildConfigService With(string key, string raw)
+    {
+        _values[key] = raw;
+        return this;
+    }
+
+    public Task<ConfigValue?> GetAsync(ulong guildId, string key, CancellationToken cancellationToken = default)
+        => Task.FromResult(Read(key));
+
+    public Task<IReadOnlyDictionary<string, ConfigValue>> GetAllAsync(
+        ulong guildId, CancellationToken cancellationToken = default)
+    {
+        Dictionary<string, ConfigValue> all = [];
+        foreach ((var key, _) in _values)
+        {
+            if (Read(key) is { } value)
+            {
+                all[key] = value;
+            }
+        }
+
+        return Task.FromResult<IReadOnlyDictionary<string, ConfigValue>>(all);
+    }
+
+    public Task<ConfigWriteResult> SetAsync(
+        ulong guildId, string key, string value, ulong actorId, CancellationToken cancellationToken = default)
+    {
+        _values[key] = value;
+        return Task.FromResult(ConfigWriteResult.Ok("set"));
+    }
+
+    public Task<ConfigWriteResult> ClearAsync(
+        ulong guildId, string key, ulong actorId, CancellationToken cancellationToken = default)
+    {
+        _values.Remove(key);
+        return Task.FromResult(ConfigWriteResult.Ok("cleared"));
+    }
+
+    public Task<string> ExportAsync(ulong guildId, CancellationToken cancellationToken = default)
+        => Task.FromResult("{}");
+
+    public Task<ConfigImportResult> ImportAsync(
+        ulong guildId, string json, ulong actorId, CancellationToken cancellationToken = default)
+        => Task.FromResult(ConfigImportResult.Ok(0));
+
+    /// <summary>
+    /// The definition is only consulted for typed reads, and the levels service reads
+    /// <see cref="ConfigValue.Raw"/> or one of the typed accessors — a String definition covers
+    /// both, including the two keys that are not in the catalog yet.
+    /// </summary>
+    private ConfigValue? Read(string key)
+    {
+        if (!_values.TryGetValue(key, out var raw))
+        {
+            return null;
+        }
+
+        // The kind only drives validation on write, which the real service does before this point;
+        // every ConfigValue accessor parses Raw and never consults the definition. So the stand-in
+        // below is enough for the two keys that are not in the catalog yet.
+        ConfigKeyDefinition definition = ConfigKeys.TryGet(key, out ConfigKeyDefinition? known)
+            ? known
+            : new ConfigKeyDefinition(key, ConfigValueKind.Boolean, key);
+
+        return new ConfigValue(definition, raw);
+    }
+}
+
+internal static class Build
+{
+    public const ulong Guild = 111UL;
+    public const ulong User = 222UL;
+    public const ulong Channel = 333UL;
+
+    public static readonly DateOnly Today = new(2026, 7, 27);
+
+    public static Fixture Levels(
+        FakeLevelRewardRepository? rewards = null,
+        FakeSeasonRepository? seasons = null,
+        FakeGuildConfigService? config = null)
+    {
+        FakeLevelProgressRepository progress = new();
+        FakeLevelRewardRepository reward = rewards ?? new FakeLevelRewardRepository();
+        FakeSeasonRepository season = seasons ?? new FakeSeasonRepository();
+        FakeMemberRepository members = new();
+        FakeGuildConfigService settings = config ?? new FakeGuildConfigService();
+        FakeCooldownStore cooldowns = new();
+
+        LevelService service = new(
+            progress, reward, season, members, settings, cooldowns,
+            NullLogger<LevelService>.Instance);
+
+        return new Fixture(service, progress, reward, season, members, settings, cooldowns);
+    }
+
+    internal sealed record Fixture(
+        LevelService Service,
+        FakeLevelProgressRepository Progress,
+        FakeLevelRewardRepository Rewards,
+        FakeSeasonRepository Seasons,
+        FakeMemberRepository Members,
+        FakeGuildConfigService Config,
+        FakeCooldownStore Cooldowns);
+}

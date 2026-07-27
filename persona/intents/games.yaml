@@ -1,0 +1,68 @@
+# games intents — migrated from _bot_legacy/elaine/persona/elaine.yaml (v1 CHAT state).
+# Patterns carry over verbatim; Python (?P<x>) named groups rewritten to .NET (?<x>).
+intents:
+- id: COIN
+  match:
+    regex:
+    - flip a coin
+    - coin flip
+    - heads or tails
+    - flip it
+  pool: coin_flip
+- id: DICE
+  match:
+    regex:
+    - roll (?:a |the )?(?:dice|die|d6)
+    - dice roll
+    - roll for
+  pool: dice_roll
+- id: EIGHTBALL
+  match:
+    regex:
+    - magic 8
+    - 8 ?ball
+    - eight ball
+    - ask the (?:magic )?8
+    - predict my
+  pool: eight_ball
+- id: WOULD_RATHER
+  match:
+    keyword:
+    - wyr
+    regex:
+    - would you rather
+    - would u rather
+  pool: would_rather
+- id: RATE
+  match:
+    regex:
+    - rate me
+    - rate my
+    - how (?:hot|cool|smart|attractive) am i
+    - on a scale of
+    - out of 10
+    - score me
+  pool: rate_you
+  affect:
+    amusement: 1.0
+- id: ROAST_REQ
+  match:
+    regex:
+    - roast me
+    - roast (?:him|her|them|my)
+    - insult me
+    - make fun of me
+  pool: roast_requester
+  affect:
+    amusement: 1.0
+- id: COMPLIMENT_REQ
+  match:
+    regex:
+    - compliment me
+    - say something nice
+    - hype me up
+    - be nice to me
+    - tell me i'?m (?:good|great|pretty|smart|amazing)
+  pool: compliment_req
+  affect:
+    amusement: 1.0

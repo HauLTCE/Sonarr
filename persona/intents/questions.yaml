@@ -1,0 +1,124 @@
+# questions intents — migrated from _bot_legacy/elaine/persona/elaine.yaml (v1 CHAT state).
+# Patterns carry over verbatim; Python (?P<x>) named groups rewritten to .NET (?<x>).
+intents:
+- id: RECOMMEND
+  match:
+    regex:
+    - recommend
+    - suggest (?:a|me|something)
+    - any (?:recommendations|suggestions|recs)
+    - what should i (?:watch|read|play|listen)
+  pool: request_recommendation
+- id: PLAY_MUSIC
+  match:
+    regex:
+    - play (?:some |a |the )?(?:music|song|tunes|beat|bop)
+    - play me
+    - put on (?:some )?music
+    - be my dj
+  pool: request_play_music
+- id: CHOOSE
+  match:
+    regex:
+    - (?:which|what) (?:one )?should i (?:pick|choose)
+    - help me (?:pick|choose|decide)
+    - pick one
+    - \bthis or that\b
+    - \w+ or \w+\?
+  pool: request_choose
+- id: Q_REL
+  match:
+    regex:
+    - do you (?:like|love|care about|hate|even like) me
+    - do you care
+    - are we (?:friends|dating|a thing|cool)
+    - am i your
+    - do you miss me
+    - do you have feelings for
+  pool: question_relationship
+- id: Q_PRONOUN
+  match:
+    keyword:
+    - pronouns
+    regex:
+    - your pronouns
+    - what pronouns
+    - how do i refer to you
+    - are you a (?:girl|woman|boy|man|guy|dude|she|he|female|male)
+    - you a (?:girl|guy|dude|boy)\b
+    - he or she
+    - she or he
+  pool: question_pronouns
+- id: Q_BOT
+  match:
+    regex:
+    - who are you
+    - what are you
+    - your name
+    - are you (?:a )?(?:bot|ai|robot|human|real|person|machine)
+    - what'?s your name
+    - whats your name
+    - who (?:made|created) you
+  pool: question_about_bot
+- id: Q_AGE
+  match:
+    regex:
+    - how old
+    - your age
+    - when were you born
+  pool: question_age
+- id: Q_PHILO
+  match:
+    regex:
+    - meaning of life
+    - why are we here
+    - what is love
+    - purpose of life
+    - is there a god
+    - what happens when we die
+    - free will
+  pool: question_philosophy
+- id: Q_CAP
+  match:
+    regex:
+    - what can you do
+    - what do you do
+    - are you able to
+    - your capabilities
+    - what are you capable
+  pool: question_capabilities
+- id: ADVICE
+  match:
+    regex:
+    - what should i do
+    - 'should i '
+    - any advice
+    - help me decide
+    - what would you do
+    - give me advice
+  pool: request_advice
+- id: REQUEST
+  match:
+    regex:
+    - 'can you '
+    - 'could you '
+    - 'would you '
+    - 'please '
+    - i (?:need|want) you to
+    - help me
+    - do me a favor
+    - 'give me '
+  pool: request_general
+- id: PREFERENCE
+  match:
+    regex:
+    - 'i (?:like|love|enjoy|prefer|adore) '
+    - my favorite
+    - i'?m a fan of
+    - 'i (?:hate|dislike|can''?t stand|cant stand) '
+  pool: neutral_preference
+- id: QUESTION_IN
+  match:
+    regex:
+    - ^(?:what|who|how|why|when|where|is|are|do|does|did|can|could|would|should|will|who'?s|what'?s)\b
+  pool: question_general

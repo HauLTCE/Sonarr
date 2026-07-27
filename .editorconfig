@@ -1,0 +1,65 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml,ts,tsx,js,jsx,css,md}]
+indent_size = 2
+
+[*.{csproj,props,targets,slnx}]
+indent_size = 2
+
+[*.cs]
+# usings
+dotnet_sort_system_directives_first = true
+csharp_using_directive_placement = outside_namespace:warning
+csharp_style_namespace_declarations = file_scoped:warning
+
+# expression-level preferences
+csharp_style_var_for_built_in_types = false:silent
+csharp_prefer_braces = true:silent
+csharp_style_prefer_pattern_matching = true:suggestion
+dotnet_style_prefer_conditional_expression_over_assignment = true:silent
+dotnet_style_null_propagation = true:warning
+dotnet_style_coalesce_expression = true:warning
+dotnet_style_object_initializer = true:suggestion
+dotnet_style_readonly_field = true:warning
+
+# naming: interfaces I-prefixed, privates _camelCase
+dotnet_naming_rule.interfaces_start_with_i.severity = warning
+dotnet_naming_rule.interfaces_start_with_i.symbols = interface_symbol
+dotnet_naming_rule.interfaces_start_with_i.style = i_prefix_style
+dotnet_naming_symbols.interface_symbol.applicable_kinds = interface
+dotnet_naming_style.i_prefix_style.required_prefix = I
+dotnet_naming_style.i_prefix_style.capitalization = pascal_case
+
+dotnet_naming_rule.private_fields_underscore.severity = warning
+dotnet_naming_rule.private_fields_underscore.symbols = private_field_symbol
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel_style
+dotnet_naming_symbols.private_field_symbol.applicable_kinds = field
+dotnet_naming_symbols.private_field_symbol.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel_style.required_prefix = _
+dotnet_naming_style.underscore_camel_style.capitalization = camel_case
+
+# analyzers we care about
+dotnet_diagnostic.CA2007.severity = none        # ConfigureAwait: no sync context in a host
+dotnet_diagnostic.CA1848.severity = none        # LoggerMessage source-gen: not worth it at this scale
+dotnet_diagnostic.IDE0058.severity = none       # unused expression value
+dotnet_diagnostic.CA1062.severity = none        # null-check public args: nullable ref types cover this
+
+# Determinism contract (10-elaine-engine.md): the engine must not read ambient time.
+[src/Sonarr.Elaine/**.cs]
+dotnet_diagnostic.CS8618.severity = error
+dotnet_diagnostic.CS8602.severity = error
+
+[tests/**.cs]
+dotnet_diagnostic.CA1707.severity = none        # underscores in test method names
+
+# EF Core writes these; `dotnet ef migrations add` would undo any hand-formatting.
+[src/Sonarr.Infrastructure/Migrations/**.cs]
+dotnet_diagnostic.IDE0161.severity = none       # block-scoped namespace is the generator's shape

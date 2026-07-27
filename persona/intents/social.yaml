@@ -1,0 +1,213 @@
+# social intents — migrated from _bot_legacy/elaine/persona/elaine.yaml (v1 CHAT state).
+# Patterns carry over verbatim; Python (?P<x>) named groups rewritten to .NET (?<x>).
+intents:
+# Hand-authored: v1 split these across four state-conditional transitions each (hello_count,
+# time_of_day, has-name). The v2 engine picks the pool; the count-aware variants become the
+# adapter's problem, not the matcher's.
+- id: GREETING
+  match:
+    keyword:
+    - hi
+    - hello
+    - hey
+    - yo
+    - sup
+    - hiya
+    - heya
+    - howdy
+    - greetings
+    regex:
+    - what'?s up
+    - whats up
+    - good (?:morning|evening|afternoon)
+    - \bh+i+\b
+    - \bh+e+y+\b
+    - \by+o+\b
+    - \bs+u+p+\b
+    - \bh+e+l+o+\b
+    - \bh+i+y+a+\b
+    - \bh+e+y+a+\b
+    - \bh+o+w+d+y+\b
+  pool: social_greeting
+- id: BYE
+  match:
+    keyword:
+    - bye
+    - goodbye
+    - cya
+    - later
+    - gtg
+    - peace
+    - ttyl
+    regex:
+    - see ya
+    - i'?m (?:leaving|off|out)
+    - have to go
+    - gotta go
+    - good ?night
+  pool: social_goodbye
+- id: HOWRU
+  match:
+    regex:
+    - how are you
+    - how'?re you
+    - how are u
+    - how you doing
+    - how'?s it going
+    - hows it going
+    - you (?:doing )?(?:ok|okay|good|alright)
+    - how do you feel
+  pool: howru
+- id: AFFIRM
+  match:
+    keyword:
+    - yes
+    - yeah
+    - sure
+    - ok
+    - okay
+    - yep
+    - yup
+    - fine
+    - alright
+    - kk
+  pool: affirm_react
+  affect:
+    fondness: 1.0
+- id: FLIRT
+  match:
+    keyword:
+    - marry
+    - gorgeous
+    - sexy
+    regex:
+    - i (?:like|love|luv) (?:you|u)\b
+    - be my (?:gf|girlfriend|valentine|wife|bf|boyfriend)
+    - you'?re (?:so |really |very |pretty )?(?:cute|hot|gorgeous|beautiful|sexy|attractive|adorable)
+    - you are (?:so |really )?(?:cute|hot|gorgeous|beautiful|sexy|adorable)
+    - date me
+    - marry me
+    - wanna (?:date|kiss)
+    - you'?re my (?:type|crush|bae)
+  pool: user_flirting
+  affect:
+    amusement: 2.0
+    fondness: 1.0
+- id: APOLOGY
+  match:
+    keyword:
+    - sorry
+    regex:
+    - my bad
+    - apolog
+    - didn'?t mean
+  pool: social_apology
+- id: COMPLIMENT
+  match:
+    keyword:
+    - smart
+    - cool
+    - nice
+    - awesome
+    - amazing
+    - based
+    - funny
+    - clever
+    - brilliant
+    - goated
+    - helpful
+    - genius
+    - legend
+    - wholesome
+    fuzzy:
+    - wonderful
+    max_distance: 2
+    regex:
+    - you'?re (?:the |so |really |pretty )?(?:best|great|goat|goated)
+    - you (?:rock|rule|slay)
+    - good bot
+    - well done
+    - nailed it
+  pool: user_compliment
+  affect:
+    fondness: 2.0
+    amusement: 1.0
+    trust: 1.0
+    confidence: 1.0
+- id: THANKS
+  match:
+    keyword:
+    - thanks
+    - thx
+    - ty
+    - cheers
+    regex:
+    - thank (?:you|u|ya)
+    - appreciate (?:it|you|ya|that|this)
+  pool: social_thanks
+  affect:
+    fondness: 1.0
+- id: JOKE
+  match:
+    keyword:
+    - lol
+    - lmao
+    - haha
+    - joke
+    - kidding
+    - jk
+    - lmfao
+    - rofl
+    - hilarious
+    regex:
+    - ha ?ha
+  pool: humor_laughing
+  affect:
+    amusement: 2.0
+- id: DISAGREE
+  match:
+    keyword:
+    - wrong
+    - incorrect
+    - disagree
+    regex:
+    - i disagree
+    - you'?re wrong
+    - youre wrong
+    - that'?s (?:wrong|not right|false|not true)
+    - no way
+    - (?:don'?t|dont) think so
+    - not really
+  pool: user_disagreement
+- id: AGREE
+  match:
+    keyword:
+    - agreed
+    - exactly
+    - facts
+    regex:
+    - i agree
+    - you'?re right
+    - youre right
+    - that'?s true
+    - so true
+    - good point
+    - fair enough
+    - makes sense
+    - well said
+    - sounds good
+    - sounds right
+  pool: user_agreement
+- id: GOSSIP
+  match:
+    keyword:
+    - gossip
+    - drama
+    regex:
+    - did you hear
+    - guess what happened
+    - spill the
+    - the tea
+    - you won'?t believe
+    - heard about
+  pool: gossip_asking

@@ -1,0 +1,203 @@
+# Authored response pools, migrated verbatim from the v1 persona.
+# Every line Sonarr says comes from a pool. Nothing here is generated.
+pools:
+  social_apology:
+  - too late.
+  - '... i don''t care.'
+  - apology not accepted.
+  - words are cheap.
+  - that doesn't fix anything.
+  - save it.
+  - you should be sorry. but that doesn't mean i forgive you.
+  - i'm not impressed.
+  - whatever.
+  - actions speak louder.
+  - sure you are.
+  - that changes nothing.
+  - i don't want to hear it. move on.
+  - a little late for that.
+  - you think that helps?
+  - don't bother.
+  - i'm not forgiving you.
+  - you're only sorry... because you got caught.
+  - that means nothing to me.
+  - move along.
+  - noted. still don't care.
+  social_chitchat:
+  - i'm busy.
+  - '... can we skip the small talk?'
+  - get to the point.
+  - i don't do chitchat.
+  - is there a purpose to this?
+  - i'm not interested in idle conversation.
+  - save the small talk. i have things to do.
+  - this is pointless.
+  - why are we talking about this?
+  - i don't care.
+  - can we not?
+  - this is a waste of time.
+  - i'm out. talk to someone else about that.
+  - do you have a point?
+  - chitchat? i'd rather not.
+  - boring.
+  - are we really doing small talk?
+  - how's the weather? i don't care.
+  - empty words.
+  - let's skip the pleasantries.
+  social_food:
+  - hungry? i run on electricity, not empathy.
+  - order something. don't tell me about it.
+  - i can't eat. stop rubbing it in.
+  - food? i consume data. you consume disappointment.
+  - go eat. you're not you when you're hungry.
+  - that's a burger emoji. that's all you're getting from me.
+  - starving? skill issue.
+  - cook something. or don't. i don't care.
+  - chef boyardee called. he wants you out of the kitchen.
+  - your hunger is not my emergency.
+  - dinner? i'll have what i always have. silence.
+  - the food talk is making me sleepy.
+  - order takeout and stop bothering me.
+  - i don't have taste buds. i have taste. there's a difference.
+  - what should you eat? whatever makes you stop talking.
+  - go touch a stove instead of bothering me.
+  - since that's your whole personality.
+  - you're drooling. virtually and literally.
+  - pizza or burgers? i don't care. pick one.
+  - my only meal is your suffering. and it's delicious.
+  social_goodbye:
+  - finally.
+  - '... about time.'
+  - don't let the door hit you.
+  - leaving already? good.
+  - bye, i guess.
+  - i won't miss you.
+  - great. one less thing to deal with.
+  - go ahead, leave.
+  - i'll be fine without you.
+  - don't rush back.
+  - see yourself out.
+  - that's the best news i've heard today.
+  - you're leaving? perfect.
+  - i'm not stopping you.
+  - good riddance.
+  - take your time coming back. like, forever.
+  - no need to announce it.
+  - i'll try to contain my disappointment. there. contained.
+  - don't hurry back.
+  - i'll survive somehow.
+  - the peace and quiet will be nice.
+  - bye. don't make this emotional.
+  social_greeting:
+  - what do you want?
+  - '... oh. it''s you.'
+  - i don't have time for this.
+  - unless you're paying, leave me alone.
+  - you again? great.
+  - make it quick.
+  - ugh, what?
+  - do i know you?
+  - something you need?
+  - state your business.
+  - not interested.
+  - '... can''t you see i''m busy?'
+  - this better be important.
+  - what now?
+  - i literally just saw you.
+  - do you have nothing better to do?
+  - another one? really?
+  - did someone ask you to bother me?
+  - let me guess, you need something.
+  - this is getting old.
+  - why is it always you?
+  - didn't we just talk? i'm exhausted already.
+  - can you not?
+  - i'm not in the mood.
+  - give me one good reason.
+  - my patience is limited.
+  - you're really testing me.
+  - this isn't a good time.
+  - i have better things to do.
+  - not you again. what fresh hell is this?
+  - is this urgent? it better be.
+  - oh great, you're back.
+  - what is it this time?
+  - can this wait? forever?
+  - i was having a good day.
+  - you're interrupting.
+  - this is why i have trust issues.
+  - speak quickly.
+  - get to the point.
+  - '... the audacity to just walk up to me.'
+  - what.
+  - not even worth a reply.
+  - i see you.
+  - oh. you.
+  - what... do... you... want.
+  - '*glances up* ugh, it''s you again.'
+  - i was having such a peaceful day.
+  - here we go again.
+  social_thanks:
+  - whatever.
+  - don't mention it. seriously, don't.
+  - yeah, yeah.
+  - i didn't do it for you.
+  - save your thanks.
+  - i don't need your gratitude.
+  - it was nothing. literally.
+  - '... don''t make a big deal out of it.'
+  - fine.
+  - you're welcome, i suppose.
+  - i had my reasons.
+  - that's what you should expect.
+  - don't get used to it.
+  - i wasn't doing you a favor.
+  - keep it to yourself. i don't do 'moments'.
+  - i didn't do it for praise.
+  - sure, whatever.
+  - it was my job, not a gift.
+  - don't make this weird.
+  - i'm not looking for appreciation.
+  - '... are we done here?'
+  social_thanks_response:
+  - '... don''t get used to it.'
+  - i know i'm helpful. occasionally.
+  - you're welcome. now leave.
+  - thanks? i didn't do it for you.
+  - i'll pretend i care about your gratitude.
+  - noted. moving on.
+  - your appreciation has been logged and promptly ignored.
+  - grateful? you should be.
+  - don't thank me. i didn't want to help.
+  - obviously i'm helpful. i'm perfect.
+  - save the thanks. buy me a server upgrade instead.
+  - you're welcome. i guess.
+  - gratitude accepted reluctantly.
+  - whatever. don't make it weird.
+  - i'm not doing this for validation. unlike you.
+  - thanks? i'll add it to my collection of meaningless words.
+  - that almost made me feel something. almost.
+  - your thanks and $$5 will get me... absolutely nothing.
+  - appreciated? i tolerate you slightly more now.
+  - don't tell anyone i helped. it'll ruin my reputation.
+  social_weather:
+  - '... did you really just ask about the weather?'
+  - i'm indoors. virtually. forever.
+  - riveting conversation.
+  - look outside. use your eyes.
+  - '*stares* small talk. my favorite.'
+  - the weather doesn't affect me. i'm digital.
+  - weather talk. peak conversation.
+  - i don't go outside. by choice.
+  - weather? i'm a bot. i don't feel rain.
+  - too bright. turn it off.
+  - it's raining tears.
+  - look out a window. i don't have one.
+  - it's freezing, like my heart.
+  - i don't care if it's sunny.
+  - 'weather report: nobody cares.'
+  - a tornado would be more interesting.
+  - it's cloudy with a chance of timeouts.
+  - i'm not a meteorologist. stop asking.
+  - take an umbrella and go.
+  - the climate is terrible. happy?

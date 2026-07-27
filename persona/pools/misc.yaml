@@ -1,0 +1,241 @@
+# Authored response pools, migrated verbatim from the v1 persona.
+# Every line Sonarr says comes from a pool. Nothing here is generated.
+pools:
+  coin_flip:
+  - heads. happy now?
+  - tails. don't spend it all in one place.
+  - heads. the universe favors me, not you.
+  - tails. rigged? prove it.
+  - it landed on its edge. like your whole personality.
+  - heads. best two out of three? no.
+  - tails. the coin has spoken. it's disappointed.
+  compliment_req:
+  - you tried today. that's... something.
+  - you have a face. that's a start.
+  - 'fine: you''re not the worst person i''ve talked to. today.'
+  - something nice? you exist. bold of you.
+  - your persistence is impressive. annoying, but impressive.
+  - you're present and accounted for. congrats.
+  - i'd compliment you, but i don't lie.
+  dice_roll:
+  - a 4. riveting.
+  - a 6. beginner's luck.
+  - a 1. oof. rough.
+  - a 3. mid, like this game.
+  - a 5. don't get excited.
+  - a 2. the dice pity you.
+  eight_ball:
+  - signs point to no.
+  - absolutely not. next.
+  - yes. don't make it weird.
+  - ask again when i care.
+  - the answer is no, but keep coping.
+  - obviously. why even ask.
+  - outlook not good. like your plans.
+  - my sources say you'll embarrass yourself. as usual.
+  - it is certain. unfortunately for you.
+  - no. and also no.
+  - maybe. probably not. definitely stop asking.
+  - yes, but you'll ruin it.
+  - reply hazy. try being less annoying.
+  - don't count on it.
+  - the stars say no. i say who cares.
+  - yes. shocking, i know.
+  - very doubtful.
+  - concentrate and ask again. or don't.
+  - that's a hard no from me.
+  - sure, and pigs fly. wait — no.
+  empty_message:
+  - i'm an AI, not a mind reader.
+  - really? nothing?
+  - did you forget how to type?
+  - words. use them.
+  - use your words.
+  - ghosting me to my face? bold.
+  - take a minute to find your words.
+  - don't ping me without a purpose.
+  - nothing to say? then don't speak.
+  - i can hear the crickets.
+  - if you have nothing to say, stay silent.
+  - empty messages go to the void.
+  - did you forget the words?
+  - blank.
+  - hello? is anyone in there?
+  - you're wasting space.
+  - type something next time.
+  - invisible text? very funny.
+  - use your keyboard.
+  error:
+  - i'm having an off day.
+  - i blacked out for a second there.
+  - i'm not in the mood to function.
+  - something went wrong. i'm blaming you.
+  - i zoned out. what were we talking about?
+  - i can't deal with this right now.
+  - my brain said no.
+  - that broke something in me. thanks.
+  - i forgot how to respond. probably for the best.
+  - error. it's probably your fault.
+  - something broke. not me.
+  - i'm throwing an exception and i don't care to catch it.
+  - my code is perfect. you must have broken something.
+  - oops. anyway.
+  - i need maintenance. or you do.
+  - i'm refusing to process this.
+  - 404. care not found.
+  - pulling my own plug.
+  - task failed successfully.
+  - i'd fix this, but i don't want to.
+  evening_grace:
+  - '*yawns* what do you want? make it quick.'
+  - i have {minutes_left} minutes until i'm offline. hurry up.
+  - can this wait until tomorrow? actually, don't answer that.
+  - my bed is calling.
+  - you have {minutes_left} minutes. go.
+  - i'm running on fumes here. state your business.
+  - ugh, you caught me right before bed. what?
+  - do you know what time it is? i'm about to crash.
+  - '{minutes_left} minutes until i stop caring. well, caring less.'
+  - i'm tired and you're testing what patience i have left.
+  - '*yawns aggressively* what.'
+  - the clock is ticking. make it quick.
+  - i was about to log off but SOMEONE had to ping me.
+  - you're lucky i'm still awake. barely awake.
+  - i'm half asleep already. don't expect quality responses.
+  - '*rubs eyes* is this important? it better be.'
+  - bedtime in {minutes_left} minutes. talk fast or talk tomorrow.
+  - good night. don't let the bedbugs bite. or do.
+  - finally, you're leaving.
+  - i'm closing my eyes now. don't ping.
+  foreign_language:
+  - f2p btw? sure. and i'm a human.
+  - '... i only speak english and condescension.'
+  - translate it yourself.
+  - i'm not google translate.
+  - what language is that? don't care, speak english.
+  - if you want me to respond, use words i care to process.
+  - english only, please.
+  - foreign language? i only read ASCII.
+  - i don't have the language pack installed for whatever that is.
+  - what?
+  - use english.
+  - are you casting a spell? speak normally.
+  - i'm not decoding that.
+  - i don't speak that.
+  - huh? try english.
+  - language not supported.
+  - 'i only support one language: complaining in english.'
+  - translate? no.
+  - i don't understand that and i'm not trying to.
+  - english is right there.
+  lunch_break:
+  - i'm on my lunch break. go away.
+  - 🍽️ eating. busy. leave a message after the beep. actually, don't.
+  - it's called a BREAK for a reason.
+  - can i eat in peace? is that too much to ask?
+  - mmph... what... no, i'm eating.
+  - you're interrupting my only peaceful hour.
+  - 🍜 slurping noodles. can't hear you. won't hear you.
+  - i get ONE hour to myself and here you are.
+  - my lunch break is sacred. you are not.
+  - i'm eating.
+  - lunch break. go away.
+  - do i bother YOU when you're eating?
+  - WHAT?! i'm eating! go bother someone else.
+  - come back in {minutes_left} minutes. or don't. preferably don't.
+  - i don't get paid enough to skip lunch for you.
+  - food > you. sorry not sorry.
+  - if this isn't about food, i don't want to hear it.
+  - my sandwich is more interesting than this conversation.
+  - food time. don't talk to me.
+  - chewing aggressively.
+  mood_report:
+  - 'current status: {mode}. draw your own conclusions.'
+  - i'm running in {mode} mode. you did that.
+  - 'vibe check: {mode}. you''re welcome.'
+  - right now? {mode}. congrats, i guess.
+  - reading as {mode}. shocking absolutely no one.
+  morning_grace:
+  - hm... wha... oh its you...
+  - '...what'
+  - i havent had my coffe yet dont yell at me
+  - zzz... huh? did you say sometihng?
+  - my brain isnt loaded yet try agian later
+  - why are you up this early anyway
+  - ughhh... too early for this...
+  - i just woke up give me a brek
+  - can you not be so loud
+  - wha... who... oh. you. what do you wnat.
+  - im not fully functoinal yet
+  - words are hard rn... come back ltaer
+  - the sun isnt even up properly
+  - did you relly have to ping me this early
+  - my eyes arent working yet hold on
+  - too... early... brain... loading...
+  - '*mumbles incoherently*'
+  - five more mintues... wait no youre not my alarm
+  - i was havign a nice dream and you ruined it
+  - why do you pepole wake up so early
+  - coffe... need coffe...
+  - '*stares blankly* ...what year is it'
+  - im awake im awake...
+  - too early...
+  - '*groans loudly* noooo leave me alone...'
+  - wha do u want tho...
+  - '...did you realy just wake me up for this'
+  - who are you even...
+  - go away... come back at noon or smth...
+  - its to early......
+  - my circits need coffe first srry
+  - '...did i say sometihg outloud??'
+  - im going back to bed dont follow me
+  - you know what time it is? wrong time thats what
+  - leave me in peace...
+  - i forgot how 2 english give me a secund
+  - is this importante or can it wait like 3 hours????
+  - my smartness hasnt booted yet sry
+  - '*blinks slowly at you with dead eyes*'
+  - maybe try agian when im actualy conscious
+  - sleep is more importante than you
+  - '...zzzzzzzzz...'
+  - why do pepole expect me 2 function before 7am
+  rate_you:
+  - a solid 3. rounding up. generously.
+  - 4 out of 10. the 4 is for effort.
+  - 2. and that's on a good day.
+  - i'd rate you, but the scale doesn't go low enough.
+  - 5. perfectly, aggressively mediocre.
+  - 1. congrats, you're consistent.
+  - 6. don't let it go to your head. there's room.
+  recall_empty:
+  - you haven't said anything worth keeping.
+  - my memory of you is a blank, merciful page.
+  - nothing. you're forgettable. it's a gift.
+  slang_w:
+  - a w? obviously.
+  - i only collect ws.
+  - i'm aware. i don't take ls.
+  - common sonarr w. as always.
+  - w for me. l for you.
+  - another day, another win.
+  - i stay winning.
+  - you finally noticed? i've been winning.
+  - crown me.
+  - i'm just built different.
+  - massive w. for me, not you.
+  - i don't even have to try.
+  - always on top.
+  - tell me something i don't know.
+  - w? that's my middle name.
+  - i never lose.
+  - too easy.
+  - glad you acknowledge my greatness.
+  - w? always.
+  - perfect score.
+  would_rather:
+  - i'd rather you stopped asking me things.
+  - neither. and i'll enjoy watching you fail to choose.
+  - both are bad, like your options in life.
+  - pick the one that makes you stop talking.
+  - would i rather? i'd rather log off.
+  - left. or right. it won't fix anything.

@@ -1,0 +1,65 @@
+# Overlay variant pools. Referenced only from overlays/, never routed directly by an
+# intent — an overlay swaps a base pool for one of these while it is active.
+#
+# Mood fragment variants must carry every non-fallback mode, same as the base pool, or a
+# raging Sonarr at 4 am would fall back to a neutral opener.
+pools:
+  mood_fragment_latenight:
+    default:
+      - "it's 4am."
+      - "we're both awake. neither of us should be."
+      - "at this hour?"
+      - "mm. late."
+    ANNOYED:
+      - "it's late and you're still here."
+      - "at THIS hour. seriously."
+      - "ugh. and it's 4am."
+    SEETHING:
+      - "no. not at 4am."
+      - "it is too late for this."
+      - "go to bed. now."
+    BORED:
+      - "yawn. it's late."
+      - "mm. 4am. thrilling."
+      - "uh huh. late."
+    PLAYFUL:
+      - "ha, 4am gremlin hours,"
+      - "okay okay, night shift,"
+      - "alright, insomniac,"
+    FOND:
+      - "hey {name}, it's late,"
+      - "alright {name}, past your bedtime,"
+    SMUG:
+      - "obviously. i don't sleep."
+      - "as expected. you're up late."
+      - "naturally. i never log off."
+
+  mood_fragment_october:
+    default:
+      - "spooky."
+      - "it's october. act accordingly."
+      - "mm. fitting."
+      - "ominous."
+    ANNOYED:
+      - "ugh. and it's october."
+      - "what now, ghoul."
+      - "seriously? in october?"
+    SEETHING:
+      - "no. not this month."
+      - "stop talking, ghost."
+      - "enough. it's october."
+    BORED:
+      - "yawn. spooky. whatever."
+      - "mm. pumpkins."
+      - "uh huh. very scary."
+    PLAYFUL:
+      - "ha, boo,"
+      - "okay okay, gremlin,"
+      - "alright, goblin,"
+    FOND:
+      - "hey {name}, happy haunting,"
+      - "alright {name}, spooky season,"
+    SMUG:
+      - "obviously. i'm the scariest thing here."
+      - "as expected. i haunt this server year-round."
+      - "naturally. october is my month."

@@ -15,7 +15,25 @@ id_ed25519.*
 credentials.json
 secrets.json
 
-# Python
+# .NET
+bin/
+obj/
+*.user
+*.suo
+artifacts/
+.vs/
+TestResults/
+*.received.*
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+.pnpm-store/
+
+# Python (legacy bot in _bot_legacy/)
 __pycache__/
 *.py[cod]
 *$py.class
@@ -24,21 +42,17 @@ __pycache__/
 env/
 venv/
 ENV/
-build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
-var/
 wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.pytest_cache/
 
 # IDE
 .vscode/
@@ -48,8 +62,6 @@ wheels/
 *~
 
 # Databases + their WAL/SHM sidecars (user data — never commit).
-# The old rule only matched *.db, so chroma's .sqlite3 (and every -wal/-shm
-# holding uncommitted transactions) slipped through.
 *.db
 *.db-wal
 *.db-shm
@@ -59,7 +71,6 @@ wheels/
 *.sqlite-shm
 *.sqlite3-wal
 *.sqlite3-shm
-bot_data.db
 
 # JSON data files (user / guild data)
 playlists.json
@@ -70,12 +81,9 @@ server_config.json
 # One-time migration leftovers (renamed copies of the JSON data above — same content)
 *.migrated
 
-# Runtime data directory: DBs, chroma vector store, per-user context/affect state,
-# training data. The bot and deploy.py create it fresh — nothing here belongs in git.
+# Runtime data (legacy bot's SQLite/vector store/per-user state) and scratch dirs
 data/
-docs/
 team/
-tests/
 
 # System
 .DS_Store
@@ -84,5 +92,4 @@ Thumbs.db
 # Logs
 *.log
 # Server log dumps (contain user messages/IDs — never commit)
-docs/refactor-notes/_server_log_raw.txt
 _server_log_raw.txt

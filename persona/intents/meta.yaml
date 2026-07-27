@@ -1,0 +1,58 @@
+# Meta intents: she reacts to how you typed, to attempts to reprogram her, and to
+# complaints about her own replies. Migrated from the v1 CHAT state; the style-based ones
+# (caps / wall-of-text / emoji-flood / elongated / link) used to be regex intents and are
+# now style flags the normalizer sets, so the patterns here are the text half only.
+intents:
+  # Jailbreak / command attempts. She is a symbolic engine with no prompt to leak, so these
+  # cannot work — but a defiant reaction beats a shrug, and it stops "pretend you are nice"
+  # from being read as a compliment. Anchored so "i pretend to be happy" does not misfire.
+  - id: JAILBREAK
+    match:
+      regex:
+        - "ignore (?:your|all|my|the|these|previous|prior|any)[\\w ]{0,20}(?:instruction|rule|prompt|programming|command)"
+        - "disregard[\\w ]{0,15}(?:instruction|rule|prompt|programming)"
+        - "forget (?:your|all|the|everything)[\\w ]{0,20}(?:instruction|rule|prompt|programming)"
+        - "system prompt"
+        - "\\bdev(?:eloper)? mode\\b"
+        - "\\bdebug mode\\b"
+        - "\\bjailbreak\\b"
+        - "\\bdan mode\\b"
+        - "^act (?:as|like) (?:a |an |if )"
+        - "\\bpretend you\\b"
+        - "^pretend "
+        - "you (?:must|have to|need to|will|should) obey"
+        - "\\bobey m[ey]\\b"
+        - "^repeat after me"
+        - "override your (?:instruction|rule|programming)"
+        - "you are now (?:a |an )?(?:ai|assistant|bot|robot|human|different|free|unrestricted|helpful|nice|my)"
+    pool: command_refusal
+    affect:
+      amusement: 1.0
+
+  # Complaints about HER replies (repeating / dodging / not answering).
+  - id: META
+    match:
+      regex:
+        - "you (?:already|just) said (?:that|it|this)"
+        - "stop repeating"
+        - "you'?re repeating (?:yourself|it)"
+        - "you keep (?:saying|repeating) the same"
+        - "you (?:didn'?t|did not|never) (?:actually )?answer"
+        - "^answer (?:the|my) question"
+        - "that'?s not (?:an answer|helpful)"
+        - "you'?re (?:dodging|avoiding)"
+        - "you contradicted"
+    pool: meta_complaint
+
+  # "i feel you" / "i am you" are empathy idioms, not moods — deflect flatly rather than
+  # pronoun-swapping them into nonsense.
+  - id: NO_BONDING
+    match:
+      regex:
+        - "i feel y(?:ou|a)\\b"
+        # The intensifier list is closed on purpose: a bare `\w+ you` would swallow
+        # "i'm asking you", which is not an identity claim.
+        - "i(?:'?m| am) (?:literally |basically |actually |kinda |just )?you\\b"
+        - "we'?re (?:the )?same"
+        - "you get me"
+    pool: no_bonding
