@@ -149,6 +149,102 @@ public class GoldenConversationTests
     }
 
     [Fact]
+    public void EarningHerTrustCrossesATierAndSheSaysSoExactlyOnce()
+    {
+        // The payoff for the trust register: tiers are derived, so the only way to see one is to
+        // actually earn it. Nothing here injects a tier or a trust value.
+        Script chat = new();
+        Assert.Equal("stranger", Tier(chat.State));
+
+        List<string> moments = [];
+        for (int i = 0; i < 40 && Tier(chat.State) != "regular"; i++)
+        {
+            string? text = chat.Say(i % 2 == 0 ? "good bot" : "thanks, you're the best").Text;
+            if (text is not null && MomentLine(text) is { } moment)
+            {
+                moments.Add(moment);
+            }
+        }
+
+        Assert.Equal("regular", Tier(chat.State));
+
+        // Both crossings on the way up announced themselves, in order, once each.
+        Assert.Equal(2, moments.Count);
+        Assert.Contains(chat.State.Fired.Entries.Keys, k => k == ChatEngine.TierFiredKey("acquaintance"));
+        Assert.Contains(chat.State.Fired.Entries.Keys, k => k == ChatEngine.TierFiredKey("regular"));
+
+        // Trust decays back under the threshold and climbs again: a tier already announced
+        // stays quiet, because the fired-log is persisted rather than per-message.
+        chat.Say("hey", decaySteps: 400);
+        Assert.Equal("stranger", Tier(chat.State));
+        for (int i = 0; i < 40 && Tier(chat.State) != "regular"; i++)
+        {
+            string? text = chat.Say("good bot").Text;
+            Assert.Null(text is null ? null : MomentLine(text));
+        }
+
+        Assert.Equal("regular", Tier(chat.State));
+    }
+
+    [Fact]
+    public void SheNamesSomebodyWhoNeverGaveAName_OnceAndForAll()
+    {
+        // v1's bug: the nickname was redrawn wherever it was needed, so one person was
+        // "trouble", then "rando", then "nobody", inside a single conversation.
+        Script chat = new();
+        Assert.Null(chat.State.AssignedNickname);
+
+        for (int i = 0; i < 40 && chat.State.AssignedNickname is null; i++)
+        {
+            chat.Say("good bot");
+        }
+
+        string nickname = Assert.IsType<string>(chat.State.AssignedNickname);
+        Assert.Contains(nickname, Graph.Pools[ChatEngine.NicknamePool].Lines);
+
+        // It survives every later turn, including ones that cross more tiers.
+        for (int i = 0; i < 40; i++)
+        {
+            chat.Say(i % 3 == 0 ? "hey" : "you're the best");
+            Assert.Equal(nickname, chat.State.AssignedNickname);
+        }
+
+        Assert.Equal(nickname, chat.State.RenderSlots["nickname"]);
+    }
+
+    [Fact]
+    public void AStoredNameBeatsANickname_SoSheNeverInventsOneForYou()
+    {
+        Script chat = new();
+        chat.Say("my name is Hau");
+
+        for (int i = 0; i < 40; i++)
+        {
+            chat.Say("good bot");
+            Assert.Null(chat.State.AssignedNickname);
+        }
+
+        Assert.Equal("inner_circle", Tier(chat.State));
+    }
+
+    private static string Tier(ConversationState state) =>
+        ModeSelector.SelectTier(Graph.Root, state.Registers[Registers.Names.Trust])!.Id;
+
+    /// <summary>The authored tier line inside a composed reply, or null if none is present.</summary>
+    /// <remarks>
+    /// Matched on the literal text up to the first placeholder, since a moment line may carry
+    /// <c>{nickname}</c> and the reply holds it substituted.
+    /// </remarks>
+    private static string? MomentLine(string text) =>
+        Graph.Root.Tiers
+            // stranger has no moment pool on purpose: nobody arrives there, they start there.
+            .Where(t => Graph.Pools.ContainsKey($"{ChatEngine.TierMomentPoolPrefix}{t.Id}"))
+            .SelectMany(t => Graph.Pools[$"{ChatEngine.TierMomentPoolPrefix}{t.Id}"].Lines)
+            .Select(line => line.Split('{')[0].TrimEnd())
+            .Where(prefix => prefix.Length > 8)
+            .FirstOrDefault(prefix => text.Contains(prefix, StringComparison.Ordinal));
+
+    [Fact]
     public void TheWholeConversationReplaysIdenticallyFromTheSameSalt()
     {
         // The determinism contract at conversation scale — this is what makes a stored trace

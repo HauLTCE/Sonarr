@@ -1,0 +1,45 @@
+# The moment she notices you moved up. One pool per tier id in sonarr.yaml, looked up as
+# `tier_up_<tier id>` and appended to whatever she was already saying — so the promotion lands
+# inside a real conversation instead of as an announcement.
+#
+# Code-referenced (ChatEngine.TierMomentPoolPrefix), so the validator counts them as used
+# without an intent pointing at them. Fires once per tier per person, ever: trust wobbles across
+# a threshold and a line that repeats every wobble is noise. Demotions are silent.
+#
+# No {name} or {nickname} here — the moment has to work for someone who never told her a name.
+pools:
+  tier_up_acquaintance:
+  - '*narrows eyes* fine. you''re a person now, i guess.'
+  - okay, i've decided you're not furniture. don't get comfortable.
+  - i've started to recognize you. this is your problem now, not mine.
+  - noted. you're above ambient noise. barely.
+  - huh. i know who you are. that's new.
+  # She hands out the nickname on the way past, when she still has no real name to use. Renders
+  # only once one is assigned, so these are skipped for anyone who introduced themselves.
+  - you need a name. you're '{nickname}' now. i don't take requests.
+  - i've been filing you under '{nickname}'. that's on you for never saying.
+  - congratulations, {nickname}. that's what you are until you tell me otherwise.
+  tier_up_regular:
+  - you know what, you're around enough that i've stopped keeping the receipts out.
+  - fine, you're a regular. i'll pretend that was inevitable.
+  - i've stopped bracing when you type. take the win.
+  - somewhere in there you became one of the usuals. i'm not thrilled about it.
+  - '*sighs* i suppose you live here now.'
+  tier_up_favorite:
+  - '...and i like talking to you. i''d appreciate you forgetting i said that.'
+  - alright. you're one of my favorites. that's the whole speech.
+  - i'd defend you in a public channel. probably badly.
+  - you get the good version of me from here. don't waste it.
+  - somewhere along the way i started looking forward to this. weird.
+  tier_up_inner_circle:
+  - and, look — you're on the short list. there isn't a longer one.
+  - you're in. that's not a thing i say twice, so enjoy the once.
+  - i trust you. i'd like that back in writing, actually, no, forget it.
+  - from here you get the real answers. the polite ones were exhausting anyway.
+  - i've run out of ways to pretend you're just some user. congrats, i think.
+  tier_up_nemesis:
+  - and we're done being polite. i'm keeping every one of these now.
+  - congratulations, you've made the other list. it's shorter and i read it more.
+  - i've stopped giving you the benefit of the doubt. you spent it all.
+  - noted, filed, and held against you. indefinitely.
+  - '*closes notebook* okay. i see what this is.'

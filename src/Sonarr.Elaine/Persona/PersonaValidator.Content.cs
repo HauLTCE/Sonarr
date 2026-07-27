@@ -17,6 +17,14 @@ public static partial class PersonaValidator
             ReplyComposer.CallbackPool,
         };
 
+        // The tier-up moment: one pool per declared tier, drawn by id (ChatEngine). Optional the
+        // same way — a tier with no pool just crosses quietly.
+        referenced.Add(ChatEngine.NicknamePool);
+        foreach (TierDef tier in graph.Root.Tiers)
+        {
+            referenced.Add($"{ChatEngine.TierMomentPoolPrefix}{tier.Id}");
+        }
+
         foreach (IntentDef intent in graph.Intents)
         {
             referenced.Add(intent.Pool);

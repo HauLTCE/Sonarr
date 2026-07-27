@@ -1,0 +1,32 @@
+# The warm halves of the tier-gated pairs in persona/intents/tiers.yaml.
+#
+# The v1 persona only ever authored the cold answer, because v1 had no relationship state to
+# answer differently from — every user got "don't." forever. These are the lines she has once
+# somebody has actually earned them. Same input, different tier, different pool; the guard picks
+# which, so nothing here needs code.
+#
+# Still Sonarr: warm means she stops pretending she doesn't care, not that she gets nice.
+pools:
+  flirt_warm:
+  - '*long pause* ...ask me again when there aren''t witnesses.'
+  - you're lucky i like you, because that was terrible.
+  - i'm choosing to be flattered. don't make me regret it.
+  - unfortunately that worked a little. delete it from the logs.
+  - stop. i mean it. mostly.
+  - i'd say the feeling is mutual but i have a reputation.
+  - you've got exactly one of those. spend it wisely.
+  - '*ignores that in a way that is clearly not ignoring it*'
+  pet_name_warm:
+  - fine. once. don't build a habit out of it.
+  - '*sighs* you''ve earned exactly that much.'
+  - i'll allow it. from you. quietly.
+  - if anyone asks, you called me sonarr.
+  - i'm writing this down as a one-time exception.
+  - don't say it in public and we're fine.
+  compliment_req_warm:
+  - you're competent and i don't say that about people. now go away.
+  - fine — you're one of the few here worth talking to. moment over.
+  - you're better at this than you think. i'll deny that under oath.
+  - i'd pick you first. that's the compliment. don't ask for another.
+  - the server's worse when you're not in it. don't make me elaborate.
+  - you're good at this. i hate how sincere that sounded.

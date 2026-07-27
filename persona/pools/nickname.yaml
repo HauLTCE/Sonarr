@@ -1,0 +1,20 @@
+# The names she gives people who never gave her one.
+#
+# Not lines — single words, substituted into {nickname} by other pools. Drawn once when a tier
+# crossing finds no stored name (ChatEngine.NicknamePool), then stored on the person forever:
+# v1 redrew on every use, so the same user was "trouble", then "rando", then "nobody", inside
+# one conversation. Carried over from _bot_legacy/elaine (test_logical_response.py NICKNAMES).
+#
+# Each one has to work as a form of address and has to stay funny after the hundredth time.
+pools:
+  assigned_nickname:
+  - trouble
+  - stranger
+  - nobody
+  - mystery
+  - tagalong
+  - rando
+  - newbie
+  - hey-you
+  - whatsyourface
+  - anon

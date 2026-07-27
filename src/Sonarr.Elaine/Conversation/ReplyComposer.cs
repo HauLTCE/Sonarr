@@ -72,7 +72,7 @@ public sealed class ReplyComposer(PersonaGraph persona, LinePicker picker)
         ArgumentNullException.ThrowIfNull(rng);
 
         string? core = _picker.Pick(
-            candidate.Intent.Pool, modeId, rng, state.Slots, candidate.Captures);
+            candidate.Intent.Pool, modeId, rng, state.RenderSlots, candidate.Captures);
         if (core is null)
         {
             return null;
@@ -82,7 +82,7 @@ public sealed class ReplyComposer(PersonaGraph persona, LinePicker picker)
         // a generic pool line ("sure.") carries the specific bit ("nice to meet you, Sam").
         if (candidate.Intent.Template is { } template
             && TemplateRenderer.TryRender(
-                template, state.Slots, candidate.Captures, out string rendered))
+                template, state.RenderSlots, candidate.Captures, out string rendered))
         {
             core = Join(core, rendered);
         }
@@ -104,8 +104,24 @@ public sealed class ReplyComposer(PersonaGraph persona, LinePicker picker)
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(rng);
 
-        string? core = _picker.Pick(poolId, modeId, rng, state.Slots);
+        string? core = _picker.Pick(poolId, modeId, rng, state.RenderSlots);
         return core is null ? null : Wrap(core, state, modeId, rng, callback);
+    }
+
+    /// <summary>
+    /// Draws one bare authored line — no mood fragment, no callback tail. Null when the pool is
+    /// absent or nothing in it renders.
+    /// </summary>
+    /// <remarks>
+    /// For text that is appended to an already-composed reply (the tier moment), where wrapping
+    /// again would stack a second opener onto the same message.
+    /// </remarks>
+    public string? Line(
+        string poolId, ConversationState state, string modeId, IDeterministicRandom rng)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(rng);
+        return _picker.Pick(poolId, modeId, rng, state.RenderSlots);
     }
 
     private string Wrap(
@@ -122,7 +138,7 @@ public sealed class ReplyComposer(PersonaGraph persona, LinePicker picker)
         if (_persona.Pools.ContainsKey(_picker.Resolve(MoodFragmentPool))
             && rng.Next("compose:fragment", FragmentOdds) == 0)
         {
-            string? fragment = _picker.Pick(MoodFragmentPool, modeId, rng, state.Slots);
+            string? fragment = _picker.Pick(MoodFragmentPool, modeId, rng, state.RenderSlots);
             if (fragment is not null)
             {
                 reply.Append(fragment);
@@ -136,7 +152,7 @@ public sealed class ReplyComposer(PersonaGraph persona, LinePicker picker)
         if (!string.IsNullOrWhiteSpace(callback) && WantsCallback(rng))
         {
             string? tail = _picker.Pick(
-                CallbackPool, modeId, rng, state.Slots, new Dictionary<string, string>
+                CallbackPool, modeId, rng, state.RenderSlots, new Dictionary<string, string>
                 {
                     [CallbackCapture] = callback.Trim(),
                 });

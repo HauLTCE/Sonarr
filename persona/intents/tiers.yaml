@@ -1,0 +1,116 @@
+# Tier-gated intents: same input, different answer depending on where you stand with her.
+#
+# These are the payoff for the trust register. Each one is the warm half of a pair — the cold
+# half is an existing intent (FLIRT, COMPLIMENT_REQ) or an existing cold pool — and it wins by
+# out-scoring nothing: it only exists at all above the tier floor, because a failed guard
+# removes an intent from the running entirely (GuardEvaluator/LexicalMatcher).
+#
+# Why separate intents rather than a guard on the originals: the shipped-behavior tests match
+# against MatchContext.Empty, where TierId is null and min_tier fails closed — gating FLIRT
+# itself would mean a stranger's flirt matches nothing at all. Pairing keeps the cold path
+# unconditional and makes warm the addition.
+#
+# The bonus is what breaks the tie against the cold twin, which shares the patterns and so
+# scores the same specificity.
+intents:
+- id: FLIRT_WARM
+  match:
+    regex:
+    - i (?:like|love|luv) (?:you|u)\b
+    - you'?re (?:so |really |very |pretty )?(?:cute|hot|gorgeous|beautiful|sexy|attractive|adorable)
+    - you are (?:so |really )?(?:cute|hot|gorgeous|beautiful|sexy|adorable)
+    - marry me
+    - date me
+  examples:
+  - i think i might actually have a crush on you
+  - you are honestly kind of perfect
+  guards:
+  - kind: min_tier
+    value: favorite
+    bonus: 1.0
+  pool: flirt_warm
+  affect:
+    amusement: 2.0
+    fondness: 2.0
+    trust: 0.5
+
+# Pet names have no cold intent of its own in v1 — user_pet_names was authored and then never
+# wired to anything. Both halves are new here, which is why this pair carries a max_tier as well:
+# below favorite she corrects you, above it she lets it go.
+- id: PET_NAME
+  match:
+    regex:
+    - (?:hey|hi|hello|yo|thanks|thank you|ok|okay|please)[, ]+(?:honey|babe|baby|sweetie|sweetheart|darling|hun|bae|cutie)\b
+    - (?:you'?re a |what a )?good (?:girl|bot girl)\b
+    - '(?:my |our )(?:honey|babe|baby|sweetie|sweetheart|darling|bae)\b'
+  examples:
+  - thanks babe
+  - okay sweetheart whatever you say
+  guards:
+  - kind: max_tier
+    value: regular
+    bonus: 1.0
+  pool: user_pet_names
+  affect:
+    anger: 0.5
+    amusement: 1.0
+    trust: -0.5
+- id: PET_NAME_WARM
+  match:
+    regex:
+    - (?:hey|hi|hello|yo|thanks|thank you|ok|okay|please)[, ]+(?:honey|babe|baby|sweetie|sweetheart|darling|hun|bae|cutie)\b
+    - '(?:my |our )(?:honey|babe|baby|sweetie|sweetheart|darling|bae)\b'
+  examples:
+  - thanks darling
+  - alright sweetheart
+  guards:
+  - kind: min_tier
+    value: favorite
+    bonus: 1.5
+  pool: pet_name_warm
+  affect:
+    amusement: 1.0
+    fondness: 1.0
+
+- id: COMPLIMENT_REQ_WARM
+  match:
+    regex:
+    - compliment me
+    - say something nice
+    - hype me up
+    - be nice to me
+    - tell me i'?m (?:good|great|pretty|smart|amazing)
+  examples:
+  - i could use something encouraging right now
+  - tell me i am doing alright
+  guards:
+  - kind: min_tier
+    value: regular
+    bonus: 1.0
+  pool: compliment_req_warm
+  affect:
+    fondness: 1.0
+    trust: 0.5
+
+# The nemesis ceiling: she stops answering the question and starts reading back the file. Gated
+# by max_tier rather than a grudge register check so it tracks the same ladder /relationship
+# shows the user — one thing to reason about, not two.
+- id: RECEIPTS
+  match:
+    regex:
+    - (?:i )?never said (?:that|it)
+    - (?:that'?s|thats) not what i said
+    - prove i said
+    - you'?re making (?:that|it) up
+    - i didn'?t say (?:that|it)
+  examples:
+  - those are not my words and you know it
+  - show me where i supposedly said that
+  guards:
+  - kind: max_tier
+    value: nemesis
+    bonus: 1.0
+  pool: user_receipts
+  affect:
+    anger: 1.0
+    grudge: 0.5
