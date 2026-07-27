@@ -62,7 +62,7 @@ try
     builder.Services.AddSonarrJobs();
     builder.Services.AddSonarrPersona(options);
     // After the persona: the chat pipeline resolves the live PersonaHolder that call created.
-    builder.Services.AddSonarrChat();
+    builder.Services.AddSonarrChat(options);
     builder.Services.AddSonarrDiscord();
 
     // Plain HTTP: HTTPS is terminated by the user's tunnel in front of

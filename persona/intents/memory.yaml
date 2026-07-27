@@ -87,6 +87,12 @@ intents:
         - "^recap"
         - "what have we (?:talked about|discussed|covered)"
         - "what were we (?:talking|chatting) about"
+    # Only the recall side gets examples. A rescue carries no captures, so SET_NAME and SET_FAV
+    # deliberately have none — their templates read `{$nm}` / `{$favval}` and a semantic hit
+    # would have nothing to put there.
+    examples:
+      - remind me what you have on file about me
+      - how much of our history do you still hold
     pool: know_person_has_data
 
   - id: FORGET_ME
@@ -95,4 +101,7 @@ intents:
         - "forget (?:me|everything|about me)"
         - "delete my data"
         - "wipe (?:my|your) memory"
+    examples:
+      - i want everything you have stored about me gone
+      - erase whatever you learned from our conversations
     pool: memory_retrieve

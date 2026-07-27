@@ -35,8 +35,11 @@ public sealed record MatchCandidate
     /// <summary>Named captures, sliced case-preserved out of the original text.</summary>
     public required FrozenDictionary<string, string> Captures { get; init; }
 
-    /// <summary>The single pattern that contributed the score. Useful for tracing.</summary>
-    public required LexicalPattern BestPattern { get; init; }
+    /// <summary>
+    /// The single pattern that contributed the score, for tracing. Null for a semantic rescue:
+    /// no pattern matched, which is the whole reason the semantic tier ran.
+    /// </summary>
+    public LexicalPattern? BestPattern { get; init; }
 
     /// <summary>How many of the intent's patterns matched.</summary>
     public required int MatchedPatternCount { get; init; }

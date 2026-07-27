@@ -21,11 +21,31 @@ public sealed class ReplyComposer(PersonaGraph persona, LinePicker picker)
     /// <summary>The mode-covered pool the opener is drawn from (see <c>sonarr.yaml</c>).</summary>
     public const string MoodFragmentPool = "mood_fragment";
 
+    /// <summary>The pool the callback tail is drawn from (<c>persona/pools/memory.yaml</c>).</summary>
+    public const string CallbackPool = "callback_tail";
+
+    /// <summary>Capture name the remembered quote is substituted into: <c>{$quote}</c>.</summary>
+    public const string CallbackCapture = "quote";
+
     /// <summary>1-in-N turns carry a mood fragment. Every turn would be a verbal tic.</summary>
     private const int FragmentOdds = 3;
 
     /// <summary>1-in-N turns carry a callback, and only when one was offered.</summary>
     private const int CallbackOdds = 2;
+
+    /// <summary>
+    /// Whether this turn would use a callback if one were offered.
+    /// </summary>
+    /// <remarks>
+    /// Public so the adapter can ask before paying for the lookup: finding a callback costs an
+    /// embedding and a pgvector query, and half the turns would throw the answer away. The draw
+    /// is seeded, so asking here returns exactly what <see cref="Compose"/> will draw later.
+    /// </remarks>
+    public static bool WantsCallback(IDeterministicRandom rng)
+    {
+        ArgumentNullException.ThrowIfNull(rng);
+        return rng.Next("compose:callback", CallbackOdds) == 0;
+    }
 
     private readonly PersonaGraph _persona = persona
         ?? throw new ArgumentNullException(nameof(persona));
@@ -111,10 +131,19 @@ public sealed class ReplyComposer(PersonaGraph persona, LinePicker picker)
 
         Append(reply, core);
 
-        if (!string.IsNullOrWhiteSpace(callback)
-            && rng.Next("compose:callback", CallbackOdds) == 0)
+        // The adapter supplies the remembered quote; the framing around it is authored, same as
+        // everything else. No pool, no renderable line, no tail — the core reply still ships.
+        if (!string.IsNullOrWhiteSpace(callback) && WantsCallback(rng))
         {
-            Append(reply, callback);
+            string? tail = _picker.Pick(
+                CallbackPool, modeId, rng, state.Slots, new Dictionary<string, string>
+                {
+                    [CallbackCapture] = callback.Trim(),
+                });
+            if (tail is not null)
+            {
+                Append(reply, tail);
+            }
         }
 
         return reply.ToString();

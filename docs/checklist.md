@@ -228,14 +228,15 @@ J2900 · nothing durable lost on restart.
 
 ### Embedding tier ([03-stack.md](docs/03-stack.md#data))
 
-- [ ] Pick + quantize the embedding model (bge-small / nomic-embed class, 384-dim, no AVX required)
-- [ ] ONNX Runtime lazy singleton session in `Sonarr.Infrastructure`
-- [ ] Benchmark on J2900-class CPU — must land in the ~10–50 ms range
-- [ ] Semantic matcher: runs only when lexical score is below threshold; never overrides a confident lexical match
-- [ ] `chat.intent_embedding` cache keyed by content hash; rebuilt only when the persona file changes
-- [ ] `chat.episode.embedding vector(384)` + ivfflat index
-- [ ] Backfill job for legacy episode embeddings (batch, minutes)
-- [ ] Callback retrieval: pgvector top-K episode, relevance-gated
+- [/] Pick the embedding model — `all-MiniLM-L6-v2`, fp32 `onnx/model.onnx` (~90 MB), 384-dim, mean-pooled + L2-normalized. **Not quantized**: every published int8 variant of this class targets AVX2/AVX512/ARM64 and the J2900 is SSE4.2-only, so quantizing would be slower, not faster. Fetched by `scripts/fetch-model.sh` (gitignored, `MODEL_PATH` volume)
+- [/] ONNX Runtime lazy singleton session in `Sonarr.Infrastructure` (`OnnxTextEmbedder`; missing model files are non-fatal — matching degrades to lexical-only)
+- [~] Benchmark: 4.3 ms/embed on the dev box (i7, `IntraOpNumThreads = 2`), inside the 10–50 ms budget with headroom for the J2900 being several times slower. Re-measure on the J2900 itself at the September move
+- [/] Semantic matcher: runs only when lexical score is below threshold; never overrides a confident lexical match (`EmbeddingSemanticMatcher`, floor 0.62, rescue score capped just over `LexicalThreshold`; a rescued intent still clears its own guards)
+- [/] `chat.intent_embedding` cache keyed by content hash; rebuilt only when the persona file changes (`SemanticIntentIndex` + `SemanticWarmup`; unchanged examples cost nothing, removed ones are pruned)
+- [/] `chat.episode.embedding vector(384)` + ivfflat index (`EpisodeConfiguration`, `vector_cosine_ops`, lists=100)
+- [/] Backfill job for legacy episode embeddings (batch, minutes) — `EpisodeEmbedder`, 32 rows per batch. Not just legacy: the turn path writes episodes unembedded on purpose, so this is the only thing that ever fills the column
+- [/] Callback retrieval: pgvector top-K episode, relevance-gated (`CallbackRetriever`, cosine ≥ 0.55, ≥ 8 turns old; the seeded odds are drawn *before* the lookup so the turns that would discard a tail never pay for the query)
+- [/] Authored `examples:` on the intents most likely to be paraphrased (emotions, social, questions, hostility, memory-recall). Capture-driven intents (`SET_NAME`, `SET_FAV`) deliberately have none — a rescue carries no captures and their templates need them
 
 ### Relationship & memory features
 

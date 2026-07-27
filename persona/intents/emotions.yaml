@@ -35,6 +35,11 @@ intents:
     - died
     - passed away
     - (?:he|she|they|it) is dead
+  # Phrasings with none of the keywords above — what the semantic tier exists to catch.
+  examples:
+  - everything in my life is falling apart right now
+  - i just want to sit in the dark and not talk to anyone
+  - nothing has gone right for me in weeks
   pool: user_venting
 - id: TIRED
   match:
@@ -52,6 +57,9 @@ intents:
     - need (?:a nap|sleep|rest)
     - up all night
     - didn'?t sleep
+  examples:
+  - i have been awake for way too long and my brain is done
+  - running on three hours of sleep and an energy drink
   pool: user_tired
 - id: HAPPY
   match:
@@ -86,6 +94,9 @@ intents:
     - im lost
     - (?:don'?t|dont) know what to do
     - no idea
+  examples:
+  - you have completely lost me, run that past me again
+  - none of what you just said connects for me
   pool: user_confused
 - id: BORED_IN
   match:
@@ -95,6 +106,9 @@ intents:
     - dull
     regex:
     - nothing to do
+  examples:
+  - i have refreshed every app twice and there is still nothing happening
+  - entertain me, this afternoon is dragging
   pool: user_bored
   affect:
     boredom: 2.0
@@ -111,6 +125,9 @@ intents:
     - so (?:mad|angry)
     - i'?m (?:so )?(?:mad|angry|furious|pissed)
     - makes me (?:mad|angry)
+  examples:
+  - i want to throw my laptop across the room
+  - if one more person does that to me today i am going to lose it
   pool: user_angry
 - id: USER_PANIC
   match:
@@ -127,6 +144,9 @@ intents:
     - having a breakdown
     - so stressed
     - losing it
+  examples:
+  - my heart is racing and i cannot sit still
+  - there is way too much on my plate and the deadline is tomorrow
   pool: user_panicking
 - id: USER_JEALOUS
   match:
@@ -153,6 +173,9 @@ intents:
     - best news
     - can'?t believe
     - let'?s go+
+  examples:
+  - i finally got the thing i have been working towards for months
+  - you will not believe what just happened to me
   pool: user_excitement
 - id: USER_VALIDATION
   match:
@@ -164,6 +187,9 @@ intents:
     - i need validation
     - make me feel better
     - reassure me
+  examples:
+  - please just tell me i did the right thing here
+  - i need someone to say this was not my fault
   pool: user_validation_seeking
 - id: USER_OVERSHARE
   match:

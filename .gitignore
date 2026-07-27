@@ -93,3 +93,6 @@ Thumbs.db
 *.log
 # Server log dumps (contain user messages/IDs — never commit)
 _server_log_raw.txt
+
+# ONNX embedding model — 90MB of weights, fetched by scripts/fetch-model.sh (docs/03-stack.md)
+models/

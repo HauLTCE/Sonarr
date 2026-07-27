@@ -8,6 +8,9 @@ intents:
     - suggest (?:a|me|something)
     - any (?:recommendations|suggestions|recs)
     - what should i (?:watch|read|play|listen)
+  examples:
+  - give me something good to put on tonight
+  - i have run out of things to watch, help
   pool: request_recommendation
 - id: PLAY_MUSIC
   match:
@@ -16,6 +19,9 @@ intents:
     - play me
     - put on (?:some )?music
     - be my dj
+  examples:
+  - get something going in the voice channel
+  - queue up whatever you think fits the mood
   pool: request_play_music
 - id: CHOOSE
   match:
@@ -35,6 +41,9 @@ intents:
     - am i your
     - do you miss me
     - do you have feelings for
+  examples:
+  - where do i actually stand with you
+  - am i just another user to you
   pool: question_relationship
 - id: Q_PRONOUN
   match:
@@ -59,6 +68,9 @@ intents:
     - what'?s your name
     - whats your name
     - who (?:made|created) you
+  examples:
+  - so what exactly am i talking to here
+  - is there a person behind this or not
   pool: question_about_bot
 - id: Q_AGE
   match:
@@ -77,6 +89,9 @@ intents:
     - is there a god
     - what happens when we die
     - free will
+  examples:
+  - does any of this actually matter in the long run
+  - do you think we choose anything or is it all decided
   pool: question_philosophy
 - id: Q_CAP
   match:
@@ -86,6 +101,9 @@ intents:
     - are you able to
     - your capabilities
     - what are you capable
+  examples:
+  - give me the list of things you are actually useful for
+  - what is the point of having you in this server
   pool: question_capabilities
 - id: ADVICE
   match:
@@ -96,6 +114,9 @@ intents:
     - help me decide
     - what would you do
     - give me advice
+  examples:
+  - i am stuck between two options and cannot commit to either
+  - talk me through this, i keep going back and forth
   pool: request_advice
 - id: REQUEST
   match:

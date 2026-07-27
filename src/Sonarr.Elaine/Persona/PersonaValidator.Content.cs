@@ -8,7 +8,15 @@ public static partial class PersonaValidator
 {
     private static void CheckPools(PersonaGraph graph, List<PersonaIssue> issues)
     {
-        HashSet<string> referenced = new(StringComparer.Ordinal);
+        // The two pools the composer draws from by name rather than through a reference: they
+        // are optional (no pool, no fragment / no tail), so they are not errors when absent —
+        // but when they exist they are used, and must not be reported as orphans.
+        HashSet<string> referenced = new(StringComparer.Ordinal)
+        {
+            ReplyComposer.MoodFragmentPool,
+            ReplyComposer.CallbackPool,
+        };
+
         foreach (IntentDef intent in graph.Intents)
         {
             referenced.Add(intent.Pool);

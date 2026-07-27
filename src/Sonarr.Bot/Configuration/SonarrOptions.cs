@@ -49,6 +49,12 @@ public sealed class SonarrOptions
     /// <summary>Persona directory, hot-reloaded (docs/10). Container path.</summary>
     public string PersonaPath { get; init; } = "/app/persona";
 
+    /// <summary>
+    /// Directory holding model.onnx + vocab.txt for the semantic tier (docs/03). Container path.
+    /// Missing files are not fatal: matching degrades to lexical-only.
+    /// </summary>
+    public string ModelPath { get; init; } = "/app/models/minilm-l6-v2";
+
     /// <summary>Kestrel port for the panel API (docs/02: 5088, plain HTTP behind the tunnel).</summary>
     [Range(1, 65535)]
     public int ApiPort { get; init; } = 5088;
