@@ -89,6 +89,12 @@ pools:
   - the peace and quiet will be nice.
   - bye. don't make this emotional.
   social_greeting:
+  # {nickname} lines render only for people she has assigned one to (never gave a real name);
+  # for everyone else LinePicker walks past them to the next line.
+  - what is it, {nickname}.
+  - oh. {nickname}. wonderful.
+  - '{nickname}. what do you want.'
+  - back again, {nickname}?
   - what do you want?
   - '... oh. it''s you.'
   - i don't have time for this.

@@ -36,6 +36,20 @@ public sealed record ConversationState
     public string? AssignedNickname { get; init; }
 
     /// <summary>
+    /// Slots as a template sees them: the stored facts plus <c>nickname</c>.
+    /// </summary>
+    /// <remarks>
+    /// Derived rather than stored in <see cref="Slots"/>, because the nickname has its own
+    /// column — writing it into the slots payload too would give it two homes that can disagree.
+    /// A line using <c>{nickname}</c> simply does not render until she has picked one, which is
+    /// what <see cref="LinePicker"/> already does with any unfilled slot.
+    /// </remarks>
+    public ImmutableDictionary<string, string> RenderSlots =>
+        string.IsNullOrWhiteSpace(AssignedNickname)
+            ? Slots
+            : Slots.SetItem("nickname", AssignedNickname);
+
+    /// <summary>
     /// Per-conversation RNG salt, supplied by the adapter (hashed user id mixed with the
     /// mood-of-the-day seed) so two people on the same turn do not hear the same line.
     /// </summary>

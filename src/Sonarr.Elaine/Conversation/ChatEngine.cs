@@ -114,10 +114,97 @@ public sealed class ChatEngine(PersonaGraph persona, ISemanticMatcher? semantic 
         // Compose against the post-update state so a name learned this turn is available to
         // this turn's own template.
         string? text = composer.Compose(primary, next, modeId, rng, input.Callback);
-        return text is null
-            ? Fallback(next, composer, modeId, rng, input)
-            : (next, text, intent.Id);
+        if (text is null)
+        {
+            return Fallback(next, composer, modeId, rng, input);
+        }
+
+        (next, text) = MarkTierChange(state, next, text, composer, modeId, rng);
+        return (next, text, intent.Id);
     }
+
+    /// <summary>
+    /// When this turn's affect crossed a tier boundary, appends the authored moment for the new
+    /// tier — once per tier per person, ever.
+    /// </summary>
+    /// <remarks>
+    /// docs/07: a tier-up gets a line, not a number in an embed. Both tiers are derivable
+    /// in-engine from the trust register, so this needs no adapter plumbing and no new
+    /// <see cref="TurnResult"/> field — it is still just text.
+    /// <para>The once-per-tier gate reuses the persisted fired-log under a synthetic
+    /// <c>tier:&lt;id&gt;</c> key: trust oscillates around a threshold, and "we're close now"
+    /// lands once or it is noise. That gate is also what keeps demotions quiet — sliding back
+    /// to a tier you already reached says nothing, while the drop into nemesis is a first
+    /// arrival and does get its line.</para>
+    /// </remarks>
+    private (ConversationState, string) MarkTierChange(
+        ConversationState before,
+        ConversationState after,
+        string text,
+        ReplyComposer composer,
+        string modeId,
+        IDeterministicRandom rng)
+    {
+        string trust = Registers.Names.Trust;
+        TierDef? from = ModeSelector.SelectTier(_persona.Root, before.Registers[trust]);
+        TierDef? to = ModeSelector.SelectTier(_persona.Root, after.Registers[trust]);
+        if (to is null || from?.Id == to.Id)
+        {
+            return (after, text);
+        }
+
+        // No direction check: the fired-log gate already makes each tier's line a first-arrival
+        // moment, so sliding back down to a tier she has already announced is silent while the
+        // first drop into nemesis is not.
+        after = Nickname(after, modeId, rng);
+
+        string key = TierFiredKey(to.Id);
+        if (after.Fired.HasFired(key))
+        {
+            return (after, text);
+        }
+
+        string? moment = composer.Line($"{TierMomentPoolPrefix}{to.Id}", after, modeId, rng);
+        return moment is null
+            ? (after, text)
+            : (after with { Fired = after.Fired.Record(key, after.Turn) }, $"{text} {moment}");
+    }
+
+    /// <summary>
+    /// Picks a nickname for someone who has moved up a tier without ever giving a name.
+    /// </summary>
+    /// <remarks>
+    /// v1 did this on the spot every time it needed one, so "trouble" became "rando" became
+    /// "nobody" mid-conversation. Drawn once, stored, never redrawn — that is the whole feature.
+    /// <para>A stored <c>name</c> wins: she calls you what you told her to.</para>
+    /// </remarks>
+    private ConversationState Nickname(
+        ConversationState state, string modeId, IDeterministicRandom rng)
+    {
+        if (state.AssignedNickname is not null
+            || state.Slots.ContainsKey(NameSlot)
+            || !_persona.Pools.TryGetValue(NicknamePool, out PoolDef? pool))
+        {
+            return state;
+        }
+
+        IReadOnlyList<string> options = pool.For(modeId);
+        return options.Count == 0
+            ? state
+            : state with { AssignedNickname = options[rng.Next(NicknamePool, options.Count)] };
+    }
+
+    /// <summary>Pool the assigned nickname is drawn from — bare words, not lines.</summary>
+    public const string NicknamePool = "assigned_nickname";
+
+    /// <summary>The slot a real, self-declared name lives in.</summary>
+    private const string NameSlot = "name";
+
+    /// <summary>Pool id for a tier's promotion line: <c>tier_up_&lt;tier id&gt;</c>.</summary>
+    public const string TierMomentPoolPrefix = "tier_up_";
+
+    /// <summary>Fired-log key that makes a tier moment once-per-person.</summary>
+    public static string TierFiredKey(string tierId) => $"tier:{tierId}";
 
     /// <summary>
     /// Nothing matched (or the winning pool could render nothing): the current activity's

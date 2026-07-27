@@ -102,11 +102,17 @@ public class ConversationStateTests
     public void ModeSelector_TierPicksTheHighestTrustThresholdMet()
     {
         Assert.Equal("stranger", ModeSelector.SelectTier(Root, 0)?.Id);
-        Assert.Equal("regular", ModeSelector.SelectTier(Root, 15)?.Id);
-        Assert.Equal("favorite", ModeSelector.SelectTier(Root, 99)?.Id);
+        Assert.Equal("regular", ModeSelector.SelectTier(Root, 8)?.Id);
+        Assert.Equal("inner_circle", ModeSelector.SelectTier(Root, 99)?.Id);
 
         // Being disliked is a tier, not the absence of one.
         Assert.Equal("nemesis", ModeSelector.SelectTier(Root, -10)?.Id);
+
+        // Every tier threshold has to sit inside the clamp, or it is authored text nobody can
+        // ever reach: the top of the ladder must be selectable at Registers.Max.
+        Assert.Equal(
+            Root.Tiers.OrderByDescending(t => t.MinTrust).First().Id,
+            ModeSelector.SelectTier(Root, Registers.Max)?.Id);
 
         // Trust clamps at Registers.Min (-20), below every authored min_trust. "Highest met"
         // alone leaves the people who hate her most with no tier at all — no description to

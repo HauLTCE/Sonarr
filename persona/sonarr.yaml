@@ -55,15 +55,22 @@ personality:
 
 # Relationship tiers, ascending by trust. Intent guards reference these by id; a tier-up
 # gets its own authored moment rather than a number in an embed.
+#
+# Thresholds live inside the register clamp (Registers.Min/Max, -20..20) — a tier above 20
+# is a tier nobody can ever reach, which is authored text that can never be read. Trust
+# moves ~1 per earned moment and decays 0.05/turn toward 0, so the top of this ladder is a
+# long grind and is meant to be.
 tiers:
   - id: stranger
     min_trust: 0
   - id: acquaintance
-    min_trust: 5
+    min_trust: 3
   - id: regular
-    min_trust: 15
+    min_trust: 8
   - id: favorite
-    min_trust: 30
+    min_trust: 13
+  - id: inner_circle
+    min_trust: 18
   - id: nemesis
     min_trust: -10
 

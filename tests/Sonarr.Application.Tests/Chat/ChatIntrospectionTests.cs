@@ -29,11 +29,13 @@ public class ChatIntrospectionTests
     [Theory]
     // The trust thresholds from persona/sonarr.yaml. A tier the persona moves has to move here.
     [InlineData(0, "relationship_stranger")]
-    [InlineData(4.9, "relationship_stranger")]
-    [InlineData(5, "relationship_acquaintance")]
-    [InlineData(15, "relationship_regular")]
-    [InlineData(29, "relationship_regular")]
-    [InlineData(30, "relationship_favorite")]
+    [InlineData(2.9, "relationship_stranger")]
+    [InlineData(3, "relationship_acquaintance")]
+    [InlineData(8, "relationship_regular")]
+    [InlineData(12.9, "relationship_regular")]
+    [InlineData(13, "relationship_favorite")]
+    [InlineData(18, "relationship_inner_circle")]
+    [InlineData(20, "relationship_inner_circle")]
     [InlineData(-10, "relationship_nemesis")]
     [InlineData(-20, "relationship_nemesis")]
     public async Task Relationship_describes_the_tier_the_trust_value_lands_in(double trust, string pool)
@@ -73,7 +75,7 @@ public class ChatIntrospectionTests
         FakePersonRepository people = new();
         people.Seed(Guild, User, p =>
         {
-            p.Registers = new PersonRegisters { Trust = 30 };
+            p.Registers = new PersonRegisters { Trust = 13 };
             p.RelationshipTier = "nemesis";
         });
 

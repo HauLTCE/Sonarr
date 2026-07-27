@@ -240,9 +240,9 @@ J2900 · nothing durable lost on restart.
 
 ### Relationship & memory features
 
-- [ ] Relationship tiers (stranger → … → inner_circle) with tier-gated guards in intents
-- [ ] Authored tier-up moment
-- [ ] Assigned nicknames — tier-triggered, pool-drawn, stable per user, stored
+- [/] Relationship tiers (stranger → … → inner_circle) with tier-gated guards in intents — six tiers in `sonarr.yaml`, thresholds pulled inside the `Registers.Min/Max` clamp (the old ladder topped out at `min_trust: 30`, which trust clamped at 20 could never reach). `persona/intents/tiers.yaml` is the first authored use of `min_tier`/`max_tier`: warm/cold pairs rather than guards on the originals, because the pinned-behavior tests match against `MatchContext.Empty` where `TierId` is null and `min_tier` fails closed
+- [/] Authored tier-up moment — `ChatEngine.MarkTierChange` compares the derived tier before/after this turn's affect and appends a line from `tier_up_<id>`; once per tier per person via the persisted fired-log under a synthetic `tier:<id>` key, which is also what keeps demotions quiet
+- [/] Assigned nicknames — tier-triggered, pool-drawn, stable per user, stored — drawn once at a tier crossing when no `name` slot exists, from `assigned_nickname`; surfaced to templates through `ConversationState.RenderSlots` rather than written into the slots payload, so the column stays the single home
 - [ ] `chat.fact` confidence: reinforce on repeat mention → hedging behavior when low
 - [ ] `chat.relationship_event` trajectory queries → `#trend#` ("almost tolerable this week")
 - [ ] Multi-day grudge decay
