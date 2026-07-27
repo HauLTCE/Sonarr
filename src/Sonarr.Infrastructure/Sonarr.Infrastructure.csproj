@@ -17,6 +17,7 @@
     <PackageReference Include="Pgvector.EntityFrameworkCore" />
     <PackageReference Include="StackExchange.Redis" />
     <PackageReference Include="Microsoft.ML.OnnxRuntime" />
+    <PackageReference Include="Microsoft.ML.Tokenizers" />
     <PackageReference Include="Discord.Net" />
     <PackageReference Include="Lavalink4NET.Discord.Net" />
   </ItemGroup>

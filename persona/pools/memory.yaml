@@ -1,6 +1,20 @@
 # Authored response pools, migrated verbatim from the v1 persona.
 # Every line Sonarr says comes from a pool. Nothing here is generated.
 pools:
+  # The callback tail (docs/10 composition). {$quote} is a line she actually said to this
+  # person, pulled by relevance from chat.episode — the framing around it is authored here so
+  # a recalled memory still sounds like her and never like a transcript dump.
+  callback_tail:
+  - 'reminds me: "{$quote}"'
+  - 'like i said before — "{$quote}"'
+  - 'we did this already. "{$quote}", remember?'
+  - 'i already told you: "{$quote}"'
+  - 'for the record, last time i said "{$quote}"'
+  - 'still stand by "{$quote}" btw.'
+  - 'this again? "{$quote}" was my take then too.'
+  - 'my notes say "{$quote}". nothing has changed.'
+  - 'you heard "{$quote}" from me once already.'
+  - 'previously, on you and me: "{$quote}"'
   memory_retrieve:
   - 'caught in 4k:'
   - let me pull up the logs...

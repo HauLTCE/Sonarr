@@ -28,7 +28,9 @@ public sealed class ChatPipeline(
     ISessionCache cache,
     IFeatureGate features,
     IClock clock,
-    ILogger<ChatPipeline> log) : IChatPipeline
+    ILogger<ChatPipeline> log,
+    SemanticIntentIndex? semantic = null,
+    CallbackRetriever? callbacks = null) : IChatPipeline
 {
     /// <summary>Replies per channel per hour. Above this she has said enough (docs/05 budget).</summary>
     public const int EngagementBudget = 30;
@@ -97,11 +99,16 @@ public sealed class ChatPipeline(
         Normalized normalized = Normalizer.Normalize(request.Text);
         bool repeatPing = await IsRepeatPingAsync(request, normalized, ct).ConfigureAwait(false);
 
-        TurnResult result = new ChatEngine(graph).Turn(state, new TurnInput
+        // The matcher embeds nothing until the engine asks for a rescue, and the engine only
+        // asks on a lexical miss — so the common path stays a few milliseconds (docs/10 budget).
+        ISemanticMatcher? matcher = semantic?.MatcherFor(graph.Root, request.Text);
+
+        TurnResult result = new ChatEngine(graph, matcher).Turn(state, new TurnInput
         {
             Text = request.Text,
             ActiveOverlays = signals.Overlays,
             ExtraDecaySteps = signals.ExtraDecaySteps,
+            Callback = await CallbackAsync(request, state, salt, ct).ConfigureAwait(false),
         });
 
         IReadOnlyList<AffectDelta> adapterAffect = ChatAffect.Deltas(
@@ -143,6 +150,29 @@ public sealed class ChatPipeline(
         await cache.MarkRepliedAsync(request.ChannelId, request.MessageId, hash, ct).ConfigureAwait(false);
 
         return new ChatDecision(result.Text, reaction, TypingDelayFor(result.Text), hash, null);
+    }
+
+    /// <summary>
+    /// The episodic quote to offer the composer as a callback tail, or null.
+    /// </summary>
+    /// <remarks>
+    /// The odds are drawn here, before the lookup, using the same seed the engine will use for
+    /// the same turn — so on the turns that would discard a callback anyway we never pay for the
+    /// embedding or the vector query. That is the whole reason
+    /// <see cref="ReplyComposer.WantsCallback"/> is public.
+    /// </remarks>
+    private async Task<string?> CallbackAsync(
+        ChatRequest request, ConversationState state, ulong salt, CancellationToken ct)
+    {
+        long turn = state.Turn + 1;
+        if (callbacks is null || !ReplyComposer.WantsCallback(new TurnSeededRandom(turn, salt)))
+        {
+            return null;
+        }
+
+        return await callbacks.QuoteAsync(
+            (long)request.GuildId, (long)request.UserId, request.Text, turn, ct)
+            .ConfigureAwait(false);
     }
 
     /// <summary>Typing delay proportional to the reply, clamped so she is neither instant nor slow.</summary>

@@ -28,6 +28,9 @@ intents:
     - \bh+i+y+a+\b
     - \bh+e+y+a+\b
     - \bh+o+w+d+y+\b
+  examples:
+  - look who decided to show up in my notifications
+  - anyone around in here
   pool: social_greeting
 - id: BYE
   match:
@@ -45,6 +48,9 @@ intents:
     - have to go
     - gotta go
     - good ?night
+  examples:
+  - alright, i am logging off for the night
+  - that is me done, catch you tomorrow
   pool: social_goodbye
 - id: HOWRU
   match:
@@ -57,6 +63,9 @@ intents:
     - hows it going
     - you (?:doing )?(?:ok|okay|good|alright)
     - how do you feel
+  examples:
+  - what kind of mood are you in today
+  - everything alright on your end
   pool: howru
 - id: AFFIRM
   match:
@@ -101,6 +110,9 @@ intents:
     - my bad
     - apolog
     - didn'?t mean
+  examples:
+  - that came out worse than i intended, i take it back
+  - i was out of line earlier
   pool: social_apology
 - id: COMPLIMENT
   match:
@@ -128,6 +140,9 @@ intents:
     - good bot
     - well done
     - nailed it
+  examples:
+  - honestly you are better at this than most people i know
+  - okay that response was actually impressive
   pool: user_compliment
   affect:
     fondness: 2.0
@@ -144,6 +159,9 @@ intents:
     regex:
     - thank (?:you|u|ya)
     - appreciate (?:it|you|ya|that|this)
+  examples:
+  - that actually helped a lot, i owe you one
+  - you did not have to do that for me
   pool: social_thanks
   affect:
     fondness: 1.0
@@ -178,6 +196,9 @@ intents:
     - no way
     - (?:don'?t|dont) think so
     - not really
+  examples:
+  - i am not convinced by that at all
+  - that is the opposite of what actually happened
   pool: user_disagreement
 - id: AGREE
   match:
@@ -197,6 +218,9 @@ intents:
     - well said
     - sounds good
     - sounds right
+  examples:
+  - yeah that lines up with what i was thinking
+  - hard to argue with any of that
   pool: user_agreement
 - id: GOSSIP
   match:

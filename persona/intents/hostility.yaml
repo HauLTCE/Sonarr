@@ -56,6 +56,9 @@ intents:
     - try me
     - wanna bet
     - come at me
+  examples:
+  - go on then, show me you can actually do it
+  - there is no way you manage that
   pool: user_challenge
   affect:
     amusement: 1.0
@@ -79,6 +82,9 @@ intents:
     - i'?m (?:gonna|going to) (?:kill|destroy|hurt|end|beat) you
     - watch your (?:back|mouth)
     - kick your
+  examples:
+  - keep talking and see what happens to you
+  - you are going to regret saying that to me
   pool: user_threat
   push: argument
   affect:
@@ -105,4 +111,7 @@ intents:
     - you should feel bad
     - how could you
     - you owe me
+  examples:
+  - i would not even be in this mess if you had helped properly
+  - after everything i put up with from you, really
   pool: user_guilt

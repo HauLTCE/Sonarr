@@ -38,6 +38,7 @@ public static class SonarrOptionsSetup
         PanelBaseUrl = Str(c, "PANEL_BASE_URL"),
         BackupPath = Str(c, "BACKUP_PATH", "/backups"),
         PersonaPath = Str(c, "PERSONA_PATH", "/app/persona"),
+        ModelPath = Str(c, "MODEL_PATH", "/app/models/minilm-l6-v2"),
         ApiPort = OptionalUlong(c, "API_PORT") is { } p ? (int)p : 5088,
     };
 

@@ -18,6 +18,7 @@ services:
     env_file: .env
     volumes:
       - ./persona:/app/persona          # hot-reloadable persona (docs/10)
+      - ./models:/app/models:ro         # ONNX embedder, fetched by scripts/fetch-model.sh (docs/03)
       - /root/backups/sonarr:/backups   # BackupRunner writes here (docs/11)
     depends_on:
       postgres:

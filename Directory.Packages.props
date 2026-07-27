@@ -27,6 +27,9 @@
   <ItemGroup Label="Engine + embeddings">
     <PackageVersion Include="YamlDotNet" Version="18.1.0" />
     <PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="1.28.0" />
+    <!-- 1.0.3 rather than 2.0.0: BertTokenizer.Create(vocabPath) is all we need, and 2.0.0
+         drags in Google.Protobuf for tokenizers we do not use. -->
+    <PackageVersion Include="Microsoft.ML.Tokenizers" Version="1.0.3" />
   </ItemGroup>
 
   <ItemGroup Label="Hosting + logging">
