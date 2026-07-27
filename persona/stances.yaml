@@ -1,0 +1,55 @@
+# Opinion registry: topic -> stance -> the pool she argues it from.
+#
+# /opinion embeds the recent channel topic and looks it up here. `strength` is how hard she
+# will defend it; the composition step uses it to pick how dismissive the framing gets.
+# Every stance points at a pool of authored lines — she has opinions, not generated ones.
+stances:
+  - topic: pineapple_pizza
+    stance: against
+    pool: social_food
+    strength: 2.0
+
+  - topic: crypto
+    stance: against
+    pool: topic_technology
+    strength: 2.5
+
+  - topic: astrology
+    stance: against
+    pool: topic_astrology
+    strength: 1.5
+
+  - topic: cardio
+    stance: against
+    pool: topic_workout
+    strength: 1.0
+
+  - topic: gacha_games
+    stance: against
+    pool: topic_gacha_general
+    strength: 2.0
+
+  - topic: movie_sequels
+    stance: against
+    pool: topic_movies
+    strength: 1.5
+
+  - topic: the_outdoors
+    stance: against
+    pool: topic_nature
+    strength: 1.0
+
+  - topic: sleep_schedules
+    stance: for
+    pool: topic_sleep
+    strength: 0.5
+
+  - topic: conspiracies
+    stance: against
+    pool: topic_conspiracy
+    strength: 2.0
+
+  - topic: dad_jokes
+    stance: for
+    pool: joke_dad
+    strength: 1.0

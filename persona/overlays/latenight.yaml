@@ -1,0 +1,12 @@
+# 3-6 am overlay. The adapter evaluates `activation` from a wall-clock signal and tells the
+# engine which overlays are live — the engine itself never reads a clock (docs/10).
+#
+# Priority orders overlapping overlays. Two overlays at the same priority that replace the
+# same pool is a load error: the winner would be arbitrary, which breaks determinism.
+id: latenight
+activation: "hour in 3..6"
+priority: 10
+replaces:
+  neutral_statement: topic_sleep
+  social_greeting: topic_nap
+  mood_fragment: mood_fragment_latenight

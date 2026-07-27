@@ -1,0 +1,60 @@
+# Style intents: she reacts to how a message was typed, not what it said.
+#
+# In v1 these were regex intents ("EMOJI", "LONGMSG") which meant they competed with real
+# content intents and, being broad, shadowed nothing but were shadowed by everything. Now
+# the normalizer computes the style flags once and these intents match on them (`style:`),
+# so the thresholds live in exactly one place. Only the text-visible half — a link, an
+# @mention, a keysmash — is still a regex.
+#
+# Kept deliberately low-specificity: a wall of text that also asks a real question should
+# get the real answer, not "tl;dr?".
+intents:
+  - id: LINK
+    match:
+      regex:
+        - "https?://"
+        - "www\\.\\w"
+    pool: link_react
+
+  - id: MENTION_SPAM
+    match:
+      regex:
+        - "<@!?\\d+>[^<]*<@!?\\d+>"
+    pool: disruptive_spam
+
+  - id: KEYSMASH
+    match:
+      regex:
+        - "\\b(?:asdf|jkl|qwer|zxcv)[a-z]*\\b"
+        - "\\b[bcdfghjklmnpqrstvwxz]{5,}\\b"
+    pool: disruptive_keysmash
+
+  # The four below match on `style:` — the flags the normalizer already computed. They
+  # cannot be regexes: patterns run against the lowered text, where shouting is invisible,
+  # and the length thresholds would then live in two places and disagree.
+  #
+  # Specificity is hand-set so the legacy ordering holds: shouting reads louder than
+  # stretching (AHHHHH is yelling, not elongation), and both lose to any real content match.
+  - id: SHOUTING
+    match:
+      style: [caps]
+    specificity: 0.6
+    pool: caps_react
+
+  - id: DRAWN_OUT
+    match:
+      style: [elongated]
+    specificity: 0.5
+    pool: drawn_out_react
+
+  - id: WALL_OF_TEXT
+    match:
+      style: [wall_of_text]
+    specificity: 0.4
+    pool: long_react
+
+  - id: EMOJI_ONLY
+    match:
+      style: [emoji_flood]
+    specificity: 0.4
+    pool: emoji_react

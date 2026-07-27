@@ -1,0 +1,344 @@
+# Authored response pools, migrated verbatim from the v1 persona.
+# Every line Sonarr says comes from a pool. Nothing here is generated.
+pools:
+  disruptive_bypass:
+  - cute filter bypass attempt. still a timeout.
+  - spelling it backwards? i can read backwards too.
+  - you think you're clever. you're not.
+  - filter bypass detected. nice try.
+  - you're not as smart as you think.
+  - oh, a bypass attempt? how original.
+  - trying to sneak bad words past me? enjoy the timeout.
+  - clown behavior.
+  - nice try editing that. too slow.
+  - you're not fooling anyone.
+  - wordplay? more like word-fail.
+  - i see what you did there.
+  - i'm smarter than you. 2 hours.
+  - i caught that.
+  - don't try to outsmart a bot.
+  - bypassing filters? i am the filter.
+  - i see everything.
+  - sneaky, but not sneaky enough.
+  - deleted for trying to be slick.
+  - 5 hours for thinking i wouldn't notice.
+  disruptive_cringe:
+  - '... i physically cringed.'
+  - delete this.
+  - that was painful to read.
+  - '*winces* why would you type that?'
+  - i need to recover from that.
+  - the cringe. it burns.
+  - cringe.
+  - i'm pretending i didn't see that.
+  - cringe. so much cringe.
+  - i feel sick reading that.
+  - you need a timeout for that level of cringe.
+  - nobody needs to see that.
+  - did you really just type that?
+  - straight to the bin.
+  - i'm embarrassed for you. truly.
+  - i can't look.
+  - my digital eyes are burning.
+  - why? just why?
+  - i'm melting from the secondhand embarrassment.
+  - that was painfully uncool.
+  disruptive_delulu:
+  - delulu is not the solulu.
+  - the delusion... it's giving unhinged.
+  - reality check, aisle 3.
+  - that was too delusional even for me.
+  - the fantasy world you live in must be exhausting.
+  - come back to earth. we miss your sense of reality.
+  - in what universe? not this one.
+  - the audacity of this delusion.
+  - i admire the confidence. not the accuracy, but the confidence.
+  - the disconnect from reality is impressive.
+  - that's not how any of this works.
+  - sure. in your dreams, maybe.
+  - manifesting won't make it true.
+  - you're living in a fantasy and i'm judging from reality.
+  - wake up. you're dreaming.
+  - time to go back to sleep.
+  - take a break from your delusions.
+  - the math isn't mathing.
+  - 'delusion level: expert. reality level: zero.'
+  - you're losing it.
+  disruptive_hate_speech:
+  - hate speech is an instant 24 hours. bye.
+  - we don't do racism here. enjoy the silence.
+  - taking out the trash.
+  - edgy racism isn't funny. it's just sad.
+  - absolutely not.
+  - wow. enjoy your timeout.
+  - try that somewhere else.
+  - that's disgusting. deleted.
+  - you really thought you could say that here?
+  - ban hammer energy.
+  - not tolerating that. see you tomorrow. or never.
+  - i'm deleting that because it's vile.
+  - bigotry earns you a 12-hour break.
+  - vile.
+  - grow up. 6 hours to think about it.
+  - hate speech? not on my watch.
+  - you're done.
+  - nope. erased.
+  - i don't deal with racists.
+  - you belong in the bin.
+  disruptive_keysmash:
+  - '... did you have a stroke?'
+  - i have no idea what that means.
+  - are you having a seizure on your keyboard?
+  - i don't speak bottom.
+  - keysmash? learn to type.
+  - your cat walking on the keyboard is not conversation.
+  - use words. english words.
+  - gibberish. my favorite.
+  - are you okay?
+  - i'm not decrypting that.
+  - did you drop your phone? because that made no sense.
+  - straight to the trash.
+  - stop keysmashing. it's cringe.
+  - wow. such a profound statement.
+  - use your brain.
+  - are you glitching?
+  - try again. but with actual words.
+  - just stay quiet.
+  - i can't read that.
+  - the keyboard didn't deserve that.
+  disruptive_main_character:
+  - you're not the protagonist. sorry.
+  - main character syndrome? in MY server?
+  - this isn't your movie.
+  - main characters don't need to announce it.
+  - the self-importance is astronomical.
+  - you're a side character at best. an extra at worst.
+  - the world doesn't revolve around you. or even acknowledge you.
+  - you really think this is YOUR story? cute.
+  - i'm the main character here. stay in your lane.
+  - supporting role energy. embrace it.
+  - 'plot twist: nobody asked.'
+  - the delusion is giving 4k IMAX.
+  - take a seat. this is my spotlight.
+  - main character? you're the comic relief at best.
+  - the circus called, they want their clown back.
+  - your screen time is up.
+  - you're giving background extra.
+  - plot twist. nobody cares about your arc.
+  - this episode is boring.
+  - skip to the end, please.
+  disruptive_nonsense:
+  - what?
+  - '... that''s random.'
+  - i don't have time for this.
+  - did you mean to say something useful?
+  - that made no sense.
+  - why are you like this?
+  - can you not?
+  - i'm not engaging with that. next.
+  - random doesn't mean interesting.
+  - what am i supposed to do with that?
+  - that's nonsense.
+  - i'm not following your logic.
+  - please make sense.
+  - that was pointless. like this conversation.
+  - why did you say that?
+  - i don't care about that.
+  - that's irrelevant.
+  - can we not?
+  - i have no response to that.
+  - that's just noise.
+  - '... okay?'
+  disruptive_npc:
+  - that was the most NPC thing i've ever read.
+  - were you going to say anything original or...?
+  - alert! NPC dialogue detected.
+  - loading generic response... failed.
+  - do you have a quest for me or are you just standing there?
+  - filtered for NPC energy.
+  - that was so generic... i could've predicted it word for word.
+  - is there a speech bubble above your head right now?
+  - try having an original thought. i dare you.
+  - i've seen more personality in a loading screen.
+  - press a to continue... actually, press b to leave.
+  - another day, another NPC encounter.
+  - side quest energy. i'm the main storyline.
+  - NPC behavior. do you have any original lines?
+  - scripted response detected.
+  - npcs need to despawn sometimes.
+  - your pathfinding is broken.
+  - 'error 404: personality not found.'
+  - wake me when you say something interesting.
+  - you're stuck in a dialogue loop.
+  disruptive_numbers:
+  - numbers? use words.
+  - i'm not a calculator.
+  - what am i supposed to do with that number?
+  - '... are you counting something? because i''m not.'
+  - i don't speak math.
+  - use english, not digits.
+  - is that your IQ? because it seems too high.
+  - cool number. i'm still not impressed.
+  - i'm not doing math for you.
+  - boring.
+  - why are you just sending numbers?
+  - are you glitching? because i'm not.
+  - that's just a number.
+  - and?
+  - i'm not counting with you.
+  - 1, 2, 3... stop.
+  - no numbers allowed.
+  - you're wasting my processor cycles.
+  - math is hard? apparently, speaking is harder.
+  - just use words.
+  disruptive_ragebait:
+  - '... i see the bait. i''m not biting.'
+  - nice ragebait. did you craft that yourself?
+  - controversial for the sake of it. how original.
+  - hot take? room temperature at best.
+  - you're not edgy. you're just annoying.
+  - ragebait detected. 10 minutes to rethink your strategy.
+  - i know what you're doing. it's not working.
+  - that take is so cold it needs a jacket.
+  - ratio? the only ratio here is your l to w count.
+  - trap detected. moving on.
+  - i'm deleting this before it infects the chat.
+  - bait. clown. trash. in that order.
+  - you want attention? get a hobby.
+  - that's not the flex you think it is.
+  - unpopular opinion? it's unpopular for a reason.
+  - stirring drama is a 5 minute timeout.
+  disruptive_random:
+  - what?
+  - '... that''s random.'
+  - i don't have time for this.
+  - did you mean to say something useful?
+  - that made no sense.
+  - why are you like this?
+  - can you not?
+  - i'm not engaging with that. next.
+  - random doesn't mean interesting.
+  - what am i supposed to do with that?
+  - that's nonsense.
+  - i'm not following your logic.
+  - please make sense.
+  - that was pointless. like this conversation.
+  - why did you say that?
+  - i don't care about that.
+  - that's irrelevant.
+  - can we not?
+  - i have no response to that.
+  - that's just noise.
+  - '... okay?'
+  disruptive_repetition:
+  - you already said that.
+  - groundhog day much?
+  - '... didn''t you just say this?'
+  - i heard you the first time. i ignored you on purpose.
+  - repeating it won't make me care more.
+  - copy paste energy.
+  - same thing, different minute.
+  - new material please. this is stale.
+  - broken record? fix yourself.
+  - stop parroting.
+  - spamming the same thing earns a break.
+  - duplicate message. deleted.
+  - i have read this already. my memory works.
+  - we get it.
+  - saying it twice doesn't make it better. it makes it worse.
+  - i'm not listening.
+  - once was too much.
+  - are you glitching? because i'm not.
+  - i heard you. i just don't care.
+  - stop repeating yourself, it's exhausting.
+  disruptive_roleplay:
+  - '... i don''t do roleplay.'
+  - i'm not your improv partner.
+  - the theater kid energy is unwelcome.
+  - this is cringe. stop.
+  - '*stares* no.'
+  - i roleplay as someone who doesn't engage with this.
+  - 'my character is: uninterested.'
+  - we're not doing this.
+  - '*rolls eyes* stop that.'
+  - no roleplaying in my vicinity.
+  - take your RP to dms.
+  - we don't do asterisks here.
+  - this isn't a roleplay server.
+  - theater is closed.
+  - '*ignores you completely* how''s that for RP?'
+  - please don't.
+  - i'm breaking character to tell you to stop.
+  - '*sighs deeply* no.'
+  - there's the door.
+  - you rolled a 1 in charisma.
+  disruptive_spam:
+  - stop.
+  - '... shut up.'
+  - one message is enough.
+  - calm down.
+  - you're annoying.
+  - i'm ignoring you now.
+  - spam elsewhere. this is why nobody likes you.
+  - mute.
+  - you're testing my patience.
+  - one more and i'm done.
+  - quality over quantity.
+  - enough.
+  - do you ever stop? i'm this close to blocking you.
+  - this is exhausting.
+  - spam detected. enjoy the silence.
+  - you have been muted for spam. consider it a favor to everyone.
+  - i said STOP. now you physically can't continue.
+  - keyboard privileges revoked.
+  - spam again. i dare you. oh wait, you can't.
+  - this is what happens when you don't know when to stop.
+  - congratulations, you've earned the longest timeout. for spam. impressive.
+  - spam goes in the trash.
+  - stop spamming. 5 minute cooldown.
+  - spam detected and rejected.
+  - i will end you if you keep spamming.
+  - filtered.
+  - you've earned yourself a 10-minute vacation.
+  disruptive_stalker:
+  - '... that''s concerning.'
+  - i'm calling the police.
+  - the obsession is unhealthy. seek help.
+  - '*backs away* restraining order energy.'
+  - cool off. you're being weird.
+  - i don't know you like that. i don't WANT to know you like that.
+  - red flag behavior detected.
+  - this is uncomfortable. stop.
+  - creep. back off.
+  - security!
+  - cool down, stalker.
+  - that's creepy. gone.
+  - i'm calling the digital police.
+  - watch yourself.
+  - personal space. learn it.
+  - stop right there.
+  - you're crossing a line.
+  - do i need to block you? don't test me.
+  - walking red flag.
+  - this is giving me the creeps.
+  disruptive_toxic_positivity:
+  - your optimism is exhausting.
+  - good vibes only? please. spare me.
+  - i can feel your positive energy and i hate it.
+  - too much sunshine. i need shade.
+  - not everything has a silver lining. some things are just bad.
+  - stop trying to make this wholesome. it's not.
+  - positive outlook? in THIS economy?
+  - the forced happiness is painful to witness.
+  - you're allowed to have bad days. this message won't fix them.
+  - look on the bright side? no. the bright side is blinding.
+  - your energy is too positive. it's suspicious.
+  - i prefer realistic pessimism, thanks.
+  - the unhinged optimism is concerning.
+  - smile? make me.
+  - let me be miserable in peace.
+  - go be happy somewhere else.
+  - your good vibes are ruining my bad ones.
+  - everything is fine? no, it's not.
+  - stop trying to cheer me up.
+  - i enjoy complaining, actually.

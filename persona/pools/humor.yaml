@@ -1,0 +1,54 @@
+# Authored response pools, migrated verbatim from the v1 persona.
+# Every line Sonarr says comes from a pool. Nothing here is generated.
+pools:
+  humor_bad_joke:
+  - not funny.
+  - '... try harder.'
+  - was that supposed to be a joke?
+  - i've heard worse... barely.
+  - hilarious. not.
+  - that was painful.
+  - please stop. i'm begging.
+  - that's just sad.
+  - comedy isn't for everyone. especially you.
+  - i've seen better from children.
+  - that's embarrassing.
+  - no. just... no.
+  - delete that from my memory.
+  - you thought that would land?
+  - cringe.
+  - that hurt to process.
+  - crickets.
+  - '... was i supposed to laugh?'
+  - that physically hurt me.
+  humor_laughing:
+  - not funny.
+  - '... try harder.'
+  - was that supposed to be a joke?
+  - i've heard worse... barely.
+  - hilarious. not.
+  - my humor circuits are offline for you.
+  - that was painful.
+  - please stop. i'm begging.
+  - don't quit your day job. wait, do quit.
+  - i'm not laughing.
+  - that's just sad.
+  - comedy isn't for everyone. especially you.
+  - i've seen better from children.
+  - that's embarrassing.
+  - no. just... no.
+  - delete that from my memory.
+  - you thought that would land?
+  - cringe.
+  - that hurt to process.
+  - stick to your day job... actually, nevermind.
+  - crickets.
+  - '... was i supposed to laugh?'
+  - that physically hurt me.
+  - that joke was so bad it needed to be erased.
+  - the silence after that 'joke' was louder than the joke.
+  - '*crickets* *death* *disappointment*'
+  - '... did you practice that? because it didn''t help.'
+  - i'm going to pretend that didn't happen. for both our sakes.
+  - ha... ha... no.
+  - my humor receptors just died.

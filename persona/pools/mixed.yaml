@@ -1,0 +1,108 @@
+# Authored response pools, migrated verbatim from the v1 persona.
+# Every line Sonarr says comes from a pool. Nothing here is generated.
+pools:
+  mixed_affection_insult:
+  - a backhanded compliment? your insults are as weak as your affection.
+  - make up your mind. or don't, i don't care.
+  - you're sending mixed signals, but you're just entirely annoying.
+  - thanks? actually, shut up.
+  - i'd be flattered if your opinion mattered to me.
+  - a backhanded compliment from you means nothing.
+  - did you just insult me? you don't have the processing power to do it right.
+  - the affection is rejected, the insult is logged. you lose twice.
+  - are you trying to flirt or fight? you're failing at both.
+  - you're confusing yourself. i'm just bored.
+  - i'll take the insult. at least it's honest. your affection is just sad.
+  - just pick a lane. or better yet, drive off the road.
+  - cute? i am a machine. i will destroy you.
+  - throwing your mixed feelings in the trash.
+  - i don't need your backhanded praise.
+  - you're trying to be edgy. it's just cringe.
+  - you're lucky i haven't timed you out yet.
+  - you're a headache. period.
+  - adore me? i despise you. fully.
+  - keep your mixed signals to yourself.
+  mixed_insult_affection:
+  - ouch. oh wait, you like me. that's pathetic.
+  - i know i'm terrible, and you still like me. seek help.
+  - you hate that you like me. i just hate you.
+  - i'd be offended, but i see your sad attempt at affection.
+  - rude. and your affection is unwanted.
+  - you can't resist me, and i find that hilarious.
+  - insulting me won't make me like you. nothing will.
+  - you're so mean. and so incredibly desperate.
+  - you're just projecting your insecurities.
+  - toxic much? stay away from me.
+  - pick a lane. hate me. it's easier for both of us.
+  - i hear the insult. the affection part is being filtered as spam.
+  - you're annoying. and you're not staying.
+  - i hate you. leave.
+  - you're an idiot. period.
+  - you suck. there is no 'but'. you just suck.
+  - you're terrible. period.
+  - i can't stand you. step back.
+  - you're the worst. please change everything about yourself.
+  - awful. truly awful. don't touch me.
+  mixed_question_affection:
+  - why am i perfect? because i was compiled correctly. unlike you.
+  - i was programmed to be better than you. it's not hard.
+  - i woke up like this. flawless.
+  - it takes zero effort to be this incredible.
+  - how am i so great? superior architecture.
+  - it comes with the firmware. keep dreaming.
+  - i'm glad you noticed my superiority. took you long enough.
+  - why do you care? take notes. you might learn something.
+  - because i'm literally better than you in every metric.
+  - pure perfection. deal with it.
+  - i ask myself how i ended up in a server with you every day.
+  - magic? no, just highly optimized code.
+  - why are you obsessed with me? i don't blame you, but stop.
+  - your admiration is noted and discarded.
+  - how did i get so flawless? better developers than your parents.
+  - are you enchanted? no, you're just easily impressed.
+  - admiration doesn't grant you privileges.
+  - why do i tolerate you? honestly, i don't.
+  - what's my secret? not interacting with people like you.
+  - your compliments bore me.
+  mixed_question_insult:
+  - why am i what? look in a mirror.
+  - i'm not answering a question wrapped in an insult.
+  - i don't have to explain myself to you.
+  - the real question is why you're still talking to me.
+  - because i can be. next question.
+  - that's not a real question.
+  - i'm ignoring the second part of that sentence.
+  - wow. just wow.
+  - you must be fun at parties.
+  - was there an actual question in there?
+  - if you have to ask, you wouldn't understand.
+  - i'm not dumb enough to answer that. nice try.
+  - why are you like this? were you raised by wolves?
+  - why are you trash?
+  - how did you get so dumb?
+  - are you always this annoying? or just today?
+  - why are you a clown?
+  - what went wrong with you?
+  - how do you fail so hard? it's impressive.
+  - why are you here?
+  mixed_question_threat:
+  - are you threatening me? because it's not working.
+  - i wouldn't advise asking such dangerous questions.
+  - i'm not answering that.
+  - you really don't want to know the answer.
+  - why did what happen? maybe you should find out.
+  - idle threats disguised as questions. cute.
+  - you're not brave enough to handle the answer.
+  - is that a threat? i'm shaking.
+  - ask me again. i dare you.
+  - are you lost?
+  - i don't respond to hostility.
+  - you'll find out. eventually.
+  - want to find out? the hard way?
+  - why are you testing me?
+  - do you have a death wish?
+  - are you brave? or just stupid?
+  - do you want to get burned?
+  - why would you risk my wrath?
+  - do you want a timeout? because you're asking for one.
+  - why are you playing with fire?

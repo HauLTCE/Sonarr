@@ -1,0 +1,48 @@
+# Dev stack — Postgres + Redis only. The bot runs on the host (`dotnet run`) so you get
+# hot reload and a debugger; prod runs the bot in a container (see deploy/docker-compose.yml).
+#
+# Ports are bound to 127.0.0.1 on purpose: a dev DB with a short password must not be
+# reachable from the LAN.
+name: sonarr-dev
+
+services:
+  postgres:
+    # pgvector image, not plain postgres:17 — we need the `vector` extension (docs/03-stack.md).
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      # No default here by design: an empty/known password must fail the stack, not start it.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    ports:
+      # Override POSTGRES_HOST_PORT if you already have a native Postgres on 5432
+      # (this dev box does) — then match it in PG_CONNECTION.
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4-alpine
+    # Default RDB persistence is kept: docs/05 wants transient-but-restart-surviving state.
+    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "127.0.0.1:${REDIS_HOST_PORT:-6379}:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:

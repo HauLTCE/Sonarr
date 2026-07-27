@@ -1,0 +1,205 @@
+# emotions intents — migrated from _bot_legacy/elaine/persona/elaine.yaml (v1 CHAT state).
+# Patterns carry over verbatim; Python (?P<x>) named groups rewritten to .NET (?<x>).
+intents:
+- id: BRAG
+  match:
+    regex:
+    - i(?:'?m| am) (?:the )?(?:best|smartest|richest|greatest)
+    - i(?:'?m| am) better than
+    - i(?:'?m| am) (?:so )?rich
+    - i(?:'?m| am) a genius
+  pool: user_bragging
+  affect:
+    amusement: 1.0
+- id: SAD
+  match:
+    keyword:
+    - sad
+    - depressed
+    - crying
+    - upset
+    - unhappy
+    - miserable
+    - lonely
+    - heartbroken
+    - hopeless
+    - grieving
+    - devastated
+    regex:
+    - feel(?:ing)? (?:down|low|bad|awful|terrible|horrible)
+    - i lost my
+    - i failed
+    - going through
+    - hate my life
+    - want to cry
+    - died
+    - passed away
+    - (?:he|she|they|it) is dead
+  pool: user_venting
+- id: TIRED
+  match:
+    keyword:
+    - tired
+    - exhausted
+    - sleepy
+    - drained
+    - burnt
+    regex:
+    - can'?t sleep
+    - cant sleep
+    - no sleep
+    - so tired
+    - need (?:a nap|sleep|rest)
+    - up all night
+    - didn'?t sleep
+  pool: user_tired
+- id: HAPPY
+  match:
+    keyword:
+    - happy
+    - excited
+    - stoked
+    - thrilled
+    - ecstatic
+    - pumped
+    - hyped
+    - yay
+    - woohoo
+    - elated
+    regex:
+    - so happy
+    - best day
+    - great news
+    - can'?t wait
+    - cant wait
+  pool: user_happy
+- id: CONFUSED
+  match:
+    keyword:
+    - confused
+    - huh
+    regex:
+    - i (?:don'?t|do not|dont) (?:understand|get it|get this)
+    - what do you mean
+    - makes no sense
+    - i'?m lost
+    - im lost
+    - (?:don'?t|dont) know what to do
+    - no idea
+  pool: user_confused
+- id: BORED_IN
+  match:
+    keyword:
+    - bored
+    - boring
+    - dull
+    regex:
+    - nothing to do
+  pool: user_bored
+  affect:
+    boredom: 2.0
+- id: USER_ANGRY
+  match:
+    keyword:
+    - angry
+    - mad
+    - furious
+    - pissed
+    - livid
+    - fuming
+    regex:
+    - so (?:mad|angry)
+    - i'?m (?:so )?(?:mad|angry|furious|pissed)
+    - makes me (?:mad|angry)
+  pool: user_angry
+- id: USER_PANIC
+  match:
+    keyword:
+    - panicking
+    - panic
+    - anxious
+    - anxiety
+    - overwhelmed
+    - stressed
+    regex:
+    - freaking out
+    - can'?t breathe
+    - having a breakdown
+    - so stressed
+    - losing it
+  pool: user_panicking
+- id: USER_JEALOUS
+  match:
+    keyword:
+    - jealous
+    - envious
+    - envy
+    regex:
+    - so jealous
+    - wish i had
+    - why do they get
+  pool: user_jealousy
+- id: USER_EXCITE
+  match:
+    keyword:
+    - omg
+    - omfg
+    - yesss
+    - letsgo
+    - woohoo
+    regex:
+    - guess what
+    - so excited
+    - best news
+    - can'?t believe
+    - let'?s go+
+  pool: user_excitement
+- id: USER_VALIDATION
+  match:
+    regex:
+    - am i right
+    - tell me i'?m
+    - aren'?t i
+    - validate me
+    - i need validation
+    - make me feel better
+    - reassure me
+  pool: user_validation_seeking
+- id: USER_OVERSHARE
+  match:
+    keyword:
+    - tmi
+    regex:
+    - too much information
+    - why am i telling you
+    - no one asked but
+    - probably shouldn'?t say
+    - between you and me
+  pool: user_oversharing
+- id: USER_SARCASM
+  match:
+    regex:
+    - yeah right
+    - oh (?:great|wonderful|fantastic|joy|lovely)
+    - how (?:nice|lovely) for you
+    - sure you did
+    - totally believe you
+    - wow so (?:cool|amazing)
+  pool: user_sarcasm
+  affect:
+    amusement: 1.0
+- id: USER_SUSPICIOUS
+  match:
+    keyword:
+    - sus
+    - suspicious
+    - sketchy
+    - shady
+    - fishy
+    regex:
+    - are you sure
+    - i don'?t trust
+    - something'?s off
+    - up to something
+    - you'?re hiding
+  pool: user_suspicious

@@ -1,0 +1,8 @@
+# Seasonal overlay. Priority differs from latenight, so if it is 4 am on October 31st both
+# are live and latenight (higher priority) wins the pools they both claim.
+id: october
+activation: "month == 10"
+priority: 5
+replaces:
+  mood_fragment: mood_fragment_october
+  neutral_preference: topic_conspiracy

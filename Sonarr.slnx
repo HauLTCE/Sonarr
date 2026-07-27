@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Sonarr.Application/Sonarr.Application.csproj" />
+    <Project Path="src/Sonarr.Bot/Sonarr.Bot.csproj" />
+    <Project Path="src/Sonarr.Domain/Sonarr.Domain.csproj" />
+    <Project Path="src/Sonarr.Elaine/Sonarr.Elaine.csproj" />
+    <Project Path="src/Sonarr.Infrastructure/Sonarr.Infrastructure.csproj" />
+    <Project Path="src/Sonarr.Migrator/Sonarr.Migrator.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Sonarr.Application.Tests/Sonarr.Application.Tests.csproj" />
+    <Project Path="tests/Sonarr.Elaine.Tests/Sonarr.Elaine.Tests.csproj" />
+  </Folder>
+</Solution>

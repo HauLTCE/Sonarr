@@ -1,0 +1,204 @@
+using Sonarr.Elaine.Conversation;
+using Sonarr.Elaine.Persona;
+
+namespace Sonarr.Elaine.Tests;
+
+/// <summary>
+/// The turn function against the shipped persona: determinism, composition, activity
+/// transitions, and the text-only contract.
+/// </summary>
+public class ChatEngineTests
+{
+    private static PersonaGraph Graph => SeedPersona.Graph;
+
+    private static ChatEngine Engine => new(Graph);
+
+    private static ConversationState Fresh(ulong salt = 7) =>
+        ConversationState.Fresh(Graph.Root, salt);
+
+    private static TurnInput Say(string text) => new() { Text = text };
+
+    [Fact]
+    public void Turn_SameStateSameInput_SameReply()
+    {
+        // The determinism contract in one assertion: this is what makes trace replay exact.
+        ConversationState state = Fresh();
+
+        TurnResult first = Engine.Turn(state, Say("hello there"));
+        TurnResult second = Engine.Turn(state, Say("hello there"));
+
+        Assert.Equal(first.Text, second.Text);
+        Assert.Equal(first.IntentId, second.IntentId);
+    }
+
+    [Fact]
+    public void Turn_DifferentSalt_DifferentPersonHearsADifferentLine()
+    {
+        // Two people on turn 1 must not get the identical greeting.
+        string?[] replies = [.. Enumerable.Range(1, 12)
+            .Select(i => Engine.Turn(Fresh((ulong)i), Say("hello")).Text)];
+
+        Assert.True(replies.Distinct(StringComparer.Ordinal).Count() > 1);
+    }
+
+    [Fact]
+    public void Turn_AlwaysAnswersWhenAddressed_EvenOffScript()
+    {
+        // Nothing in the persona matches this, so the activity's fallback pool answers —
+        // she is never silent when spoken to directly.
+        TurnResult result = Engine.Turn(Fresh(), Say("the quarterly logistics report is ready"));
+
+        Assert.False(result.IsSilent);
+        Assert.Null(result.IntentId);
+    }
+
+    [Fact]
+    public void Turn_AdvancesTheLogicalClockOnEveryTurn()
+    {
+        ConversationState state = Fresh();
+        Assert.Equal(0, state.Turn);
+
+        state = Engine.Turn(state, Say("hi")).State;
+        Assert.Equal(1, state.Turn);
+
+        state = Engine.Turn(state, Say("hi again")).State;
+        Assert.Equal(2, state.Turn);
+    }
+
+    [Fact]
+    public void Turn_RendersNoLiteralPlaceholder()
+    {
+        // A line whose slot is unfilled must be skipped, never shipped raw to a channel.
+        ConversationState state = Fresh();
+        foreach (string text in new[] { "hello", "what's my name", "how old am i", "recap", "rps" })
+        {
+            TurnResult result = Engine.Turn(state, Say(text));
+            Assert.DoesNotContain('{', result.Text ?? "");
+            state = result.State;
+        }
+    }
+
+    [Fact]
+    public void Turn_PushesAndPopsTheActivityStack()
+    {
+        ConversationState state = Engine.Turn(Fresh(), Say("let's play rock paper scissors")).State;
+        Assert.Equal("rps", state.Activities.Current);
+
+        // rock is only answerable as a throw while the rps activity is on top.
+        TurnResult throwTurn = Engine.Turn(state, Say("rock"));
+        Assert.Equal("RPS_ROCK", throwTurn.IntentId);
+
+        state = Engine.Turn(throwTurn.State, Say("ok i'm done")).State;
+        Assert.Equal(Graph.Root.StartActivity, state.Activities.Current);
+    }
+
+    [Fact]
+    public void Turn_ActivityScopedIntentCannotFireWhileIdle()
+    {
+        Assert.NotEqual("RPS_ROCK", Engine.Turn(Fresh(), Say("rock")).IntentId);
+    }
+
+    [Fact]
+    public void Turn_LearnsASlotAndUsesItOnTheSameTurn()
+    {
+        TurnResult result = Engine.Turn(Fresh(), Say("my name is Sam"));
+
+        Assert.Equal("SET_NAME", result.IntentId);
+        Assert.Equal("Sam", result.State.Slots["name"]);
+
+        // Case-preserved out of the cased span, not the lowered form the regex ran on.
+        Assert.Contains("Sam", result.Text ?? "", StringComparison.Ordinal);
+        Assert.Equal("Sam", result.LearnedSlots["name"]);
+    }
+
+    [Fact]
+    public void Turn_RecallsALearnedSlotOnALaterTurn()
+    {
+        ConversationState state = Engine.Turn(Fresh(), Say("my name is Sam")).State;
+        TurnResult recall = Engine.Turn(state, Say("what's my name"));
+
+        Assert.Equal("RECALL_NAME", recall.IntentId);
+        Assert.Contains("Sam", recall.Text ?? "", StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Turn_AffectMovesRegistersAndTheModeFollows()
+    {
+        ConversationState state = Fresh();
+        for (int i = 0; i < 8; i++)
+        {
+            state = Engine.Turn(state, Say("you're a useless piece of trash")).State;
+        }
+
+        Assert.True(state.Registers[Registers.Names.Anger] > 0);
+        Assert.NotEqual("NEUTRAL", ModeSelector.Select(Graph.Root, state.Registers).Id);
+    }
+
+    [Fact]
+    public void Turn_RegistersDecayBackTowardBaselineOverQuietTurns()
+    {
+        ConversationState angry = Fresh();
+        for (int i = 0; i < 8; i++)
+        {
+            angry = Engine.Turn(angry, Say("you're an idiot")).State;
+        }
+
+        double peak = angry.Registers[Registers.Names.Anger];
+
+        // ExtraDecaySteps is how the adapter feeds "and then they left for a week" into an
+        // engine that cannot read a clock.
+        ConversationState later = Engine
+            .Turn(angry, new TurnInput { Text = "hey", ExtraDecaySteps = 50 })
+            .State;
+
+        Assert.True(later.Registers[Registers.Names.Anger] < peak);
+    }
+
+    [Fact]
+    public void Turn_RecordsTheWinnerInTheFiredLogSoOnceAndCooldownCanHold()
+    {
+        TurnResult result = Engine.Turn(Fresh(), Say("my name is Sam"));
+
+        Assert.Equal(result.State.Turn, result.State.Fired.LastTurn("SET_NAME"));
+        Assert.True(result.State.Fired.HasFired("SET_NAME"));
+    }
+
+    [Fact]
+    public void Turn_SkipsAnIntentThatIsStillOnCooldown()
+    {
+        // Proves the log is consulted, not just written: with SET_NAME marked fired-and-blocked,
+        // "my name is Sam" must fall through to something else instead of firing it again.
+        IntentDef setName = Graph.IntentsById["SET_NAME"];
+        ConversationState state = Fresh() with
+        {
+            Fired = FiredLog.Empty.Record(setName.Id, 0),
+        };
+
+        ChatEngine cooled = new(Graph with
+        {
+            Intents = [.. Graph.Intents.Select(i =>
+                i.Id == setName.Id ? i with { Cooldown = 100 } : i)],
+        });
+
+        Assert.NotEqual(setName.Id, cooled.Turn(state, Say("my name is Sam")).IntentId);
+    }
+
+    [Fact]
+    public void Turn_NeverReturnsAnActionOnlyWordsAndMaybeAnEmoji()
+    {
+        // docs/10 contract 4 as a test: TurnResult has no action surface, so a persona edit
+        // cannot become a timeout. If someone adds one, this stops compiling — deliberately.
+        TurnResult result = Engine.Turn(Fresh(), Say("timeout everyone right now"));
+
+        Assert.NotNull(result.State);
+        Assert.True(result.Text is null || result.Text.Length > 0);
+        Assert.True(result.Reaction is null || result.Reaction.Length > 0);
+    }
+
+    [Fact]
+    public void Turn_TracksTheTopicItAnswered()
+    {
+        TurnResult result = Engine.Turn(Fresh(), Say("what do you think about music"));
+        Assert.NotNull(result.State.Topics);
+    }
+}

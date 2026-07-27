@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Pgvector is the one data-type dependency Domain is allowed (02-architecture.md):
+       chat.episode / chat.intent_embedding embeddings are vector(384). -->
+  <ItemGroup>
+    <PackageReference Include="Pgvector" />
+  </ItemGroup>
+
+</Project>

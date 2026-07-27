@@ -1,0 +1,45 @@
+# Authored response pools, migrated verbatim from the v1 persona.
+# Every line Sonarr says comes from a pool. Nothing here is generated.
+pools:
+  memory_retrieve:
+  - 'caught in 4k:'
+  - let me pull up the logs...
+  - 'here''s what i have in the vault:'
+  - 'found the receipts:'
+  - 'as requested, here is the history:'
+  - 'oh, i remember exactly what was said:'
+  - fetching. here it is.
+  - brain working...
+  - 'i remember this clearly:'
+  - you thought i forgot? nope.
+  - opening the vault...
+  - 'here''s what you''re looking for:'
+  - memory located. ready to share.
+  - found it.
+  - 'i have perfect recall. behold:'
+  - retrieving data. it's juicy.
+  - 'reading from the archives:'
+  - 'i pulled this from deep storage:'
+  - got it. read it and weep.
+  - loaded from memory.
+  memory_save:
+  - stored in the vault.
+  - oh, i'm keeping the receipts for that one.
+  - saved. don't think i'll forget this.
+  - logged it into my memory banks.
+  - archived.
+  - i'll remember this. use it against them later.
+  - memory stored securely.
+  - saving. for blackmail later.
+  - written to disk.
+  - i won't forget this.
+  - locked in. you can't delete it now.
+  - secured.
+  - this is going in your permanent record.
+  - noted. and saved.
+  - jotted that down.
+  - i'm keeping this for the future.
+  - stored securely. don't worry about it.
+  - filed away.
+  - this will be useful later.
+  - saved. forever.

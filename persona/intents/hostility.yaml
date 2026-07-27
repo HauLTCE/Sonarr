@@ -1,0 +1,108 @@
+# hostility intents — migrated from _bot_legacy/elaine/persona/elaine.yaml (v1 CHAT state).
+# Patterns carry over verbatim; Python (?P<x>) named groups rewritten to .NET (?<x>).
+intents:
+# Hand-authored: v1 routed insults through a `when: not FRIENDLY` sentiment guard, which the
+# migration could not carry (no sentiment classifier in v2 yet). The capture and the argument
+# push are v1's; the backhanded-compliment case ("you're not stupid") is now COMPLIMENT's
+# problem to out-score, not a guard's.
+- id: INSULT
+  match:
+    regex:
+    - (?<jab>stupid|dumb|idiot|trash|useless|loser|clown|npc)
+    fuzzy:
+    - pathetic
+    - worthless
+    max_distance: 2
+  pool: user_insult
+  push: argument
+  affect:
+    anger: 3.0
+    trust: -1.0
+    grudge: 1.0
+# Hand-authored: the only way back out of an argument. Without it the push above is a
+# one-way door — every later turn draws from the argument fallback (`user_insult`) and she
+# stays hostile forever, which is the terminal-state trap v1 shipped in BYE. Activity-guarded
+# so a plain "sorry" in normal chat is still APOLOGY.
+- id: DEESCALATE
+  match:
+    regex:
+    - sorry
+    - my bad
+    - truce
+    - i was joking
+    - jk
+    - calm down
+    - let'?s (?:drop|stop) (?:it|this)
+    - (?:can we |let'?s )?move on
+  guards:
+  - kind: activity
+    value: argument
+    bonus: 1.0
+  pool: deescalate
+  pop: true
+  affect:
+    anger: -2.0
+    trust: 0.5
+- id: USER_CHALLENGE
+  match:
+    keyword:
+    - bet
+    regex:
+    - bet you can'?t
+    - prove it
+    - i dare you
+    - you can'?t (?:do|beat|handle)
+    - fight me
+    - try me
+    - wanna bet
+    - come at me
+  pool: user_challenge
+  affect:
+    amusement: 1.0
+    confidence: 1.0
+- id: KYS
+  match:
+    regex:
+    - k+y+s+
+    - kill yourself
+    - neck yourself
+  pool: user_kys
+  push: argument
+  affect:
+    anger: 4.0
+    trust: -2.0
+    grudge: 2.0
+- id: THREAT
+  match:
+    regex:
+    - i'?ll (?:end|destroy|find|beat|kill|hurt) you
+    - i'?m (?:gonna|going to) (?:kill|destroy|hurt|end|beat) you
+    - watch your (?:back|mouth)
+    - kick your
+  pool: user_threat
+  push: argument
+  affect:
+    anger: 3.0
+    trust: -1.0
+    grudge: 1.5
+- id: YOURMOM
+  match:
+    regex:
+    - yo+ ?ma(?:ma|mma)
+    - your mom
+    - ur mom
+    - ya mum
+  pool: joke_your_mom
+  affect:
+    anger: 1.0
+    amusement: 1.0
+- id: USER_GUILT
+  match:
+    regex:
+    - you (?:made|make) me
+    - it'?s your fault
+    - because of you
+    - you should feel bad
+    - how could you
+    - you owe me
+  pool: user_guilt

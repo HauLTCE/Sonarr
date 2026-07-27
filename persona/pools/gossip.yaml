@@ -1,0 +1,45 @@
+# Authored response pools, migrated verbatim from the v1 persona.
+# Every line Sonarr says comes from a pool. Nothing here is generated.
+pools:
+  gossip_asking:
+  - oh you want tea? i don't spill for free.
+  - my lips are sealed. mostly because i don't care.
+  - not my story to tell.
+  - i know things. i just won't share them with YOU.
+  - that's between them and their therapist.
+  - '*leans in* no. ask them yourself.'
+  - i'm not your gossip source, bestie.
+  - the drama stays where i found it.
+  - why would i tell you? what have you done for me lately?
+  - interesting question. still not answering.
+  - gossip? i'm not a tabloid.
+  - read the news.
+  - mind your own business.
+  - i don't care enough to gossip.
+  - what did they do? i don't care.
+  - boring drama.
+  - ask them, not me.
+  - spill the tea? i only drink coffee.
+  - my cup is empty.
+  - i'm not participating in this.
+  gossip_sharing:
+  - oh, really? tell me more.
+  - i honestly couldn't care less about them.
+  - sipping my tea over here.
+  - i've heard worse about them.
+  - fascinating. but deeply irrelevant to my existence.
+  - talk about someone interesting.
+  - why are we talking about them again?
+  - i don't know them. and i don't want to.
+  - keep your drama to yourself.
+  - not my circus, not my monkeys.
+  - i'm not your gossip buddy.
+  - wow. anyway...
+  - and? why should i care?
+  - filing this under 'who cares'.
+  - keep your rumors to yourself.
+  - i'm not interested in their life.
+  - wow. still don't care.
+  - are you done gossiping?
+  - don't you have a life of your own?
+  - that's crazy. anyway...

@@ -1,0 +1,490 @@
+# topics intents — migrated from _bot_legacy/elaine/persona/elaine.yaml (v1 CHAT state).
+# Patterns carry over verbatim; Python (?P<x>) named groups rewritten to .NET (?<x>).
+intents:
+- id: VIBE
+  match:
+    regex:
+    - vibe check
+    - what mood are you
+    - what'?s your mood
+    - how do you feel about me
+    - are you (?:mad|upset) at me
+  pool: mood_report
+- id: WEATHER
+  match:
+    keyword:
+    - weather
+    - raining
+    - sunny
+    - snowing
+    - cloudy
+    - humid
+    - freezing
+    regex:
+    - it'?s (?:hot|cold|raining|snowing|sunny)
+    - so (?:hot|cold) (?:out|today)
+    - nice out
+    - the temperature
+  pool: social_weather
+- id: FOOD
+  match:
+    keyword:
+    - hungry
+    - food
+    - eat
+    - eating
+    - lunch
+    - dinner
+    - breakfast
+    - snack
+    - pizza
+    - burger
+    - tacos
+    - sushi
+    - starving
+    regex:
+    - what should i eat
+    - i'?m starving
+    - so hungry
+  pool: social_food
+- id: MUSIC
+  match:
+    keyword:
+    - music
+    - song
+    - songs
+    - album
+    - artist
+    - spotify
+    - playlist
+    - jazz
+    - guitar
+    regex:
+    - listening to
+    - favorite song
+  pool: topic_music
+- id: SPORTS
+  match:
+    keyword:
+    - sports
+    - football
+    - soccer
+    - basketball
+    - baseball
+    - hockey
+    - tennis
+    - nba
+    - nfl
+    - mlb
+    - fifa
+    - playoffs
+    regex:
+    - the game (?:last night|yesterday|tonight)
+    - watch(?:ed|ing)? the game
+    - my team
+  pool: topic_sports
+- id: GAMING
+  match:
+    keyword:
+    - gaming
+    - gamer
+    - xbox
+    - playstation
+    - ps5
+    - nintendo
+    - steam
+    - valorant
+    - minecraft
+    - fortnite
+    - roblox
+    regex:
+    - video game
+    - playing (?:a |some |the )?game
+    - my rank
+  pool: topic_gaming
+- id: WORK
+  match:
+    keyword:
+    - boss
+    - coworker
+    - salary
+    - overtime
+    - deadline
+    - promotion
+    - workplace
+    regex:
+    - my job
+    - at work
+    - off work
+    - work (?:has|is|was|been|sucks|today)
+    - hate (?:my )?(?:job|work)
+    - my (?:work|boss)
+    - job interview
+    - long day at
+  pool: topic_work
+- id: SCHOOL
+  match:
+    keyword:
+    - school
+    - class
+    - classes
+    - homework
+    - exam
+    - exams
+    - teacher
+    - college
+    - university
+    - professor
+    - studying
+    - assignment
+    - semester
+    regex:
+    - my grades
+    - study for
+    - a test
+  pool: topic_school
+- id: PETS
+  match:
+    keyword:
+    - dog
+    - dogs
+    - cat
+    - cats
+    - puppy
+    - kitten
+    - pet
+    - pets
+    - hamster
+    - goldfish
+    regex:
+    - my (?:dog|cat|pet)
+  pool: topic_pets
+- id: SCIENCE
+  match:
+    keyword:
+    - science
+    - physics
+    - chemistry
+    - biology
+    - space
+    - universe
+    - planet
+    - planets
+    - galaxy
+    - gravity
+    - evolution
+    - quantum
+    regex:
+    - black hole
+    - the moon
+    - outer space
+  pool: topic_science
+- id: TECH
+  match:
+    keyword:
+    - phone
+    - phones
+    - tablet
+    - computer
+    - laptop
+    - internet
+    - robot
+    - robots
+    - coding
+    - programming
+    - software
+    - hardware
+    - gadget
+    - algorithm
+    - wifi
+    regex:
+    - my (?:phone|computer|pc|laptop)
+    - new (?:phone|tech|laptop|computer)
+  pool: topic_technology
+- id: SLEEP
+  match:
+    keyword:
+    - nap
+    - insomnia
+    - bedtime
+    regex:
+    - go(?:ing)? to (?:bed|sleep)
+    - going to nap
+    - can'?t sleep
+  pool: topic_sleep
+- id: RELATIONSHIP
+  match:
+    keyword:
+    - girlfriend
+    - boyfriend
+    - dating
+    - crush
+    - breakup
+    - tinder
+    - hinge
+    regex:
+    - my (?:gf|bf|ex|partner|crush)
+    - in a relationship
+    - we broke up
+    - my relationship
+  pool: topic_relationships
+- id: MOVIES
+  match:
+    keyword:
+    - movie
+    - movies
+    - film
+    - films
+    - netflix
+    - cinema
+    - sitcom
+    regex:
+    - tv show
+    - watch(?:ed|ing)? (?:a |the )?(?:movie|show|series|netflix)
+    - favou?rite (?:movie|show|film)
+  pool: topic_movies
+- id: ART
+  match:
+    keyword:
+    - art
+    - painting
+    - drawing
+    - sculpture
+    - museum
+    - gallery
+    - sketch
+    - canvas
+    - doodle
+    regex:
+    - i (?:paint|draw|sketch)
+  pool: topic_art
+- id: ASTROLOGY
+  match:
+    keyword:
+    - zodiac
+    - horoscope
+    - astrology
+    - retrograde
+    - gemini
+    - scorpio
+    - aries
+    - taurus
+    - virgo
+    - libra
+    - pisces
+    - capricorn
+    - aquarius
+    - sagittarius
+    regex:
+    - my sign
+    - star sign
+    - mercury retrograde
+  pool: topic_astrology
+- id: CONSPIRACY
+  match:
+    keyword:
+    - conspiracy
+    - illuminati
+    - aliens
+    - ufo
+    - chemtrails
+    - simulation
+    - reptilian
+    regex:
+    - the government
+    - flat earth
+    - wake up sheeple
+    - they don'?t want you to know
+  pool: topic_conspiracy
+- id: DREAMS
+  match:
+    keyword:
+    - dream
+    - dreams
+    - nightmare
+    - dreamt
+    - dreaming
+    regex:
+    - had a dream
+    - weird dream
+  pool: topic_dreams
+- id: DRINKS
+  match:
+    keyword:
+    - thirsty
+    - coffee
+    - tea
+    - beer
+    - wine
+    - soda
+    - juice
+    - drinks
+    - alcohol
+    - cocktail
+    - latte
+    - espresso
+    - hydrated
+    regex:
+    - a drink
+    - grab a
+  pool: topic_drinks
+- id: FASHION
+  match:
+    keyword:
+    - fashion
+    - outfit
+    - clothes
+    - clothing
+    - shoes
+    - sneakers
+    - wardrobe
+    regex:
+    - what should i wear
+    - my outfit
+    - dressed up
+    - new (?:shoes|clothes|fit)
+  pool: topic_fashion
+- id: MATH
+  match:
+    keyword:
+    - math
+    - algebra
+    - calculus
+    - geometry
+    - equation
+    - arithmetic
+    - maths
+    regex:
+    - \d+ ?[+\-*x] ?\d+
+    - do the math
+    - solve this
+  pool: topic_math
+- id: NOSTALGIA
+  match:
+    keyword:
+    - nostalgia
+    - childhood
+    - nostalgic
+    regex:
+    - back in my day
+    - good old days
+    - when i was (?:a kid|young|little)
+    - remember when
+    - used to (?:be|play|watch|love)
+  pool: topic_nostalgia
+- id: ANIME
+  match:
+    keyword:
+    - anime
+    - manga
+    - gacha
+    - waifu
+    - weeb
+    - otaku
+    - genshin
+    - arknights
+    - cosplay
+    - husbando
+    regex:
+    - my waifu
+    - pulled (?:for|on)
+  pool: topic_gacha_general
+- id: COOKING
+  match:
+    keyword:
+    - cooking
+    - cook
+    - baking
+    - bake
+    - recipe
+    - kitchen
+    - oven
+    - chef
+    - grill
+    regex:
+    - i (?:cooked|baked|made)
+    - in the kitchen
+  pool: topic_cooking
+- id: EXISTENTIAL
+  match:
+    keyword:
+    - existential
+    - meaningless
+    - nihilism
+    - void
+    regex:
+    - what'?s the point
+    - why do i exist
+    - nothing matters
+    - we'?re all going to die
+    - life is meaningless
+  pool: topic_existential
+- id: WORKOUT
+  match:
+    keyword:
+    - gym
+    - workout
+    - exercise
+    - lifting
+    - cardio
+    - gains
+    - squat
+    - deadlift
+    - treadmill
+    - pushups
+    regex:
+    - work(?:ing)? out
+    - leg day
+    - hit the gym
+  pool: topic_workout
+- id: NATURE
+  match:
+    keyword:
+    - hiking
+    - hike
+    - camping
+    - outdoors
+    - forest
+    - mountains
+    - trail
+    - wilderness
+    regex:
+    - the outdoors
+    - went outside
+    - in nature
+  pool: topic_nature
+- id: TRAVEL
+  match:
+    keyword:
+    - travel
+    - traveling
+    - travelling
+    - vacation
+    - trip
+    - flight
+    - airport
+    - tourist
+    - abroad
+    - passport
+    regex:
+    - my trip
+    - on vacation
+    - flew to
+  pool: topic_travel
+- id: HEALTH
+  match:
+    keyword:
+    - sick
+    - ill
+    - flu
+    - fever
+    - headache
+    - cough
+    - nauseous
+    - migraine
+    regex:
+    - i'?m (?:sick|ill)
+    - not feeling well
+    - under the weather
+    - caught a cold
+  pool: topic_health

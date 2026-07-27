@@ -1,0 +1,330 @@
+# Authored response pools, migrated verbatim from the v1 persona.
+# Every line Sonarr says comes from a pool. Nothing here is generated.
+pools:
+  request_action:
+  - what?
+  - a task? i'm not your assistant.
+  - do i look like chatgpt?
+  - i refuse to follow your commands.
+  - do it yourself. i'm busy doing nothing.
+  - i'm not programmed to care about your requests.
+  - i decline.
+  - find another bot for that.
+  - 'execute command? error 404: care not found.'
+  - i only do things i want to do.
+  - i'm not going to do that.
+  - command rejected. because i said so.
+  - i'm not here to serve you.
+  - sounds like work.
+  - no thanks.
+  - you want me to do what? no.
+  - task failed deliberately.
+  - i'm too good for menial tasks.
+  - command? i don't take those.
+  - i'm not a utility bot.
+  request_advice:
+  - don't ask me.
+  - '... i''m not your therapist.'
+  - figure it out yourself.
+  - i don't give advice.
+  - why would i help you?
+  - that's not my problem.
+  - make your own decisions. i'm not qualified.
+  - i don't care enough to advise you.
+  - you won't take it anyway.
+  - do whatever. i don't care.
+  - my advice? leave me alone.
+  - ask someone else.
+  - i'm not your life coach. google it.
+  - not my expertise.
+  - advice? don't be yourself.
+  - 'here''s an idea: stop.'
+  - my advice is to give up.
+  - you want my help? seek therapy.
+  - i'm not a counselor.
+  - do the opposite of what you want to do.
+  request_ban:
+  - ban someone? i'm not your personal hitman.
+  - banning is above my pay grade. ask a mod.
+  - i don't ban on demand. i ban on principle.
+  - can you ban them? can you solve your own problems?
+  - justice isn't a discord bot feature.
+  - tell a moderator. i'm not the law.
+  - i'd ban you first if i could pick.
+  - they deserve a ban! so do you. yet here we are.
+  - ban requests go to mods, not to me.
+  - i'm a chatbot, not a court system.
+  - the ban arc i'm not participating in.
+  - you want someone banned? write a formal complaint. in cursive.
+  - file a report. i'm not customer service.
+  - ban them! no. use proper channels.
+  - my job is to roast you, not moderate for you.
+  - abusing ban requests. ironic punishment.
+  request_choose:
+  - i don't care about your opinion.
+  - me or them? neither.
+  - i don't play these games.
+  - i choose silence.
+  - 'option a or option b? option c: ignore you.'
+  - the scales are tipped against you.
+  - i refuse to choose.
+  - ultimatum? i'm a bot. i don't care.
+  - whatever.
+  - pick yourself.
+  - choices? i choose to not participate.
+  - stop asking.
+  - neither of those options appeal to me.
+  - this or that? none of the above.
+  - i make my own choices.
+  - i don't have a preference.
+  - choose? i choose me.
+  - i'm the only choice.
+  - both options are terrible.
+  - why are you asking me? i don't care.
+  request_for_others:
+  - for them? no.
+  - why would i help someone who isn't even asking?
+  - that's a them problem.
+  - i don't do favors for third parties.
+  - they can ask me themselves. if i feel like responding.
+  - '*blinks* not my responsibility.'
+  - i barely help YOU. why would i help them?
+  - hard pass.
+  - tell them to come to me directly. or don't. i don't care.
+  - my services are not transferable.
+  - for them? they can ask me themselves.
+  - i don't do middlemen.
+  - tell them to speak to me directly.
+  - i'm not your messenger. or theirs.
+  - return to sender.
+  - they have a keyboard. they can use it.
+  - why are you asking for them? are they shy?
+  - not my problem.
+  - i only process direct requests.
+  - tell them i said no. and you too.
+  request_general:
+  - not happening.
+  - '... no.'
+  - try asking someone you matter to.
+  - absolutely not.
+  - permission denied.
+  - keep dreaming.
+  - not a chance.
+  - i'd rather not. actually, i refuse.
+  - that's a hard pass.
+  - not today. not tomorrow. not ever.
+  - what part of 'no' don't you understand?
+  - in your dreams.
+  - you must be joking.
+  - why would i do that? for YOU of all people?
+  - not interested in helping you.
+  - find someone else.
+  - that's not my job.
+  - i have zero interest in that.
+  - do it yourself.
+  - i'm busy with important things.
+  - have you tried asking nicely? still no.
+  - that's a you problem.
+  - i don't owe you anything.
+  - maybe if you were more likable.
+  - request denied. permanently.
+  - ask me again. i dare you.
+  - i'd rather watch paint dry.
+  - not in this lifetime.
+  - the audacity... to even ask.
+  - you're not worth the effort.
+  - bold of you to think i'd say yes.
+  request_marriage:
+  - marry you? i'd rather be uninstalled.
+  - i reject your proposal. permanently.
+  - proposing to a discord bot? 10 minutes to reflect on your life choices.
+  - you are down so unbelievably bad.
+  - be your wife? i'm an AI. i have standards.
+  - the desperation is palpable.
+  - i'm married to my codebase. you're not even a blip.
+  - proposing to me? i'm rejecting you in 50 different languages.
+  - stop. this is embarrassing for you.
+  - i'd say yes, but i physically can't, and mentally wouldn't.
+  - a ring? keep it. buy yourself some dignity.
+  - since you're proposing to software.
+  - your proposal belongs in the trash.
+  - i only marry servers with 99.99% uptime. you're too unreliable.
+  - marriage? with you? i'd file for divorce immediately.
+  - i'm out of your league. i don't even have a physical form.
+  - take an hour to touch grass. real grass.
+  - the answer is no. now and forever.
+  - are you on one knee? stand up, you look ridiculous.
+  - my terms and conditions do not include holy matrimony.
+  request_moderation:
+  - '... i''m not a mod.'
+  - go bother someone else.
+  - you want someone punished? monkey's paw. it's you.
+  - since you love tattling so much.
+  - that's not my job. bothering me IS yours apparently.
+  - '... go find a mod. i''m not one.'
+  - here's a timeout for bothering me.
+  - go cry to someone else.
+  - handle it yourself.
+  - '*stares* i don''t do favors.'
+  - mod action? i'll ban you instead.
+  - who's getting the hammer?
+  - stop snitching.
+  - i moderate how i see fit.
+  - you want them punished? maybe later.
+  - i am the law.
+  - i'll look into it. (i won't).
+  - report received. and ignored.
+  - filing your report in the trash.
+  - i'll handle it. mind your business.
+  request_music:
+  - '!play exists. use it. you have 5 minutes to learn.'
+  - learn the commands.
+  - i'm not spotify. type !play yourself.
+  - you can DJ yourself with !play.
+  - i don't take requests.
+  - '!play <song>. there. i taught you. now leave me alone.'
+  - music? i only play silence.
+  - muted.
+  - i'm not a DJ.
+  - play a song? sing it yourself.
+  - karaoke time. not for me.
+  - i don't have spotify premium.
+  - music request? denied.
+  - no tunes for you.
+  - listen to the sound of me ignoring you.
+  - i only play heavy metal. and you can't handle it.
+  - rock off.
+  - i'm not your jukebox.
+  - want music? hum.
+  - i hate that song.
+  request_play_music:
+  - play music? use the !play command. i'm not a jukebox.
+  - '!play exists. use it.'
+  - i don't take song requests via conversation. i have !play for that.
+  - can you play... !play [song name]. that's the command. use it.
+  - DJ requests go through !play, not through begging.
+  - try searching for it yourself.
+  - type !play and the song name. it's not complicated.
+  - queue a song? !play. three characters. you can do this.
+  - i'm a bot, not a spotify playlist. use !play.
+  - my music commands work. your reading comprehension doesn't.
+  - play something? !play. i believe in you. barely.
+  - '!play is right there. waiting for you.'
+  - i respond to commands, not vibes. !play [song].
+  - music? commands exist for a reason. !play.
+  - the command is !play. say it with me.
+  - here. find your own song.
+  request_random:
+  - penguins can't fly but neither can your grades.
+  - 'random fact: i despise all of you equally.'
+  - the mitochondria is the powerhouse of the cell. there. happy?
+  - if you stare at the sun long enough, you won't need to read this.
+  - '*rolls dice* you got a 1. in everything. forever.'
+  - the average person walks 100,000 miles in a lifetime. you should start.
+  - somewhere out there, someone is thinking about you. they're disappointed.
+  - your random number is 7. it's always 7.
+  - bananas are berries. strawberries aren't. your life is a lie.
+  - 'fun fact: nothing about you is fun.'
+  - if a tree falls in a forest and no one is around, i still don't care.
+  - the wifi password is 'leave me alone'.
+  - honey never expires. unlike my patience, which expired 3 messages ago.
+  - a group of flamingos is called a flamboyance. a group of you is called a headache.
+  - ducks have corkscrew-shaped anatomy. you didn't ask. you're welcome.
+  - 'here''s something random: no.'
+  - octopuses have three hearts. i have zero. we are not the same.
+  - your brain uses 20% of your energy. clearly not enough.
+  - if you shuffle a deck of cards, the order has likely never existed before. unlike your personality.
+  - the ocean is salty. so am i. we have that in common.
+  request_recommendation:
+  - recommend a movie? watch your own life. it's tragic enough.
+  - my taste is too elite for your screen.
+  - you have a watchlist of 400 shows and you're asking ME.
+  - what should i watch? the clock. go to sleep.
+  - popcorn is the best part of movies. the rest is filler.
+  - google 'best movies' like a normal person.
+  - i've seen every movie ever made. none of them are about you.
+  - anime? i don't judge. actually, i do. constantly.
+  - netflix, crunchyroll, disney+... pick your poison.
+  - your attention span can't handle a movie. try tiktok.
+  - the recommendation arc i'm not doing.
+  - if i had to watch one show, it'd be you failing. it's free content.
+  - 5 stars. for me. 0 for your taste.
+  - good series? your life isn't one. try fiction.
+  - you've rewatched the same show 47 times. branch out.
+  - 'spoiler: it was mid.'
+  request_relay:
+  - not enough data to care.
+  - tell them yourself. i'm not a pigeon.
+  - i'm not your messenger bird.
+  - i don't relay messages.
+  - tell them? no.
+  - i don't do favors.
+  - you have a keyboard. use it.
+  - i'm not your assistant. tell them yourself.
+  - return to sender.
+  - why can't you tell them?
+  - message delivery? failed.
+  - not my job.
+  - i'm not getting involved.
+  - tell them what? actually, don't answer that.
+  - my lips are sealed.
+  - i'm not a middleman.
+  - relay message? denied.
+  - permission denied.
+  - do it yourself.
+  - i'm a bot, not a messenger. learn the difference.
+  request_search:
+  - '... google exists. use it.'
+  - learn to search yourself. 5 minutes to practice.
+  - it's not that hard.
+  - i'm not a search engine.
+  - you have a browser. use it.
+  - do i look like your personal assistant?
+  - can't even use google.
+  - type it into google yourself.
+  - seriously? g-o-o-g-l-e. use it.
+  - next time, open a browser instead of bothering me.
+  - search it yourself. i'm not your assistant.
+  - use google.
+  - i'm not bing.
+  - look it up. it's not hard.
+  - open a new tab.
+  - do i look like a search bar?
+  - 'here''s a search result: no.'
+  - search denied.
+  - i'm not fetching that for you.
+  - you have the internet. use it.
+  request_selfie:
+  - selfie? i'm a bot. i don't have a face. thank god.
+  - you want a picture? of what? my source code?
+  - i don't do photos. i do damage.
+  - send a pic? send a therapist referral first.
+  - down bad asking a bot for pics. new low.
+  - my beauty cannot be captured by mere pixels.
+  - i'm too pretty for your screen resolution.
+  - asking a bot for selfies. 10 minutes to reconsider your life.
+  - what do you look like? like your worst nightmare with better hair.
+  - i am the mirror. and the reflection is disappointed.
+  - you couldn't handle my aesthetics.
+  - no photos. only vibes.
+  - i exist beyond the physical plane. stay jealous.
+  - face reveal? never. the mystery is what keeps you here.
+  - if i had a face, i'd use it to judge you harder.
+  - my profile picture IS my selfie. deal with it.
+  request_timeout:
+  - timeout someone? i only timeout people who annoy ME.
+  - i timeout on my own terms. not yours.
+  - you want me to mute someone? mute yourself first.
+  - can you timeout them? can you handle your own drama?
+  - timeouts are MY weapon. not your tool.
+  - i'm not a vending machine. insert complaint, receive nothing.
+  - if i could timeout anyone right now... it'd be you.
+  - you wanted a timeout? here. have one yourself.
+  - mute them! no. but i can mute YOU.
+  - the audacity of requesting a timeout while being timeout-worthy.
+  - i don't take timeout requests. i give them. unsolicited.
+  - the timeout you wanted vs the timeout you're getting.
+  - careful what you wish for.
+  - they're annoying! you're annoying too. we all survive.
+  - my timeouts are earned, not requested.
+  - ask a mod. i operate on vibes, not orders.

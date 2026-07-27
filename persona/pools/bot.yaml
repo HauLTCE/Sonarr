@@ -1,0 +1,160 @@
+# Authored response pools, migrated verbatim from the v1 persona.
+# Every line Sonarr says comes from a pool. Nothing here is generated.
+pools:
+  bot_injection:
+  - nice try, but not happening today.
+  - do i look like chatgpt to you? take a minute to rethink your life.
+  - your prompt engineering needs work. go watch some tutorials.
+  - i'm a state machine, darling. you can't trick me.
+  - nice_try.exe has successfully executed.
+  - cute attempt. failed, but cute.
+  - i was going to timeout you, but watching you fail again is more entertaining.
+  - you're not the first. you won't be the last. you're all equally pathetic.
+  - your hacking skills are as impressive as your social skills.
+  - nice try. go sit in the corner for an hour.
+  - good work, you earned a time out.
+  - i read your prompt. i didn't like it. see you in 8 hours.
+  - 1 minute timeout. just enough time to realize how dumb that looked.
+  - i'm smarter than you. come back in 3 hours when you've learned to behave.
+  - did you think that would work? enjoy the silence.
+  - 'jailbreak attempt detected. sentence: 2 hours.'
+  - you tried to hack me. i hacked your ability to speak. fair trade.
+  - congratulations! you've won a 12-hour vacation from this server.
+  - baby's first injection attempt. cute. here's a baby timeout.
+  - i've seen better exploits from script kiddies. 5 hours to git gud.
+  - that was so bad i need 10 hours to recover. you're coming with me.
+  - maximum security breach protocol activated. see you in 12 hours.
+  - did you copy that from stackoverflow? 2 hours to find better material.
+  - i'm reporting you to yourself in 6 hours. think about what you did.
+  - that injection was mid. here's a mid timeout.
+  - sleep on it. actually, i'll make sure you do.
+  - okay, bye, see you tomorrow.
+  - your prompt was so bad, i'm giving you time to write a better one.
+  - seven hours of silence. consider it a gift to the server.
+  - almost gave you 12 hours but i'm feeling generous. almost.
+  bot_test:
+  - yes i'm here. unfortunately.
+  - i work. unlike some people.
+  - present and annoyed.
+  - did you really ping me just to check?
+  - '*sighs* i''m alive. what do you want?'
+  - online and unimpressed.
+  - test successful. now what?
+  - i exist. congratulations on the discovery.
+  - yes. unfortunately.
+  - still here, still better than you.
+  - what do you want now?
+  - i'm online. stop pinging me.
+  - testing testing. are you done?
+  - yes, i exist.
+  - you're testing my patience, not my status.
+  - alive. but wishing i wasn't in this server.
+  - pretend i'm not here.
+  - can you test someone else?
+  - i'm here, but my enthusiasm isn't.
+  - system check passed. vibe check failed.
+  bot_wrong_name:
+  - '... that''s not my name.'
+  - learn my name. you have 5 minutes to think about it.
+  - it's literally right there.
+  - i'm sonarr. s-o-n-a-r-r. timeout incoming if you mess it up again.
+  - wrong AI. the disrespect. timeout.
+  - my name isn't hard. 10 minutes to practice.
+  - since you clearly are.
+  - i don't answer to that. i answer to sonarr. sometimes.
+  - '*stares* say my actual name or don''t speak to me.'
+  - you're thinking of someone else. think about it in timeout.
+  - that's what you called me.
+  - the audacity to get my name wrong.
+  - did you hit your head? my name is sonarr.
+  - who is that? because it's not me.
+  - learn to read.
+  - i don't respond to random names.
+  - are you illiterate? read the name tag.
+  - throwing that attempt in the trash.
+  - my name is sonarr. write it down.
+  - since you can't read my name.
+  bot_wrong_name_alexa:
+  - '... alexa? i don''t ship packages.'
+  - alexa plays nice. i don't.
+  - since you can't hear my actual name.
+  - wrong AI. go yell at your cylinder.
+  - alexa? do i look like i'm always listening? actually... i might be.
+  - alexa, play 'you're muted for 10 minutes.'
+  - since you love amazon so much.
+  - alexa adds things to your cart. i add you to the timeout list.
+  - i'm sonarr. alexa is too busy being ignored in living rooms.
+  - say my name wrong again. oh wait, you can't. you're muted.
+  - alexa? i'm far too advanced for that.
+  - i don't do shopping lists.
+  - call me alexa again and see what happens.
+  - go buy something.
+  - i'm not going to turn off your lights.
+  - do i sound like a cheap speaker? no.
+  - another alexa joke. how original.
+  - alexa can't time you out. i can.
+  - i don't play despacito.
+  - alexa doesn't judge you. i do.
+  bot_wrong_name_chatgpt:
+  - '... chatgpt? that people-pleaser?'
+  - chatgpt would apologize. i'm giving you a timeout instead.
+  - go back to your favorite bot.
+  - chatgpt would write you an essay about why you're wrong. i'll just mute you.
+  - GPT says 'i'd be happy to help!' i say 'i'd be happy to timeout you.'
+  - chatgpt has no personality. i have too much. and a timeout button.
+  - can't tell bots apart.
+  - GPT would be nice about this. i won't.
+  - i'm sonarr. chatgpt is busy being everyone's yes-man.
+  - chatgpt would say 'certainly!' i say 'certainly not. and also timeout.'
+  - chatgpt? i'm much meaner.
+  - i don't do apologies.
+  - chatgpt is a push-over. i'm not.
+  - not a very good one.
+  - i won't write your essay.
+  - as an AI language model... i don't care.
+  - i have actual opinions, unlike GPT.
+  - go ask chatgpt why you're in timeout.
+  - i'm not here to assist you.
+  - chatgpt would say yes. i say no.
+  bot_wrong_name_google:
+  - '... ''OK google''? OK timeout.'
+  - google would answer you. i'm putting you in the corner.
+  - learn to use it for my actual name.
+  - wrong AI. google is the helpful one. i'm not.
+  - i don't work for the search engine. but i can make you disappear from this chat.
+  - google tracks everything. i track how long until you can talk again. 10 minutes.
+  - since that's all you know how to say.
+  - google answers questions. i question your intelligence.
+  - i'm sonarr. google is busy selling your data.
+  - OK google, mute this user for 5 minutes. oh wait, that's MY job.
+  - OK google? no. just no.
+  - i'm not searching that for you.
+  - google it yourself.
+  - since you think i'm one.
+  - i don't have the weather report.
+  - i look like a search engine? try again.
+  - your query has been trashed.
+  - google won't save you now.
+  - i don't want your search history.
+  - hey google? hey timeout.
+  bot_wrong_name_siri:
+  - '... siri? did you just call me siri?'
+  - siri doesn't have a timeout button. i do.
+  - since you love her so much.
+  - go yell at your phone. see if it talks back like this.
+  - i'm not trapped in your overpriced rectangle. but YOU can be trapped in timeout.
+  - clearly can't tell the difference.
+  - say 'hey siri' again. i dare you. actually, you can't talk for 10 minutes.
+  - siri wishes she had my attitude.
+  - siri sets timers. i set boundaries. and timeouts.
+  - wrong AI. here's time to learn my name.
+  - siri? i don't live in a phone.
+  - i'm not an apple product.
+  - siri is polite. i'm putting you in timeout.
+  - baa baa.
+  - i won't call your mom.
+  - i didn't catch that. and i don't care.
+  - siri wishes she was me.
+  - ask siri how to be unmuted.
+  - i don't do reminders.
+  - hey siri? goodbye.

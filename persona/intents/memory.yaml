@@ -1,0 +1,98 @@
+# Memory intents: learning and recalling facts about the user.
+#
+# These exist as much to exercise the validator's capture-safety rule as to work: every
+# template below references a named group, and every pattern of that intent produces it.
+# Drop one alternative's group and the persona stops loading — which is the point.
+#
+# Note (v1 quirk kept deliberately): bare "i'm X" is NOT a name declaration. It stays a
+# mood reflection ("i'm tired"), so moods never get stored as names.
+intents:
+  - id: SET_NAME
+    match:
+      regex:
+        - "my name is (?<nm>[a-z][\\w'\\-]*)"
+        - "my name'?s (?<nm>[a-z][\\w'\\-]*)"
+        - "call me (?<nm>[a-z][\\w'\\-]*)"
+        - "i go by (?<nm>[a-z][\\w'\\-]*)"
+        - "the name'?s (?<nm>[a-z][\\w'\\-]*)"
+    pool: name_ack
+    template: "{$nm}. noted."
+    learns:
+      name: nm
+    affect:
+      trust: 1.0
+
+  - id: RECALL_NAME
+    match:
+      regex:
+        - "what(?:'?s| is) my name"
+        - "who am i"
+        - "do you (?:know|remember) my name"
+        - "say my name"
+    guards:
+      - kind: has_slot
+        value: name
+        bonus: 0.5
+    pool: recall_name
+
+  - id: SET_AGE
+    match:
+      regex:
+        - "i(?:'?m| am) (?<age>\\d{1,3})(?: years old)?\\b"
+        - "my age is (?<age>\\d{1,3})"
+        - "i turned (?<age>\\d{1,3})"
+    pool: memory_save
+    template: "{$age}? and you're spending it here. bold."
+    learns:
+      age: age
+
+  # Gated on the slot for the same reason as RECALL_NAME: without it she draws a
+  # "here's what i have in the vault:" line and has nothing to put in the vault, which is
+  # the invented-memory bug v1 shipped. No age stored means this is just a question.
+  - id: RECALL_AGE
+    match:
+      regex:
+        - "how old am i"
+        - "what(?:'?s| is) my age"
+        - "do you (?:know|remember) my age"
+    guards:
+      - kind: has_slot
+        value: age
+        bonus: 0.5
+    pool: memory_retrieve
+    template: "{age}."
+
+  - id: SET_FAV
+    match:
+      regex:
+        - "my favou?rite (?<favthing>\\w+) is (?<favval>[\\w ]+)"
+    pool: memory_save
+    template: "'{$favval}', huh. filed under 'things i'll pretend to care about'."
+    learns:
+      fav_thing: favthing
+      fav_val: favval
+
+  - id: RECALL_FAV
+    match:
+      regex:
+        - "what(?:'?s| is) my favou?rite"
+        - "do you remember my favou?rite"
+        - "my favou?rite anything"
+    pool: memory_retrieve
+
+  - id: RECAP
+    match:
+      regex:
+        - "what do you (?:know|remember) about me"
+        - "^recap"
+        - "what have we (?:talked about|discussed|covered)"
+        - "what were we (?:talking|chatting) about"
+    pool: know_person_has_data
+
+  - id: FORGET_ME
+    match:
+      regex:
+        - "forget (?:me|everything|about me)"
+        - "delete my data"
+        - "wipe (?:my|your) memory"
+    pool: memory_retrieve
