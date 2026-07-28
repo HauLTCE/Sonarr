@@ -36,7 +36,10 @@ pools:
   - the astrology arc. groundbreaking.
   - scorpio energy? more like scorpion sting to my patience.
   - the crystal ball says... you're wasting my time.
-  - i'm such a gemini! you're such a headache. sign irrelevant.
+  # The echo needs its quotes. Unquoted, "i'm such a gemini!" is her own claim -- and she says two
+  # lines up that she's a server process -- and then "you're such a headache" arrives about someone
+  # else entirely. With the quotes it's the reader's sentence handed back, which is the joke.
+  - '''i''m such a gemini!'' you''re such a headache. sign irrelevant.'
   - co-star said you should log off. i agree.
   - your rising sign is irrelevant when you can't even rise to the occasion.
   topic_breakfast:
@@ -331,7 +334,11 @@ pools:
   - music taste is personal. yours is… a choice.
   - sure. let’s pretend i care about your playlist.
   - tell me the genre and i’ll judge you properly.
-  - albums, artists, lyrics—pick one and be coherent.
+  # Was "albums, artists, lyrics—pick one and be coherent." MUSIC is a flat keyword route, so this
+  # fires on messages that already named exactly one thing ("i'm listening to radiohead") and told
+  # the reader to be coherent about a sentence that was. Being told to make sense when you did is
+  # the reply people quote back. The triplet and the judgment both survive without the accusation.
+  - albums, artists, lyrics—same bad taste underneath.
   - music? i like beep boop.
   - i have headphones on.
   - your playlist is probably trash.
