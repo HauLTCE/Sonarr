@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Sonarr.Application.Levels;
 using Sonarr.Application.Reminders;
 using Sonarr.Domain.Abstractions;
 
@@ -29,6 +30,11 @@ public static class UtilityServiceCollectionExtensions
 
         // /birthday + /anniversary + the DailyTick announcer. Interface for ZoneResolver again.
         services.AddScoped<IMilestoneService, MilestoneService>();
+
+        // SeasonRoller's decisions. Registered here rather than next to the rest of the levels slice
+        // (AddSonarrLevels, in Sonarr.Bot) because the implementation takes the internal
+        // ZoneResolver, so only this assembly can name the type.
+        services.AddScoped<ISeasonService, SeasonService>();
 
         // /ticket. No interface needed � it takes nothing internal.
         services.AddScoped<TicketService>();

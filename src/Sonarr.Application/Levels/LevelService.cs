@@ -209,7 +209,8 @@ public sealed class LevelService(
                 requested,
                 PageCount(total),
                 id,
-                $"Season {id} — {season.StartsAt:yyyy-MM-dd} to {season.EndsAt:yyyy-MM-dd}");
+                // Seasons are calendar months (SeasonRoller), so the month names it.
+                SeasonRules.Label(season.StartsAt));
         }
 
         var count = await progress.CountAsync((long)guildId, cancellationToken);
