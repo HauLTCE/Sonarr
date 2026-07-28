@@ -1,4 +1,5 @@
 using Sonarr.Domain.Abstractions;
+using Sonarr.Infrastructure.Persistence.Repositories;
 
 namespace Sonarr.Bot.Discord.Jobs;
 
@@ -24,6 +25,11 @@ public static class JobServiceCollectionExtensions
         services.AddScoped<IJobHandler, AnnounceJobHandler>();
 
         services.AddHostedService<JobScheduler>();
+
+        // The nightly retention sweep. Here rather than in its own slice because it is a scheduled
+        // job in everything but durability, and its repository serves nobody else.
+        services.AddScoped<IRetentionRepository, RetentionRepository>();
+        services.AddHostedService<RetentionPruner>();
 
         return services;
     }

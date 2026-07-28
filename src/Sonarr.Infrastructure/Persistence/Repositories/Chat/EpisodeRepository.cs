@@ -70,8 +70,13 @@ public sealed class EpisodeRepository(SonarrDbContext db) : IEpisodeRepository
 
     /// <remarks>
     /// docs/04 wants "newest N per user + anything referenced by a fact". There is no
-    /// episode↔fact foreign key in the schema, so the second clause has nothing to read;
-    /// what protects a fact is that facts live in their own table and are never pruned here.
+    /// episode↔fact foreign key, but there is a join that means the same thing: a fact records the
+    /// <c>learned_at_turn</c> it was heard on, and an episode records the <c>turn</c> it happened
+    /// on, so the episode where a fact came from is (guild, user, turn) — that is the row whose
+    /// deletion would leave her holding a fact she cannot say where she got.
+    /// <para>Active facts only: a superseded fact is kept for trajectory (docs/04), not for recall,
+    /// and letting a dead fact pin an episode forever would make the cap unenforceable for anyone
+    /// who changes their mind a lot.</para>
     /// </remarks>
     public async Task<int> PruneAsync(int keepPerUser, CancellationToken ct = default)
     {
@@ -80,16 +85,22 @@ public sealed class EpisodeRepository(SonarrDbContext db) : IEpisodeRepository
             throw new ArgumentOutOfRangeException(nameof(keepPerUser), "must keep at least one episode");
         }
 
-        // Rank per person, newest first, and delete everything past the cap. One statement:
-        // pulling ids into memory first would mean a round trip per user.
+        // Rank per person, newest first, and delete everything past the cap that no fact points at.
+        // One statement: pulling ids into memory first would mean a round trip per user.
         return await db.Database.ExecuteSqlInterpolatedAsync(
             $"""
             DELETE FROM chat.episode WHERE id IN (
                 SELECT id FROM (
-                    SELECT id, row_number() OVER (
+                    SELECT id, guild_id, user_id, turn, row_number() OVER (
                         PARTITION BY guild_id, user_id ORDER BY happened_at DESC, id DESC) AS rn
                     FROM chat.episode
                 ) ranked WHERE rn > {keepPerUser}
+                  AND NOT EXISTS (
+                    SELECT 1 FROM chat.fact f
+                    WHERE f.active
+                      AND f.guild_id = ranked.guild_id
+                      AND f.user_id = ranked.user_id
+                      AND f.learned_at_turn = ranked.turn)
             )
             """,
             ct);
