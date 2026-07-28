@@ -219,10 +219,17 @@ a {
   }
 }
 
-/* Motion is decoration here — the page arrives either way. */
+/* Motion is decoration here — the page arrives either way, and the rail's current segment is
+   already wide before the widening animates. Only the two layout moves are cut: the page slide and
+   the segment's flex-grow. The colour fades stay, because 2.3.3 is about movement, and a segment
+   that snaps from grey to accent with no transition reads as a glitch rather than as calm. */
 @media (prefers-reduced-motion: reduce) {
   .slide {
     animation: none;
+  }
+
+  .seg {
+    transition: none;
   }
 }
 
