@@ -236,7 +236,9 @@ public sealed class SeasonAutocompleteHandler : AutocompleteHandler
         IEnumerable<AutocompleteResult> matches = seasons
             .Select(s => new
             {
-                Label = $"Season {s.SeasonId} ({s.StartsAt:yyyy-MM-dd} → {s.EndsAt:yyyy-MM-dd}, {s.Status})",
+                // Seasons are calendar months (SeasonRoller), so the month is the name people
+                // recognise; the id stays as the value because that is what the command takes.
+                Label = $"{SeasonRules.Label(s.StartsAt)} ({s.Status})",
                 Value = s.SeasonId.ToString(CultureInfo.InvariantCulture),
             })
             .Where(s => s.Label.Contains(typed, StringComparison.OrdinalIgnoreCase))

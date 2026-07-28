@@ -133,6 +133,25 @@ internal sealed class FakeSeasonRepository : ISeasonRepository
         return this;
     }
 
+    /// <summary>
+    /// Seeds an already-open season. Separate from <see cref="OpenAsync"/> so the arrange step does
+    /// not show up in <see cref="Opened"/> as something the roller did.
+    /// </summary>
+    public Season Open(long guildId, DateTimeOffset startsAt, DateTimeOffset endsAt)
+    {
+        Season season = new()
+        {
+            SeasonId = _seasons.Count + 1,
+            GuildId = guildId,
+            StartsAt = startsAt,
+            EndsAt = endsAt,
+            Status = SeasonStatus.Active,
+        };
+
+        _seasons.Add(season);
+        return season;
+    }
+
     public Task<IReadOnlyList<Season>> GetAllAsync(long guildId, CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<Season>>(
             [.. _seasons.Where(s => s.GuildId == guildId).OrderByDescending(s => s.SeasonId)]);
@@ -150,6 +169,51 @@ internal sealed class FakeSeasonRepository : ISeasonRepository
 
     public Task<int> CountResultsAsync(long seasonId, CancellationToken ct = default)
         => Task.FromResult(_results.GetValueOrDefault(seasonId, []).Count);
+
+    // ---- The roller's half -------------------------------------------------------------------
+
+    /// <summary>Standings the next close will see. Set by a test; empty means a quiet month.</summary>
+    public List<SeasonStanding> Standings { get; } = [];
+
+    /// <summary>Windows passed to <see cref="OpenAsync"/>, in order — one per roll.</summary>
+    public List<(long GuildId, DateTimeOffset Starts, DateTimeOffset Ends)> Opened { get; } = [];
+
+    public Task<IReadOnlyList<SeasonStanding>> GetStandingsAsync(
+        long guildId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<SeasonStanding>>([.. Standings]);
+
+    public Task<bool> CloseAsync(
+        long seasonId, IReadOnlyList<SeasonResult> results, CancellationToken ct = default)
+    {
+        // Mirrors the real WHERE status = 'active': a season already closed writes nothing.
+        Season? season = _seasons.Find(s => s.SeasonId == seasonId && s.Status == SeasonStatus.Active);
+        if (season is null)
+        {
+            return Task.FromResult(false);
+        }
+
+        season.Status = SeasonStatus.Closed;
+        _results[seasonId] = [.. results.Select(r => new LeaderboardEntry(r.Rank, (ulong)r.UserId, r.XpEarned, 0))];
+        return Task.FromResult(true);
+    }
+
+    public Task<Season> OpenAsync(
+        long guildId, DateTimeOffset startsAt, DateTimeOffset endsAt, CancellationToken ct = default)
+    {
+        Opened.Add((guildId, startsAt, endsAt));
+
+        Season season = new()
+        {
+            SeasonId = _seasons.Count + 1,
+            GuildId = guildId,
+            StartsAt = startsAt,
+            EndsAt = endsAt,
+            Status = SeasonStatus.Active,
+        };
+
+        _seasons.Add(season);
+        return Task.FromResult(season);
+    }
 }
 
 /// <summary>In-memory core.member — only what /userstats reads.</summary>

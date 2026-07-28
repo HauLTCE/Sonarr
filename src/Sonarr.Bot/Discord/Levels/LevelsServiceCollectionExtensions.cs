@@ -29,6 +29,9 @@ public static class LevelsServiceCollectionExtensions
         services.AddScoped<ILevelService, LevelService>();
         services.AddScoped<IVoiceSessionTracker, VoiceSessionTracker>();
 
+        // ISeasonService is registered by AddSonarrUtilityServices — its implementation takes the
+        // internal ZoneResolver, so only the application assembly can name the type.
+
         // Singleton: the buffer is the shared handoff between the message handler and the flusher.
         services.AddSingleton<ActivityBuffer>();
 
@@ -40,6 +43,7 @@ public static class LevelsServiceCollectionExtensions
 
         services.AddHostedService<VoiceXpAccrual>();
         services.AddHostedService<ActivityFlusher>();
+        services.AddHostedService<SeasonRoller>();
 
         return services;
     }
