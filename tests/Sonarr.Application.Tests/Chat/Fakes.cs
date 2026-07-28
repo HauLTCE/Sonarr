@@ -339,6 +339,48 @@ internal sealed class FakeFeatureGate : IFeatureGate
     }
 }
 
+/// <summary>
+/// The one config key the chat pipeline reads: the guild's timezone. Writes are not part of that
+/// contract, so they throw rather than pretend.
+/// </summary>
+internal sealed class FakeChatConfig(string? timezone) : IGuildConfigService
+{
+    /// <summary>Reads of the timezone key, so a turn can be shown to cost at most one.</summary>
+    public int ZoneReads { get; private set; }
+
+    public Task<ConfigValue?> GetAsync(ulong guildId, string key, CancellationToken ct = default)
+    {
+        if (key != ConfigKeys.Timezone)
+        {
+            return Task.FromResult<ConfigValue?>(null);
+        }
+
+        ZoneReads++;
+        return Task.FromResult(timezone is null
+            ? null
+            : new ConfigValue(ConfigKeys.All.First(k => k.Key == ConfigKeys.Timezone), timezone));
+    }
+
+    public Task<IReadOnlyDictionary<string, ConfigValue>> GetAllAsync(
+        ulong guildId, CancellationToken ct = default)
+        => throw new NotSupportedException("the chat pipeline reads one key");
+
+    public Task<ConfigWriteResult> SetAsync(
+        ulong guildId, string key, string value, ulong actorId, CancellationToken ct = default)
+        => throw new NotSupportedException("chat never writes config");
+
+    public Task<ConfigWriteResult> ClearAsync(
+        ulong guildId, string key, ulong actorId, CancellationToken ct = default)
+        => throw new NotSupportedException("chat never writes config");
+
+    public Task<string> ExportAsync(ulong guildId, CancellationToken ct = default)
+        => throw new NotSupportedException("chat never exports config");
+
+    public Task<ConfigImportResult> ImportAsync(
+        ulong guildId, string json, ulong actorId, CancellationToken ct = default)
+        => throw new NotSupportedException("chat never imports config");
+}
+
 internal static class Build
 {
     public const ulong Guild = 111UL;
@@ -357,13 +399,15 @@ internal static class Build
         FakePersonRepository? people = null,
         FakeSessionCache? cache = null,
         FakeFeatureGate? features = null,
-        DateTimeOffset? now = null)
+        DateTimeOffset? now = null,
+        FakeChatConfig? config = null)
         => new(
             Persona(),
             people ?? new FakePersonRepository(),
             cache ?? new FakeSessionCache(),
             features ?? new FakeFeatureGate(),
             new FixedClock(now ?? Now),
+            config ?? new FakeChatConfig(null),
             NullLogger<ChatPipeline>.Instance);
 
     public static ChatIntrospection Introspection(
