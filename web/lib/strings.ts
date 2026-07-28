@@ -305,6 +305,7 @@ const en = {
   "health.players": "Playing now",
   "health.playersEmpty": "Nothing playing.",
   "health.noTrack": "Connected, nothing queued",
+  "health.queued": "{n} waiting",
   "health.failed": "Could not reach her. If the page loaded, the panel is up and the bot is not.",
 
   "errors.title": "Errors",

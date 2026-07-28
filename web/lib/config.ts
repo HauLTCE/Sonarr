@@ -37,8 +37,22 @@ export type ConfigField = {
 type ApiValues = Record<string, { value: string | null; kind: string }>;
 
 /**
+ * The kind for a key the API did not send, so the row still renders the right control. Only Boolean
+ * changes the control, so everything else can stay a text field.
+ */
+const KINDS: Record<string, string> = {
+  levelup_dm: "Boolean",
+  xp_decay: "Boolean",
+};
+
+/**
  * Turns the API's map into the form's rows: known keys first in the order above, then anything the
  * API sent that this panel has not been taught yet.
+ *
+ * Every known key gets a row whether or not the API sent it. `GET /api/admin/config/{id}` only
+ * returns keys that already have a stored value, so filtering to what it sent would mean a setting
+ * that has never been set cannot be set — the page would show fewer fields the less configured the
+ * server is, which is backwards.
  */
 export function configFields(values: ApiValues, t: Translate): ConfigField[] {
   const known = new Set(CONFIG_ORDER);
@@ -47,9 +61,8 @@ export function configFields(values: ApiValues, t: Translate): ConfigField[] {
     .sort();
 
   return [...CONFIG_ORDER, ...extra]
-    .filter((key) => key in values)
     .map((key) => {
-      const entry = values[key];
+      const entry = values[key] ?? { value: null, kind: KINDS[key] ?? "ChannelId" };
       const labelKey = `cfg.${key}` as StringKey;
       const hintKey = `cfg.${key}.hint` as StringKey;
       const label = t(labelKey);

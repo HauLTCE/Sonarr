@@ -14,7 +14,9 @@ type Status = {
   checks: { name: string; healthy: boolean; detail: string | null }[] | null;
   live: {
     guilds?: number;
-    players?: { guildId: string; state: string; track: string | null }[];
+    // Field names as `StatusPagePusher.Snapshot()` writes them — this blob is serialised by hand and
+    // parsed back as a node, so nothing checks these for us.
+    players?: { guildId: string; state: string; queued: number; nowPlaying: string | null }[];
   } | null;
   mood: string | null;
 };
@@ -132,10 +134,11 @@ export default async function HealthPage({ searchParams }: { searchParams: Query
               status.data.live.players.map((player) => (
                 <div className="row" key={player.guildId}>
                   <div className="row-main">
-                    <div className="row-title">{player.track ?? t("health.noTrack")}</div>
+                    <div className="row-title">{player.nowPlaying ?? t("health.noTrack")}</div>
                     <div className="row-sub mono">
                       {session.guilds.find((g) => g.guildId === player.guildId)?.name ??
                         player.guildId}
+                      {player.queued > 0 ? ` · ${t("health.queued", { n: player.queued })}` : ""}
                     </div>
                   </div>
                   <span className="row-value mono">{player.state}</span>
