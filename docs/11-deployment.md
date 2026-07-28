@@ -148,12 +148,51 @@ record of what is deployed). Both images build there. The stack has never been s
 
    - **`bot_data.db` is in WAL mode**, and SQLite cannot open a WAL database read-only
      without creating a `-shm` file beside it — impossible on a `:ro` mount, and it fails
-     as `SQLite Error 14: unable to open database file`. Run `pragma journal_mode=delete`
-     on the **snapshot only**, never the live file. Lossless, because the online backup
-     API has already folded in every committed WAL frame.
-   - **The container runs as `uid=1654(app)`**, so `chown -R 1654:1654` the snapshot or
-     the importer reports "nothing to import" — it reports absence, not the permission
-     error underneath. Keep mode 0600; this is live user data.
+     as `SQLite Error 14: unable to open database file`. Copy the `-wal` and `-shm`
+     sidecars along with the `.db` (`cp -a` all three, or the copy is a torn read: the WAL
+     was 762 KB against a 155 KB main file, so most of the recent data lives there), then
+     on the **snapshot only**, never the live file:
+
+     ```sh
+     python3 -c "import sqlite3; c=sqlite3.connect('bot_data.db'); \
+       c.execute('pragma wal_checkpoint(TRUNCATE)'); c.execute('pragma journal_mode=delete')"
+     ```
+
+     Verify with `pragma integrity_check` and by diffing per-table `count(*)` against the
+     live file opened read-only (`sqlite3.connect('file:...?mode=ro', uri=True)`), which is
+     how the 2026-07-28 rehearsal confirmed all 10 tables matched. Note there is no
+     `sqlite3` CLI on the box — the stdlib module through `python3` is the tool.
+   - **The container runs as `uid=1654(app)`**, so `chown -R 1654:1654` the snapshot.
+     `playlists.json` is mode 0600 root-only on the live box, and the import dies on it
+     with `import failed: Access to the path '/legacy/playlists.json' is denied.` — after
+     the guild/levels steps have already run. It is re-runnable, so this costs a retry
+     rather than a bad state, but it burns freeze minutes. Keep the snapshot mode 0600
+     (`chmod -R u=rX,go=`); this is live user data.
+
+   Full dry run against a throwaway `sonarr_rehearsal` database, 2026-07-28 — no freeze,
+   live bot never stopped, snapshot row counts verified equal to the live DB across all
+   10 SQLite tables first. This is the reconciliation table to expect:
+
+   ```
+   core.guild                        3        3        0  existing rows left alone
+   levels.progress                  14       14        0  voice/streak start 0
+   core.guild_config                 7        3        4  non-catalog keys dropped
+   chat.person                       5        5        0  fired_log/stack fresh
+   chat.episode                      1        1        0  embeddings backfilled later
+   chat.guild_state                  2        2        0
+   music.playlist                    0        0        6  0 track(s)
+   28 row(s) written.
+   ```
+
+   A second run wrote 24 rows and left every count identical, so "safe to re-run" is
+   tested, not asserted — a mid-freeze retry converges.
+
+   **The 6 skipped playlists are not a data loss.** `playlists.json` is in the pre-guild
+   flat format (`{name: [{title, url}]}`, 87 tracks), and the old bot's own loader
+   (`cogs/music/cog.py:145-155`) files a flat file under a reserved `_legacy` bucket and
+   explicitly does not serve it to any guild. Those playlists are already unreachable in
+   production today; there is no guild id to attach them to and inventing one would put
+   someone else's tracks in a server. Recreate per server after cutover.
 
    `core.member` stays empty after the import, which is correct. It is a runtime identity
    cache, nothing FKs to it, and it fills in as people speak — the 60 s activity flush
