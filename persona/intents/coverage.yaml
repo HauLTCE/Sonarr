@@ -1,0 +1,117 @@
+# Coverage intents: routes to authored pools that nothing pointed at.
+#
+# These are not new behaviour. Every pool below shipped with the v1 persona and had no route in the
+# rewrite, so the messages it was written for drew a generic line instead. 233 pools were defined
+# and 114 referenced from YAML; the head of the corpus fallthrough list mapped almost one-to-one
+# onto the unreferenced ones.
+#
+# The distinction from disruptive.yaml is worth keeping: that file is where a wrong reply is a
+# safety problem, and FixtureReplyTests asserts on it. Here a wrong reply is only a worse reply.
+# So these are lower specificity, and they lose to anything in that file that also matches.
+intents:
+  # "101010", "123", "455" -- 11 messages in the corpus are bare digits, and every one drew a
+  # generic line. Anchored on both ends: a number inside a sentence is part of the sentence, and
+  # matching it here would swallow "i have 3 cats".
+  - id: BARE_NUMBERS
+    match:
+      regex:
+        - "^[\\s\\d.,:;+\\-*/=()]+$"
+    pool: disruptive_numbers
+    affect:
+      amusement: -1.0
+
+  # "you're gay", "define gay", "you're gay as fuck man" -- 6 in the corpus. Deliberately separate
+  # from HATE_SPEECH: this is playground insult, not a slur, and the authored pool answers it as
+  # such ("wow, a gay joke. groundbreaking comedy."). Routing it to the refusal pool would be a
+  # category error in the other direction.
+  - id: GAY_JOKE
+    match:
+      regex:
+        - "\\b(?:you'?re|ur|youre|u r) (?:so )?gay\\b"
+        - "^define gay$"
+        - "\\bthat'?s (?:so )?gay\\b"
+        - "\\bno homo\\b"
+    pool: joke_gay
+    affect:
+      amusement: -1.0
+      trust: -1.0
+
+  # The largest untranslated slice of the corpus is Vietnamese without diacritics ("vcl", "clm",
+  # "vye"). She has no lines in any other language, so the honest reply is the authored one that
+  # says so rather than a dismissal that reads as if she understood.
+  #
+  # Only the tokens that are unambiguous. "no" is Vietnamese for "debt" and English for no; a
+  # broad wordlist here would misfire on ordinary English constantly, which is worse than missing.
+  #
+  # `dm` and `vl` are split out and anchored to the end of the message: both are Vietnamese
+  # profanity and both are ordinary English openers ("dm me", "vl" as a typo), so they only count
+  # when they are the whole message. That gives up one real row ("vl the a") to avoid answering
+  # "dm me on discord" in a language nobody was speaking.
+  - id: FOREIGN_LANGUAGE
+    match:
+      regex:
+        - "^(?:dm|vl)$"
+        - "^(?:vcl|clm|cmn|dcm|vkl|đm|vãi|vai cả|vailon)\\b"
+        - "\\b(?:cai gi the|cai gi|gi the|the la gi|khong hieu|noi gi)\\b"
+        - "\\b(?:什么|你好|谢谢|なに|ありがとう|안녕|뭐야)\\b"
+    pool: foreign_language
+    affect:
+      amusement: -1.0
+
+  # "bro", "get a load of this guy", "Common Sonarr W", "say sth random" -- filler with no content
+  # to answer. The authored pool refuses the small talk, which is in voice and specific, where the
+  # generic pool's "i don't remember asking" reads as a non-sequitur to "bro".
+  - id: SMALL_TALK
+    match:
+      regex:
+        - "^(?:bro|bruh|dude|man|yo bro|lmao|lmfao|kek|based)$"
+        - "\\bget a load of\\b"
+        - "\\bsay (?:something|sth) random\\b"
+        - "\\bmake conversation\\b"
+        - "\\bhow'?s it going\\b"
+    pool: social_chitchat
+    affect:
+      amusement: -1.0
+
+  # "askldjwaklnaskld" and friends. A run of letters with no vowel structure is a keysmash, not a
+  # word she failed to understand -- disruptive_keysmash already had a route, but the longer
+  # nonsense ones ("tell me about", "fix what?") land here instead of on a generic shrug.
+  - id: NONSENSE
+    match:
+      regex:
+        - "^[bcdfghjklmnpqrstvwxz]{6,}$"
+        - "^(?:asdf|qwer|zxcv|hjkl)+"
+        - "^[a-z]{12,}$"
+    pool: disruptive_nonsense
+    affect:
+      amusement: -1.0
+
+  # "love u", "i appreciate u", "I'd love to know more about you" -- 5 in the corpus. user_love is
+  # authored for exactly this and is blunt about it ("don't.", "i'm a bot."). The generic pool's
+  # "tell someone who cares" happens to work here, which is why this sat unnoticed.
+  - id: AFFECTION
+    match:
+      regex:
+        - "\\b(?:love|luv) (?:u|you|ya)\\b"
+        - "\\bi (?:appreciate|adore|adore) (?:u|you)\\b"
+        - "\\byou'?re (?:the )?best\\b"
+        - "\\bmarry me\\b"
+        - "\\bbe my (?:girlfriend|gf|wife|waifu)\\b"
+    pool: user_love
+    affect:
+      trust: 1.0
+      amusement: -1.0
+
+  # "I know everything", "I know a lot about you" -- claims to know her. The authored pool treats
+  # it as the boundary problem it is rather than as a boast to be dunked on.
+  - id: CLAIMS_TO_KNOW_HER
+    match:
+      regex:
+        - "\\bi know (?:a lot |everything |all )?about you\\b"
+        - "\\bi know everything\\b"
+        - "\\bi'?ve been watching you\\b"
+        - "\\bi know where you\\b"
+    pool: disruptive_stalker
+    affect:
+      trust: -2.0
+      anger: 1.0

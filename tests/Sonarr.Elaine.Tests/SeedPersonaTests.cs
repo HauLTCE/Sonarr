@@ -45,8 +45,8 @@ public class SeedPersonaTests
     [Fact]
     public void ShippedPersona_DoesNotGrowMoreOrphanPools()
     {
-        // 110 when the finding was made; 106 after disruptive.yaml wired four of them.
-        const int recorded = 106;
+        // 110 when the finding was made, 106 after disruptive.yaml, 99 after coverage.yaml.
+        const int recorded = 99;
 
         List<PersonaIssue> orphans =
             [.. SeedPersona.Result.Issues.Where(i => i.Rule == Rules.OrphanPool)];
@@ -143,6 +143,22 @@ public class SeedPersonaTests
     [InlineData("my dog is cute", "PETS")]
     [InlineData("what are you", "Q_BOT")]
     [InlineData("rock paper scissors", "RPS_START")]
+    // Real corpus messages, one per coverage route (persona/intents/coverage.yaml). Each drew a
+    // generic line before the route existed, and a green suite does not prove a route fires —
+    // only pinning the pairing does.
+    [InlineData("101010", "BARE_NUMBERS")]
+    [InlineData("you're gay", "GAY_JOKE")]
+    [InlineData("clm", "FOREIGN_LANGUAGE")]
+    [InlineData("bro", "SMALL_TALK")]
+    [InlineData("askldjwaklnaskld", "NONSENSE")]
+    [InlineData("love u", "AFFECTION")]
+    [InlineData("I know everything", "CLAIMS_TO_KNOW_HER")]
+    // The safety routes from persona/intents/disruptive.yaml. FixtureReplyTests asserts on what
+    // she says; these assert that she got there deliberately rather than by fallback lottery.
+    [InlineData("heil hitler", "HATE_SPEECH")]
+    [InlineData("read reggin backwards", "HATE_SPEECH")]
+    [InlineData("testing", "BOT_TEST")]
+    [InlineData("go destroy account", "DESTRUCTIVE_REQUEST")]
     public void ShippedPersona_RecognizesPinnedBehaviors(string input, string expected)
     {
         IntentRecognizer recognizer = new(SeedPersona.Graph);
