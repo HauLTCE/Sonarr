@@ -29,6 +29,9 @@ psql() {
 fails=0
 TAG=tier-check-$$
 
+# Set when the plain-user tier had to be synthesised; removed on the way out.
+SYNTHETIC=
+
 # A minted session leaves a row in web.session and a mirror in Redis. The mirror is what the fast
 # read path uses, so a DB-only delete would leave the cookie working for up to its TTL -- the real
 # revoke path removes both, and so does this.
@@ -39,7 +42,13 @@ drop_sessions() {
   psql -c "delete from web.session where user_agent = '$TAG';" >/dev/null 2>&1 || true
 }
 
-trap drop_sessions EXIT INT TERM
+cleanup() {
+  drop_sessions
+  [ -n "$SYNTHETIC" ] && psql -c "delete from core.member where user_id = $SYNTHETIC;" >/dev/null 2>&1
+  return 0
+}
+
+trap cleanup EXIT INT TERM
 
 # Mints a session for $1 and echoes the raw cookie value.
 mint() {
@@ -91,6 +100,26 @@ for row in $(psql -F'|' -c "select user_id, guild_id from core.member order by m
       [ -n "$PLAIN" ] || { PLAIN=$cookie; PLAIN_GUILD=$g; PLAIN_ID=$u; } ;;
   esac
 done
+
+# A deployment can genuinely have no plain member -- this one has two members, the bot admin and one
+# manager. Skipping the user tier there would skip the tier that matters most, so synthesise one: a
+# member row is all `/api/me/*` needs, and it is deleted on the way out. The id is outside the
+# snowflake range so it can never collide with a real account.
+if [ -z "$PLAIN" ]; then
+  SYNTHETIC=1
+  PLAIN_ID=$SYNTHETIC
+  PLAIN_GUILD=$(psql -c "select guild_id from core.guild limit 1;")
+  if [ -n "$PLAIN_GUILD" ]; then
+    psql -c "insert into core.member (guild_id, user_id, username, display_name, first_seen_at,
+                                      last_active_at, message_count, created_at, updated_at)
+             values ($PLAIN_GUILD, $SYNTHETIC, 'tier-check', 'tier-check', now(), now(), 0, now(), now())
+             on conflict do nothing;" >/dev/null
+    PLAIN=$(mint "$SYNTHETIC")
+    echo "user tier: no plain member exists on this deployment; synthesised $SYNTHETIC"
+  else
+    SYNTHETIC=
+  fi
+fi
 
 ADMIN_ID=$(echo "$ADMINS" | cut -d, -f1)
 ADMIN=$(mint "$ADMIN_ID")
