@@ -9,7 +9,7 @@ namespace Sonarr.Elaine.Tests;
 /// <remarks>
 /// <see cref="CorpusReplyTests"/> is the wide net and it skips on a clean checkout, because the
 /// corpus it reads holds real user data and is gitignored. That is honest but it means the whole
-/// real-input guard vanishes in CI, so this is the part that travels: 49 hand-picked messages that
+/// real-input guard vanishes in CI, so this is the part that travels: 48 hand-picked messages that
 /// identify nobody, asserting the same floor.
 /// <para>The selection is deliberate rather than sampled. Half are the ordinary traffic — a
 /// greeting, a poke, a bare "?" — and half are the ones where a wrong answer would actually matter:

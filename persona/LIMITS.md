@@ -51,8 +51,16 @@ record.
   needs judgement, which is what the review sheet and the sub-agent pass are for — and a
   sub-agent is a second opinion, not an oracle. Same sheet, different run, different verdicts on
   the borderline rows, so only clear-cut rows are pinned as golden.
-- **General quality.** The corpus is a few hundred distinct messages from a handful of people.
-  That is enough to find gaps and nowhere near enough to claim the bot is good in general.
+- **General quality.** The corpus is 438 distinct messages from a handful of people. That is
+  enough to find gaps and nowhere near enough to claim the bot is good in general.
+- **Coverage is thin and the number is deliberately not a target.** As of 2026-07-29 the corpus
+  reaches **58 of 129 intents and falls through on 243 rows (55.5%)**. Fallthrough means the reply
+  came from a generic pool, so it was not *about* the message. That is the honest headline of the
+  whole exercise and it is printed on every run by
+  `CorpusReplyTests.CoverageAndFallthroughAreReported`, which asserts nothing about it — driving
+  the number down by authoring intents to match this one corpus would fit 438 messages from a few
+  people and generalise to nothing. The 71 unreached intents are mostly unreached because nobody
+  happened to say those things, not because they are broken.
 - **Nothing asserts against the legacy reply.** `CorpusRow.LegacyOut` came out of a different
   engine; matching it would pin the old bot's behaviour instead of testing the new one's. It is
   evidence of what was *asked*, nothing more.
