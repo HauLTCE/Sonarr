@@ -141,6 +141,17 @@ const en = {
   "privacy.title": "Privacy",
   "privacy.lead":
     "Take your data with you, or delete it. These are the only buttons here that cannot be undone, and each one says exactly what it removes.",
+  "privacy.holdings": "What she holds about you",
+  "privacy.holdingsHint":
+    "Row counts, area by area. The download below has the rows themselves; the deletes further down remove them.",
+  "privacy.area.chatEpisodes": "Conversations",
+  "privacy.area.relationshipEvents": "Relationship events",
+  "privacy.area.tracksPlayed": "Tracks played",
+  "privacy.area.trackRatings": "Track ratings",
+  "privacy.area.savedQuotes": "Saved quotes",
+  "privacy.area.reminders": "Reminders",
+  "privacy.area.capsules": "Time capsules",
+  "privacy.area.modCases": "Moderation cases",
   "privacy.export": "Download everything",
   "privacy.exportHint":
     "A JSON file with every row Sonarr holds about you. Nothing is deleted and nothing changes.",
