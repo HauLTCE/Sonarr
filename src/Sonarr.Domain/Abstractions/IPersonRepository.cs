@@ -27,6 +27,20 @@ public interface IPersonRepository
     /// </summary>
     Task<bool> ForgetFactAsync(long guildId, long userId, string predicate, CancellationToken ct = default);
 
+    /// <summary>
+    /// User ids in one guild ordered by trust, most-trusted first (or least-trusted first when
+    /// <paramref name="lowestFirst"/>) — who her favorites and least favorites are.
+    /// </summary>
+    /// <remarks>
+    /// Ids only, deliberately: the caller compares a position, and returning other people's
+    /// register values would hand out state that is theirs (docs/06).
+    /// </remarks>
+    Task<IReadOnlyList<long>> GetTrustRankedUsersAsync(
+        long guildId,
+        int limit,
+        bool lowestFirst = false,
+        CancellationToken ct = default);
+
     /// <summary>Register movement over a window, oldest first — feeds trend lines and tier moments.</summary>
     Task<IReadOnlyList<RelationshipEvent>> GetRecentEventsAsync(
         long guildId,

@@ -51,6 +51,24 @@ public sealed class ChatIntrospection(
     /// </summary>
     public const double TrendThreshold = 1.0;
 
+    /// <summary>Holding the top or the bottom of the guild's trust ordering gets its own line.</summary>
+    public const string TopStandingPool = "standing_top";
+
+    public const string BottomStandingPool = "standing_bottom";
+
+    /// <summary>
+    /// Trust this far from neutral before a standing line is even considered. Guards the query:
+    /// somebody she has no feeling about is neither a favorite nor an enemy, whatever the
+    /// ordering says on a quiet server.
+    /// </summary>
+    public const double StandingThreshold = 3.0;
+
+    /// <summary>
+    /// How many people have to be on a list before topping it means anything. Two: being first
+    /// of one is not a ranking.
+    /// </summary>
+    public const int MinRanked = 2;
+
     public const string MemoriesPool = "memory_retrieve";
     public const string NoMemoriesPool = "recall_empty";
     public const string ForgotPool = "memory_forget";
@@ -96,7 +114,45 @@ public sealed class ChatIntrospection(
             ? null
             : await TrendAsync(graph, guildId, userId, turn, ct).ConfigureAwait(false);
 
-        return trend is null ? level : $"{level} {trend}";
+        string? standing = person is null
+            ? null
+            : await StandingAsync(graph, guildId, userId, trust, turn, ct).ConfigureAwait(false);
+
+        return string.Join(' ', new[] { level, trend, standing }.Where(s => !string.IsNullOrEmpty(s)));
+    }
+
+    /// <summary>
+    /// The line for holding the top or the bottom of the guild's trust ordering, or null for
+    /// everyone in between — which is nearly everyone.
+    /// </summary>
+    /// <remarks>
+    /// docs/10: "favorites/least-favorites, taking sides, rivalry commentary → queries over
+    /// relationship_event + trust ordering, surfaced through authored lines". Only the extremes
+    /// get a line: "you're fourth" is a leaderboard, and she does not hand out numbers.
+    /// <para>Nobody else is ever named. Telling you who her favorite is would publish that
+    /// person's standing to you (docs/06), so the line is about your position and no one
+    /// else's — which is also the only rivalry commentary that survives the privacy rule.</para>
+    /// <para>One query, and only for someone already at an extreme of their own: a person she
+    /// feels nothing about cannot top either list, so the common case costs nothing.</para>
+    /// </remarks>
+    private async Task<string?> StandingAsync(
+        PersonaGraph graph, long guildId, long userId, double trust, long turn, CancellationToken ct)
+    {
+        if (Math.Abs(trust) < StandingThreshold)
+        {
+            return null;
+        }
+
+        bool least = trust < 0;
+        IReadOnlyList<long> ranked = await people
+            .GetTrustRankedUsersAsync(guildId, MinRanked, least, ct)
+            .ConfigureAwait(false);
+
+        // Two, not one: topping a list nobody else is on is not a ranking, and "you're my
+        // favorite" on a server where she likes exactly one person is a joke at her expense.
+        return ranked.Count >= MinRanked && ranked[0] == userId
+            ? Draw(graph, least ? BottomStandingPool : TopStandingPool, userId, turn)
+            : null;
     }
 
     /// <summary>

@@ -103,6 +103,40 @@ public sealed class PersonRepository(SonarrDbContext db) : IPersonRepository
         return updated > 0;
     }
 
+    /// <remarks>
+    /// Raw SQL because trust lives inside the <c>registers</c> jsonb: the column is mapped through
+    /// a serialize-to-text converter, so LINQ cannot order by it without loading every person in
+    /// the guild into memory first.
+    /// <para>Trust 0 is excluded. Somebody she feels nothing about is neither a favorite nor a
+    /// least favorite, and without the filter a quiet guild ranks strangers.</para>
+    /// </remarks>
+    public async Task<IReadOnlyList<long>> GetTrustRankedUsersAsync(
+        long guildId,
+        int limit,
+        bool lowestFirst = false,
+        CancellationToken ct = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+
+        // Two whole statements rather than one with an interpolated direction: every value here
+        // is a parameter, and nothing this method builds is a string a caller could shape.
+        return lowestFirst
+            ? await db.Database.SqlQuery<long>(
+                $"""
+                SELECT (user_id) AS "Value" FROM chat.person
+                WHERE guild_id = {guildId} AND (registers->>'trust')::float8 < 0
+                ORDER BY (registers->>'trust')::float8 ASC
+                LIMIT {limit}
+                """).ToListAsync(ct)
+            : await db.Database.SqlQuery<long>(
+                $"""
+                SELECT (user_id) AS "Value" FROM chat.person
+                WHERE guild_id = {guildId} AND (registers->>'trust')::float8 > 0
+                ORDER BY (registers->>'trust')::float8 DESC
+                LIMIT {limit}
+                """).ToListAsync(ct);
+    }
+
     public async Task<IReadOnlyList<RelationshipEvent>> GetRecentEventsAsync(
         long guildId,
         long userId,
