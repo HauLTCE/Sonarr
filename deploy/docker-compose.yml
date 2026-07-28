@@ -46,12 +46,19 @@ services:
       dockerfile: Dockerfile
     # Host networking, like the bot: that is what makes 127.0.0.1:5088 below the API rather
     # than this container talking to itself. No port mapping applies as a result — HOSTNAME
-    # is what keeps :3000 on loopback, where the user's tunnel picks it up.
+    # is the only thing that decides who can reach :3000.
     network_mode: host
     environment:
       # Server-side calls only; the panel never gets DB creds or the Discord token (docs/06).
       SONARR_API_URL: http://127.0.0.1:5088
-      HOSTNAME: 127.0.0.1       # user's tunnel maps sonarr.hault.io.vn -> :3000
+      # 0.0.0.0, not 127.0.0.1: the panel is meant to be reachable from the LAN, and the
+      # tunnel that serves sonarr.hault.io.vn does not run on this box — with the old
+      # loopback bind it could not reach the origin either, which is what the 502 was.
+      # The CT has no host firewall (INPUT ACCEPT), so this is genuinely open on the LAN:
+      # every page is behind the DM-token session (307 to /login) and every API route
+      # behind the cookie (401), so an unauthenticated visitor gets the login form and
+      # nothing else. That is the whole of the access control — there is no IP allow-list.
+      HOSTNAME: 0.0.0.0
       PORT: 3000
     depends_on: [bot]
     restart: unless-stopped

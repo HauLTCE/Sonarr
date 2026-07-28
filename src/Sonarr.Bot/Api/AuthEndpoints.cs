@@ -74,8 +74,7 @@ public static class AuthEndpoints
                 : Results.Unauthorized();
         }
 
-        PanelCookies.Issue(
-            http.Response, result.RawSessionId, body?.Remember ?? false, result.ExpiresAt);
+        PanelCookies.Issue(http, result.RawSessionId, body?.Remember ?? false, result.ExpiresAt);
 
         // The id is a string: JSON numbers lose snowflake precision in JavaScript.
         return Results.Ok(new
@@ -89,7 +88,7 @@ public static class AuthEndpoints
         HttpContext http, IWebAuthService auth, CancellationToken ct)
     {
         await auth.LogoutAsync(http.Request.Cookies[PanelCookies.Session], ct);
-        PanelCookies.Clear(http.Response);
+        PanelCookies.Clear(http);
 
         // Always 204: a logout that finds nothing already achieved what the caller wanted.
         return Results.NoContent();
@@ -113,7 +112,7 @@ public static class AuthEndpoints
         }
 
         var revoked = await auth.LogoutAllAsync(user.UserId, ct);
-        PanelCookies.Clear(http.Response);
+        PanelCookies.Clear(http);
 
         return Results.Ok(new { revoked });
     }
