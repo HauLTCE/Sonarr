@@ -61,6 +61,11 @@ USER app
 # timezone lookups on Windows dev boxes — but not here: this base image ships `tzdata`
 # (verified 2026-07-27), and on Linux TimeZoneInfo reads /usr/share/zoneinfo, not ICU.
 # So `/timezone` works in the container. Don't switch to a base without tzdata.
+#
+# The other half of dropping ICU is culture *creation*: Discord.Net builds a CultureInfo from
+# each guild's PreferredLocale, which throws CultureNotFoundException unless
+# PredefinedCulturesOnly=false is also set. It is (same props file) — don't remove one without
+# the other, or GUILD_AVAILABLE starts failing and guilds silently never populate.
 
 ENV ASPNETCORE_URLS=http://0.0.0.0:5088 \
     DOTNET_gcServer=0

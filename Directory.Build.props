@@ -6,6 +6,13 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Without this, `new CultureInfo("en-US")` throws under InvariantGlobalization, and
+         Discord.Net does exactly that for every guild's PreferredLocale — which killed every
+         GUILD_AVAILABLE dispatch at cutover (guilds never populated). Setting this to false
+         makes culture creation succeed backed by invariant data instead of throwing. We never
+         format anything with a guild's locale, so invariant data is the right answer anyway;
+         the alternative is apt-installing libicu into the image for strings we don't use. -->
+    <PredefinedCulturesOnly>false</PredefinedCulturesOnly>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <AnalysisLevel>latest</AnalysisLevel>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
