@@ -12,41 +12,6 @@ public sealed class MemberRepository(SonarrDbContext db) : IMemberRepository
             .AsNoTracking()
             .FirstOrDefaultAsync(m => m.GuildId == guildId && m.UserId == userId, ct);
 
-    public async Task<Member> UpsertAsync(
-        long guildId,
-        long userId,
-        string username,
-        string displayName,
-        CancellationToken ct = default)
-    {
-        Member? member = await db.Members
-            .FirstOrDefaultAsync(m => m.GuildId == guildId && m.UserId == userId, ct);
-
-        DateTimeOffset now = DateTimeOffset.UtcNow;
-        if (member is null)
-        {
-            member = new Member
-            {
-                GuildId = guildId,
-                UserId = userId,
-                Username = Trim(username),
-                DisplayName = Trim(displayName),
-                FirstSeenAt = now,
-                LastActiveAt = now,
-            };
-            db.Members.Add(member);
-        }
-        else
-        {
-            member.Username = Trim(username);
-            member.DisplayName = Trim(displayName);
-            member.UpdatedAt = now;
-        }
-
-        await db.SaveChangesAsync(ct);
-        return member;
-    }
-
     public async Task ApplyActivityAsync(
         IReadOnlyCollection<MemberActivityDelta> deltas,
         CancellationToken ct = default)
@@ -57,18 +22,43 @@ public sealed class MemberRepository(SonarrDbContext db) : IMemberRepository
             return;
         }
 
-        // ponytail: one UPDATE per member. Fine at this scale (a flush touches a few
-        // rows); if a flush ever spans hundreds, swap for a single UNNEST-join update.
+        // An upsert, not an update: this is the only path that inserts into core.member, so a
+        // member who has never spoken before gets their row here. Everything else that writes to
+        // this table (timezone, birthday) is an ExecuteUpdate that silently no-ops without one.
+        //
+        // first_seen_at is set on insert only and never touched again — it is what /anniversary
+        // reports, so a later flush must not move it. COALESCE keeps Discord's own join date when
+        // the gateway had the member cached and falls back to now() when it did not.
+        //
+        // ponytail: one statement per member. Fine at this scale (a 60 s flush touches a few
+        // rows); if a flush ever spans hundreds, swap for a single UNNEST-joined upsert.
         foreach (MemberActivityDelta d in deltas)
         {
-            await db.Members
-                .Where(m => m.GuildId == d.GuildId && m.UserId == d.UserId)
-                .ExecuteUpdateAsync(
-                    s => s
-                        .SetProperty(m => m.MessageCount, m => m.MessageCount + d.MessageCount)
-                        .SetProperty(m => m.LastActiveAt, d.LastActiveAt)
-                        .SetProperty(m => m.UpdatedAt, d.LastActiveAt),
-                    ct);
+            string username = Trim(d.Username);
+            string displayName = Trim(d.DisplayName);
+
+            // Resolved here rather than with a SQL COALESCE: a null DateTimeOffset? loses its CLR
+            // type passing through FormattableString, and Npgsql cannot infer the type of a bare
+            // null parameter. One non-null value goes to the server instead.
+            DateTimeOffset firstSeenAt = d.JoinedAt ?? d.LastActiveAt;
+
+            await db.Database.ExecuteSqlAsync(
+                $"""
+                INSERT INTO core.member
+                    (guild_id, user_id, username, display_name,
+                     first_seen_at, last_active_at, message_count, created_at, updated_at)
+                VALUES
+                    ({d.GuildId}, {d.UserId}, {username}, {displayName},
+                     {firstSeenAt}, {d.LastActiveAt}, {d.MessageCount},
+                     now(), now())
+                ON CONFLICT (guild_id, user_id) DO UPDATE
+                SET message_count = core.member.message_count + {d.MessageCount},
+                    last_active_at = {d.LastActiveAt},
+                    username = COALESCE(NULLIF({username}, ''), core.member.username),
+                    display_name = COALESCE(NULLIF({displayName}, ''), core.member.display_name),
+                    updated_at = {d.LastActiveAt}
+                """,
+                ct);
         }
     }
 

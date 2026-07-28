@@ -7,11 +7,11 @@ public interface IMemberRepository
 {
     Task<Member?> GetAsync(long guildId, long userId, CancellationToken ct = default);
 
-    /// <summary>Insert-or-refresh the cached username/display name on gateway events.</summary>
-    Task<Member> UpsertAsync(long guildId, long userId, string username, string displayName, CancellationToken ct = default);
-
     /// <summary>
-    /// Batched write from Redis: bump message_count and last_active_at in one round trip.
+    /// Batched write: bump message_count and last_active_at, and <b>create the row if it is not
+    /// there yet</b>. This is the only path that inserts into <c>core.member</c> — every other
+    /// write here is an UPDATE, so a member Sonarr has never seen speak has no row for
+    /// <c>/birthday</c>, <c>/timezone</c> or panel login to land on.
     /// </summary>
     Task ApplyActivityAsync(IReadOnlyCollection<MemberActivityDelta> deltas, CancellationToken ct = default);
 
@@ -46,9 +46,18 @@ public interface IMemberRepository
 /// <summary>One entry in the panel's server picker.</summary>
 public sealed record MemberGuild(long GuildId, string Name);
 
-/// <summary>One member's accumulated activity since the last flush.</summary>
+/// <summary>
+/// One member's accumulated activity since the last flush, plus the identity fields needed to
+/// create the row on first sight. <paramref name="JoinedAt"/> is Discord's own join timestamp —
+/// it becomes <c>first_seen_at</c>, so <c>/anniversary</c> reports the date they actually joined
+/// rather than the day Sonarr happened to notice them. Null when the gateway has no member object
+/// cached, in which case now() is the only honest answer.
+/// </summary>
 public readonly record struct MemberActivityDelta(
     long GuildId,
     long UserId,
     long MessageCount,
-    DateTimeOffset LastActiveAt);
+    DateTimeOffset LastActiveAt,
+    string Username = "",
+    string DisplayName = "",
+    DateTimeOffset? JoinedAt = null);

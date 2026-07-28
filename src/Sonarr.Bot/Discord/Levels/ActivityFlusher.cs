@@ -17,13 +17,29 @@ public sealed class ActivityBuffer
 {
     private readonly ConcurrentDictionary<(long GuildId, long UserId), Pending> pending = new();
 
-    /// <summary>Counts one message. Lock-free and allocation-free on the hot path after the first hit.</summary>
-    public void Record(ulong guildId, ulong userId)
+    /// <summary>
+    /// Counts one message. Lock-free and allocation-free on the hot path after the first hit.
+    /// </summary>
+    /// <param name="username">Discord handle, for the identity cache. Empty leaves it as it was.</param>
+    /// <param name="displayName">Nickname or global name. Empty leaves it as it was.</param>
+    /// <param name="joinedAt">
+    /// Discord's own join date, used only when the row is created. Null when the gateway had no
+    /// member object cached, and the flush then falls back to the message time.
+    /// </param>
+    public void Record(
+        ulong guildId,
+        ulong userId,
+        string username = "",
+        string displayName = "",
+        DateTimeOffset? joinedAt = null)
     {
         var key = ((long)guildId, (long)userId);
         DateTimeOffset now = DateTimeOffset.UtcNow;
 
-        pending.AddOrUpdate(key, _ => new Pending(1, now), (_, existing) => existing.Add(now));
+        pending.AddOrUpdate(
+            key,
+            _ => new Pending(1, now, username, displayName, joinedAt),
+            (_, existing) => existing.Add(now, username, displayName, joinedAt));
     }
 
     /// <summary>
@@ -42,17 +58,38 @@ public sealed class ActivityBuffer
         {
             if (pending.TryRemove(key, out Pending value))
             {
-                drained.Add(new MemberActivityDelta(key.GuildId, key.UserId, value.Count, value.LastActiveAt));
+                drained.Add(new MemberActivityDelta(
+                    key.GuildId,
+                    key.UserId,
+                    value.Count,
+                    value.LastActiveAt,
+                    value.Username,
+                    value.DisplayName,
+                    value.JoinedAt));
             }
         }
 
         return drained;
     }
 
-    private readonly record struct Pending(long Count, DateTimeOffset LastActiveAt)
+    private readonly record struct Pending(
+        long Count,
+        DateTimeOffset LastActiveAt,
+        string Username,
+        string DisplayName,
+        DateTimeOffset? JoinedAt)
     {
-        public Pending Add(DateTimeOffset at)
-            => new(Count + 1, at > LastActiveAt ? at : LastActiveAt);
+        /// <summary>
+        /// Newest non-empty name wins (a rename mid-window should land), and the first join date
+        /// seen sticks — it only matters on insert, and re-reading it cannot improve it.
+        /// </summary>
+        public Pending Add(DateTimeOffset at, string username, string displayName, DateTimeOffset? joinedAt)
+            => new(
+                Count + 1,
+                at > LastActiveAt ? at : LastActiveAt,
+                username.Length > 0 ? username : Username,
+                displayName.Length > 0 ? displayName : DisplayName,
+                JoinedAt ?? joinedAt);
     }
 }
 

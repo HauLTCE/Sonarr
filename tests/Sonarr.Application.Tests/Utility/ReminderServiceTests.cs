@@ -266,10 +266,6 @@ internal sealed class FakeTimezoneMemberRepository : IMemberRepository
         return Task.CompletedTask;
     }
 
-    public Task<Member> UpsertAsync(
-        long guildId, long userId, string username, string displayName, CancellationToken ct = default)
-        => Task.FromResult(new Member { GuildId = guildId, UserId = userId });
-
     public Task ApplyActivityAsync(
         IReadOnlyCollection<MemberActivityDelta> deltas, CancellationToken ct = default)
         => Task.CompletedTask;
