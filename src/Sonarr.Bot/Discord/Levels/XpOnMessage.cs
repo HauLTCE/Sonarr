@@ -63,7 +63,18 @@ public sealed class XpOnMessage(
         {
             // Message counts keep accruing even with levels switched off — /userstats and the
             // panel read them, and they are not XP.
-            activity.Record(guild.Id, userId);
+            //
+            // The names and join date ride along because this flush is the only thing that
+            // creates core.member rows: /birthday, /timezone and panel login are all UPDATEs
+            // that no-op without one. GetUser is the local cache, never a REST call — null on a
+            // cache miss, and the flush falls back to the message time for first_seen_at.
+            SocketGuildUser? cached = guild.GetUser(userId);
+            activity.Record(
+                guild.Id,
+                userId,
+                cached?.Username ?? string.Empty,
+                cached?.DisplayName ?? cached?.GlobalName ?? string.Empty,
+                cached?.JoinedAt);
 
             using IServiceScope scope = scopes.CreateScope();
             var features = scope.ServiceProvider.GetRequiredService<IFeatureGate>();
@@ -84,14 +95,13 @@ public sealed class XpOnMessage(
             }
 
             LevelsPolicy policy = await levels.GetPolicyAsync(guild.Id).ConfigureAwait(false);
-            SocketGuildUser? member = guild.GetUser(userId);
 
-            await LevelUpNotice.AnnounceAsync(guild, channelId, member, userId, award, policy, log)
+            await LevelUpNotice.AnnounceAsync(guild, channelId, cached, userId, award, policy, log)
                 .ConfigureAwait(false);
 
-            if (member is not null && award.RewardRoleIds.Count > 0)
+            if (cached is not null && award.RewardRoleIds.Count > 0)
             {
-                await LevelUpNotice.GrantRolesAsync(guild, member, award.RewardRoleIds, log).ConfigureAwait(false);
+                await LevelUpNotice.GrantRolesAsync(guild, cached, award.RewardRoleIds, log).ConfigureAwait(false);
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

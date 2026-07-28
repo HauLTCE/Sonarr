@@ -227,29 +227,34 @@ internal sealed class FakeMemberRepository : IMemberRepository
     public Task<Member?> GetAsync(long guildId, long userId, CancellationToken ct = default)
         => Task.FromResult(_rows.GetValueOrDefault((guildId, userId)));
 
-    public Task<Member> UpsertAsync(
-        long guildId, long userId, string username, string displayName, CancellationToken ct = default)
-    {
-        if (!_rows.TryGetValue((guildId, userId), out Member? row))
-        {
-            row = new Member { GuildId = guildId, UserId = userId };
-            _rows[(guildId, userId)] = row;
-        }
-
-        return Task.FromResult(row);
-    }
-
+    /// <summary>Mirrors the real ON CONFLICT upsert, including first_seen_at set on insert only.</summary>
     public Task ApplyActivityAsync(IReadOnlyCollection<MemberActivityDelta> deltas, CancellationToken ct = default)
     {
         Applied.AddRange(deltas);
         foreach (MemberActivityDelta delta in deltas)
         {
-            Member row = _rows.TryGetValue((delta.GuildId, delta.UserId), out Member? existing)
-                ? existing
-                : _rows[(delta.GuildId, delta.UserId)] = new Member { GuildId = delta.GuildId, UserId = delta.UserId };
+            if (!_rows.TryGetValue((delta.GuildId, delta.UserId), out Member? row))
+            {
+                row = _rows[(delta.GuildId, delta.UserId)] = new Member
+                {
+                    GuildId = delta.GuildId,
+                    UserId = delta.UserId,
+                    FirstSeenAt = delta.JoinedAt ?? delta.LastActiveAt,
+                };
+            }
 
             row.MessageCount += delta.MessageCount;
             row.LastActiveAt = delta.LastActiveAt;
+
+            if (delta.Username.Length > 0)
+            {
+                row.Username = delta.Username;
+            }
+
+            if (delta.DisplayName.Length > 0)
+            {
+                row.DisplayName = delta.DisplayName;
+            }
         }
 
         return Task.CompletedTask;
