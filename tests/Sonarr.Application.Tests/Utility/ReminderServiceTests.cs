@@ -284,4 +284,7 @@ internal sealed class FakeTimezoneMemberRepository : IMemberRepository
     public Task<IReadOnlyList<Member>> GetJoinAnniversariesAsync(
         long guildId, int month, int day, CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<Member>>([]);
+
+    public Task<long?> FindUserIdByUsernameAsync(string username, CancellationToken ct = default)
+        => Task.FromResult<long?>(null);
 }

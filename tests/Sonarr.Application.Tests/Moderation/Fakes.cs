@@ -206,6 +206,9 @@ internal sealed class FakeCooldownStore : ICooldownStore
 
     public Task<bool> TryConsumeLoginAsync(string identifier, CancellationToken cancellationToken = default)
         => Task.FromResult(true);
+
+    public Task<bool> TryConsumeVerifyAsync(string identifier, CancellationToken cancellationToken = default)
+        => Task.FromResult(true);
 }
 
 internal static class Build

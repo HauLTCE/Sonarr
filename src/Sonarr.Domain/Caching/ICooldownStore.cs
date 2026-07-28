@@ -31,6 +31,17 @@ public interface ICooldownStore
     Task<bool> TryConsumeLoginAsync(string identifier, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Wrong-code counter for one outstanding login token (<c>rl:login:verify:{user}</c>, max 5 in
+    /// the token's 10 minute life). Returns <c>false</c> once the allowance is spent, which is the
+    /// caller's signal to kill the token.
+    /// </summary>
+    /// <remarks>
+    /// Redis rather than a column on <c>web.login_token</c>: the count is only meaningful for as
+    /// long as the token is, and it expires with it. Fails closed like the rest of this interface.
+    /// </remarks>
+    Task<bool> TryConsumeVerifyAsync(string identifier, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Anti-spam recent-hash set (<c>rl:spam:{guild}:{user}</c>, 5 min): records
     /// <paramref name="messageHash"/> and returns how many times it has been seen in the window
     /// (1 = first time).

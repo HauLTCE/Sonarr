@@ -127,6 +127,24 @@ public sealed class MemberRepository(SonarrDbContext db) : IMemberRepository
                 && m.FirstSeenAt.Day == day)
             .ToListAsync(ct);
 
+    public async Task<long?> FindUserIdByUsernameAsync(string username, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(username);
+
+        // Distinct user ids, then Take(2): the same person has a row per guild, so one id across
+        // many rows is the normal case. Two distinct ids means the handle is ambiguous and the
+        // caller must not guess — see the interface remark.
+        List<long> ids = await db.Members
+            .AsNoTracking()
+            .Where(m => m.Username.ToLower() == username.ToLower())
+            .Select(m => m.UserId)
+            .Distinct()
+            .Take(2)
+            .ToListAsync(ct);
+
+        return ids.Count == 1 ? ids[0] : null;
+    }
+
     private static string Trim(string value)
         => value.Length <= 64 ? value : value[..64];
 }

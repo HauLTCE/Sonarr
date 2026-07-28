@@ -44,6 +44,9 @@ public static class RedisKeys
     /// <summary>Callers pass either an IP or a username — the doc limits both, same window.</summary>
     public static string RateLimitLogin(string identifier) => $"{Prefix}:rl:login:{identifier}";
 
+    /// <summary>Wrong-code attempts against one outstanding token (5, expires with the token).</summary>
+    public static string RateLimitLoginVerify(string identifier) => $"{Prefix}:rl:login:verify:{identifier}";
+
     public static string RateLimitXp(ulong guildId, ulong userId) => $"{Prefix}:rl:xp:{guildId}:{userId}";
 
     // ---- area: presence -----------------------------------------------------------
@@ -86,6 +89,8 @@ public static class CacheTtl
     public static readonly TimeSpan RateLimitCommand = TimeSpan.FromSeconds(10);
     public static readonly TimeSpan RateLimitSpam = TimeSpan.FromMinutes(5);
     public static readonly TimeSpan RateLimitLogin = TimeSpan.FromMinutes(15);
+    /// <summary>The token's own lifetime — the attempt count is meaningless once the code is dead.</summary>
+    public static readonly TimeSpan RateLimitLoginVerify = TimeSpan.FromMinutes(10);
     public static readonly TimeSpan RateLimitXp = TimeSpan.FromSeconds(60);
 
     // presence
@@ -104,6 +109,9 @@ public static class CacheTtl
 
     /// <summary>Login window allowance (docs/05: max 3 requests per window per ip AND per user).</summary>
     public const int LoginRequestsPerWindow = 3;
+
+    /// <summary>Wrong codes allowed before the token dies (docs/09: 5 tries per token).</summary>
+    public const int LoginVerifyAttempts = Domain.Web.WebAuthRules.MaxVerifyAttempts;
 
     /// <summary>Channel ring buffer cap (docs/05: list capped 10).</summary>
     public const int RingBufferLength = 10;
