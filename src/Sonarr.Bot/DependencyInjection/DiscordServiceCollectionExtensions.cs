@@ -20,7 +20,16 @@ public static class DiscordServiceCollectionExtensions
             // GuildMembers/MessageContent are privileged and must be enabled in the
             // developer portal. Both are load-bearing: levels and welcome need members,
             // the chat engine needs content (docs/08-background-services.md).
-            GatewayIntents = GatewayIntents.AllUnprivileged
+            //
+            // Invites and scheduled events are subtracted rather than opted into one by one:
+            // AllUnprivileged is a moving bundle and re-listing it by hand would silently miss
+            // whatever Discord adds next. Nothing subscribes to either — /event creates the
+            // native event over REST, which needs no intent — and Discord.Net says so at
+            // startup via LogGatewayIntentWarnings. Dropping them is two fewer dispatch streams
+            // to decode on the J2900 and, more usefully, a log with no standing warnings in it,
+            // so a new one is visible. Add an intent back the same day you add a handler for it.
+            GatewayIntents = (GatewayIntents.AllUnprivileged
+                              & ~(GatewayIntents.GuildInvites | GatewayIntents.GuildScheduledEvents))
                              | GatewayIntents.GuildMembers
                              | GatewayIntents.MessageContent,
             AlwaysDownloadUsers = true,
