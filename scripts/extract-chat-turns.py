@@ -24,10 +24,16 @@ old bot's version of the `fired=` field the newer format has.
 Everything else in the journal is dropped: Lavalink reconnect spam, cache sweeps,
 extension loading, tracebacks.
 
-Two verbs:
+Three verbs:
 
     python scripts/extract-chat-turns.py extract IN.log OUT.jsonl
     python scripts/extract-chat-turns.py corpus OUT.jsonl IN.jsonl [IN.jsonl ...]
+    python scripts/extract-chat-turns.py sessions OUT.jsonl IN.jsonl [IN.jsonl ...]
+
+`sessions` rebuilds real conversations instead of single messages: one row per (channel,
+person, run of messages under half an hour apart). That is what the multi-turn replay reads —
+a single message cannot show state carried across turns, which is where this engine differs
+from the old one most.
 
 `corpus` folds the extracted files into one row per distinct user message — the input, how
 often it was seen, the legacy routing when known, and the legacy reply for reference. That
@@ -41,9 +47,11 @@ Both outputs hold real user messages. training-data/ is gitignored; keep them th
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
 
 # The quote character is whichever one Python's repr picked, and it differs between the
@@ -247,7 +255,103 @@ def extract(argv: list[str]) -> int:
     return 0
 
 
-VERBS = {"extract": (extract, 2), "corpus": (corpus, 2)}
+def sessions(argv: list[str]) -> int:
+    """Real conversations, rebuilt per (channel, person) from the context rows.
+
+    A session is that person's messages in one channel, in the order they said them. Her side
+    is dropped: the replay produces its own, and keeping the legacy reply as if it were part of
+    the input would feed the old bot's words back into the new engine's state.
+
+    A gap longer than GAP_MINUTES starts a new session. Two messages an hour apart are not a
+    conversation, and stacking them onto one state would age registers that never aged.
+    """
+    dst, srcs = Path(argv[0]), [Path(p) for p in argv[1:]]
+
+    # (channel, author) -> list of sessions, each a list of turns. Insertion-ordered.
+    grouped: dict[tuple[str, str], list[list[dict[str, str]]]] = {}
+    read = skipped = 0
+
+    for src in srcs:
+        with src.open(encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+
+                read += 1
+                rec = json.loads(line)
+
+                # Only the context format carries who said it and where; the turn/reply formats
+                # have no channel, so they cannot be sequenced into a conversation at all.
+                if rec.get("is_bot") or not rec.get("channel_id") or not rec.get("author_id"):
+                    skipped += 1
+                    continue
+
+                text = clean(rec.get("content") or "")
+                if text is None:
+                    skipped += 1
+                    continue
+
+                key = (str(rec["channel_id"]), str(rec["author_id"]))
+                runs = grouped.setdefault(key, [[]])
+                turn = {"in": text, "ts": rec.get("ts") or ""}
+
+                if runs[-1] and _gap_minutes(runs[-1][-1]["ts"], turn["ts"]) > GAP_MINUTES:
+                    runs.append([])
+
+                runs[-1].append(turn)
+
+    with dst.open("w", encoding="utf-8", newline="\n") as out:
+        written = 0
+        for (channel, author), runs in grouped.items():
+            for index, turns in enumerate(runs):
+                # A one-message session is already covered by the single-turn suite, and it
+                # cannot show the thing this file exists to show: state carried across turns.
+                if len(turns) < 2:
+                    continue
+
+                out.write(json.dumps({
+                    # Both ids are hashed: the file is gitignored, but a session is a much
+                    # sharper identifier than a lone message, and nothing downstream needs
+                    # the real values -- only that two sessions are or are not the same person.
+                    "session": f"{_tag(channel)}-{_tag(author)}-{index}",
+                    "turns": turns,
+                }, ensure_ascii=False) + "\n")
+                written += 1
+
+    print(
+        f"read {read} rows from {len(srcs)} file(s), wrote {written} multi-turn sessions "
+        f"from {len(grouped)} (channel, person) pairs, skipped {skipped}"
+    )
+    return 0
+
+
+# Long enough that a pause to type or to read does not split a conversation, short enough that
+# the next evening in the same channel is not glued onto this one.
+GAP_MINUTES = 30.0
+
+
+def _gap_minutes(before: str, after: str) -> float:
+    """Minutes between two ISO timestamps, or 0.0 if either is missing or unparseable.
+
+    Zero means "same session": an unknown gap is not evidence of a break, and guessing one
+    would split conversations on a formatting change in the journal.
+    """
+    try:
+        return abs(
+            (datetime.fromisoformat(after) - datetime.fromisoformat(before)).total_seconds()
+        ) / 60.0
+    except ValueError:
+        return 0.0
+
+
+def _tag(value: str) -> str:
+    """A short stable pseudonym for an id. Not a security boundary -- it removes the id from a
+    file a human will read, and it survives regeneration so a finding stays findable."""
+    return hashlib.sha256(value.encode()).hexdigest()[:8]
+
+
+VERBS = {"extract": (extract, 2), "corpus": (corpus, 2), "sessions": (sessions, 2)}
 
 
 def main(argv: list[str]) -> int:
