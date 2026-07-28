@@ -400,7 +400,8 @@ internal static class Build
         FakeSessionCache? cache = null,
         FakeFeatureGate? features = null,
         DateTimeOffset? now = null,
-        FakeChatConfig? config = null)
+        FakeChatConfig? config = null,
+        FakeQuoteRepository? quotes = null)
         => new(
             Persona(),
             people ?? new FakePersonRepository(),
@@ -408,7 +409,10 @@ internal static class Build
             features ?? new FakeFeatureGate(),
             new FixedClock(now ?? Now),
             config ?? new FakeChatConfig(null),
-            NullLogger<ChatPipeline>.Instance);
+            NullLogger<ChatPipeline>.Instance,
+            quotes: quotes is null
+                ? null
+                : new QuoteBoardRecall(quotes, NullLogger<QuoteBoardRecall>.Instance));
 
     public static ChatIntrospection Introspection(
         FakePersonRepository people, DateTimeOffset? now = null)

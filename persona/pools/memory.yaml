@@ -15,6 +15,20 @@ pools:
   - 'my notes say "{$quote}". nothing has changed.'
   - 'you heard "{$quote}" from me once already.'
   - 'previously, on you and me: "{$quote}"'
+  # The quote board (social.quote_board). Same shape as callback_tail, opposite attribution:
+  # {$quote} is something a *member* said and somebody saved, so every line here names {$who}
+  # and none of them claim it as hers. Code-referenced (ReplyComposer.QuoteBoardPool).
+  quote_board_tail:
+  - 'unrelated, but {$who} once said "{$quote}"'
+  - 'reminds me of {$who}: "{$quote}"'
+  - 'someone saved {$who} saying "{$quote}", for context.'
+  - 'the board has {$who} on record: "{$quote}"'
+  - 'anyway {$who} said "{$quote}" and nobody has recovered.'
+  - 'per the archives, {$who}: "{$quote}"'
+  - 'this is very "{$quote}" of you. that was {$who} btw.'
+  - '{$who} said "{$quote}" once and i think about it a lot.'
+  - 'quoting {$who} here: "{$quote}"'
+  - 'still funnier when {$who} said it: "{$quote}"'
   # A remembered value she is not sure of. {$value} is the fact itself; the hedge wraps it in
   # place, so an authored line keeps its own wording and only the value sounds shaky:
   # "you're {name}" → "you're sam, i think". Code-referenced (ReplyComposer.HedgePool).

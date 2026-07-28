@@ -31,7 +31,8 @@ public sealed class ChatPipeline(
     IGuildConfigService config,
     ILogger<ChatPipeline> log,
     SemanticIntentIndex? semantic = null,
-    CallbackRetriever? callbacks = null) : IChatPipeline
+    CallbackRetriever? callbacks = null,
+    QuoteBoardRecall? quotes = null) : IChatPipeline
 {
     /// <summary>Replies per channel per hour. Above this she has said enough (docs/05 budget).</summary>
     public const int EngagementBudget = 30;
@@ -174,15 +175,6 @@ public sealed class ChatPipeline(
     }
 
     /// <summary>
-    /// The episodic quote to offer the composer as a callback tail, or null.
-    /// </summary>
-    /// <remarks>
-    /// The odds are drawn here, before the lookup, using the same seed the engine will use for
-    /// the same turn — so on the turns that would discard a callback anyway we never pay for the
-    /// embedding or the vector query. That is the whole reason
-    /// <see cref="ReplyComposer.WantsCallback"/> is public.
-    /// </remarks>
-    /// <summary>
     /// The zone whose calendar decides her overlays and mood of the day, UTC when the guild has
     /// not set one.
     /// </summary>
@@ -203,18 +195,41 @@ public sealed class ChatPipeline(
             : TimeZoneInfo.Utc;
     }
 
-    private async Task<string?> CallbackAsync(
+    /// <summary>
+    /// The quote to offer the composer as a callback tail — hers or the board's — or null.
+    /// </summary>
+    /// <remarks>
+    /// The odds are drawn here, before the lookup, using the same seed the engine will use for
+    /// the same turn — so on the turns that would discard a callback anyway we never pay for the
+    /// embedding or the vector query. That is the whole reason
+    /// <see cref="ReplyComposer.WantsCallback"/> is public.
+    /// <para>Her own episodes win when both exist: "like i said before" about something she said
+    /// beats a saved line from the board, and the episode already cleared a relevance floor a
+    /// keyword match cannot promise.</para>
+    /// </remarks>
+    private async Task<RecalledQuote?> CallbackAsync(
         ChatRequest request, ConversationState state, ulong salt, CancellationToken ct)
     {
         long turn = state.Turn + 1;
-        if (callbacks is null || !ReplyComposer.WantsCallback(new TurnSeededRandom(turn, salt)))
+        if (!ReplyComposer.WantsCallback(new TurnSeededRandom(turn, salt)))
         {
             return null;
         }
 
-        return await callbacks.QuoteAsync(
-            (long)request.GuildId, (long)request.UserId, request.Text, turn, ct)
-            .ConfigureAwait(false);
+        if (callbacks is not null)
+        {
+            string? mine = await callbacks
+                .QuoteAsync((long)request.GuildId, (long)request.UserId, request.Text, turn, ct)
+                .ConfigureAwait(false);
+            if (mine is not null)
+            {
+                return new RecalledQuote(mine, null);
+            }
+        }
+
+        return quotes is null
+            ? null
+            : await quotes.RecallAsync((long)request.GuildId, request.Text, ct).ConfigureAwait(false);
     }
 
     /// <summary>

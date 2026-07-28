@@ -233,6 +233,39 @@ public sealed class ChatPipelineTests
         Assert.True(aWeek < sameDay - 1, $"a week away should cool it: {sameDay} → {aWeek}");
     }
 
+    [Fact]
+    public async Task A_saved_quote_reaches_the_reply_credited_to_its_author()
+    {
+        // End of the seam: board row → RecalledQuote → quote_board_tail. The odds are 1-in-2 per
+        // turn, so this walks messages until one takes the tail rather than pinning a lucky salt.
+        FakeQuoteRepository quotes = new();
+        quotes.Seed((long)Build.Guild, 777, "the microwave is a portal");
+        ChatPipeline pipeline = Build.Pipeline(quotes: quotes);
+
+        for (int i = 0; i < 12; i++)
+        {
+            ChatDecision decision = await pipeline.HandleAsync(
+                Build.Request("is the microwave still broken", message: Build.Message + (ulong)i));
+
+            if (decision.Text is { } text && text.Contains("portal", StringComparison.Ordinal))
+            {
+                Assert.Contains("<@777>", text, StringComparison.Ordinal);
+                return;
+            }
+        }
+
+        Assert.Fail("twelve turns and the board never came up");
+    }
+
+    [Fact]
+    public async Task Without_a_board_she_just_has_no_tail()
+    {
+        // The retriever is optional in the constructor, so a deployment without it must still reply.
+        ChatDecision decision = await Build.Pipeline().HandleAsync(Build.Request("hello"));
+
+        Assert.NotNull(decision.Text);
+    }
+
     private static async Task<string> Recall(ChatPipeline pipeline)
         => (await pipeline.HandleAsync(Build.Request("what's my name"))).Text ?? string.Empty;
 
