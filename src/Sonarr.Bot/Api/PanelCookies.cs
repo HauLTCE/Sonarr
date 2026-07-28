@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using Sonarr.Domain.Web;
 
 namespace Sonarr.Bot.Api;
 
@@ -23,13 +22,32 @@ public static class PanelCookies
     public static string NewCsrfToken() => Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(16));
 
     /// <summary>
-    /// Session cookie options. <c>Secure</c> even though Kestrel serves plain HTTP: the browser only
-    /// ever talks to the tunnel, which is HTTPS, and the flag is about the browser's behaviour.
+    /// Whether the browser reached us over HTTPS, and so whether <c>Secure</c> can be set.
     /// </summary>
-    public static CookieOptions SessionOptions(bool remember, DateTimeOffset expiresAt) => new()
+    /// <remarks>
+    /// Kestrel always serves plain HTTP, so the socket says nothing: through the tunnel at
+    /// sonarr.hault.io.vn the browser is on HTTPS and the forwarded header says so, while on the
+    /// LAN (http://192.168.1.101:3000) it is genuinely HTTP. Hardcoding <c>Secure = true</c> is
+    /// right for the tunnel and silently breaks the LAN — the browser accepts the Set-Cookie,
+    /// drops it, and login just never sticks with nothing logged anywhere.
+    /// <para>The header is only trusted because the sole things in front of this port are the
+    /// panel's own rewrite proxy and the tunnel; anything on the LAN can spoof it, but spoofing
+    /// it only ever adds <c>Secure</c> to your own cookie, which costs the sender their session
+    /// and nobody else anything.</para>
+    /// </remarks>
+    public static bool IsSecure(HttpRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        return request.IsHttps
+            || request.Headers["X-Forwarded-Proto"].ToString()
+                .Contains("https", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static CookieOptions SessionOptions(bool remember, DateTimeOffset expiresAt, bool secure) => new()
     {
         HttpOnly = true,
-        Secure = true,
+        Secure = secure,
         SameSite = SameSiteMode.Lax,
         Path = "/",
         // A remembered session is the only one that survives closing the browser; the 24 h one is
@@ -37,19 +55,22 @@ public static class PanelCookies
         Expires = remember ? expiresAt : null,
     };
 
-    public static CookieOptions CsrfOptions(bool remember, DateTimeOffset expiresAt) => new()
+    public static CookieOptions CsrfOptions(bool remember, DateTimeOffset expiresAt, bool secure) => new()
     {
         HttpOnly = false,
-        Secure = true,
+        Secure = secure,
         SameSite = SameSiteMode.Lax,
         Path = "/",
         Expires = remember ? expiresAt : null,
     };
 
-    public static CookieOptions DeleteOptions => new()
+    /// <summary>
+    /// Deletion options — an expiry in the past, with the same shape the cookie was issued with.
+    /// </summary>
+    public static CookieOptions DeleteOptions(bool secure) => new()
     {
         HttpOnly = true,
-        Secure = true,
+        Secure = secure,
         SameSite = SameSiteMode.Lax,
         Path = "/",
     };
@@ -72,29 +93,28 @@ public static class PanelCookies
                 System.Text.Encoding.UTF8.GetBytes(header));
     }
 
-    /// <summary>Issues both cookies after a successful verify.</summary>
-    public static void Issue(HttpResponse response, string rawSessionId, bool remember, DateTimeOffset expiresAt)
+    /// <summary>
+    /// Issues both cookies after a successful verify. Takes the context rather than the response
+    /// because whether <c>Secure</c> is set depends on how the browser got here.
+    /// </summary>
+    public static void Issue(HttpContext http, string rawSessionId, bool remember, DateTimeOffset expiresAt)
     {
-        ArgumentNullException.ThrowIfNull(response);
+        ArgumentNullException.ThrowIfNull(http);
 
-        response.Cookies.Append(Session, rawSessionId, SessionOptions(remember, expiresAt));
-        response.Cookies.Append(Csrf, NewCsrfToken(), CsrfOptions(remember, expiresAt));
+        bool secure = IsSecure(http.Request);
+        http.Response.Cookies.Append(Session, rawSessionId, SessionOptions(remember, expiresAt, secure));
+        http.Response.Cookies.Append(Csrf, NewCsrfToken(), CsrfOptions(remember, expiresAt, secure));
     }
 
-    /// <summary>Re-stamps the session cookie after a sliding renewal, keeping the CSRF value.</summary>
-    public static void Renew(HttpResponse response, string rawSessionId, DateTimeOffset expiresAt)
+    public static void Clear(HttpContext http)
     {
-        ArgumentNullException.ThrowIfNull(response);
+        ArgumentNullException.ThrowIfNull(http);
 
-        var remember = expiresAt - DateTimeOffset.UtcNow > WebAuthRules.SessionLifetime;
-        response.Cookies.Append(Session, rawSessionId, SessionOptions(remember, expiresAt));
-    }
-
-    public static void Clear(HttpResponse response)
-    {
-        ArgumentNullException.ThrowIfNull(response);
-
-        response.Cookies.Delete(Session, DeleteOptions);
-        response.Cookies.Delete(Csrf, DeleteOptions);
+        // The flags follow the request, same as Issue. A cookie's identity is name+domain+path and
+        // does not include Secure, so an expiry sent without it still clears one set with it —
+        // which is what makes logging out of a tunnel session over the LAN work.
+        CookieOptions options = DeleteOptions(IsSecure(http.Request));
+        http.Response.Cookies.Delete(Session, options);
+        http.Response.Cookies.Delete(Csrf, options);
     }
 }
