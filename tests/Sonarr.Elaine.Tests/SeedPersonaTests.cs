@@ -309,6 +309,24 @@ public class SeedPersonaTests
     [InlineData("did you see that", "QUESTION_IN")]
     [InlineData("how much wood", "QUESTION_IN")]
     [InlineData("how come", "QUESTION_IN")]
+    // Asking for a joke is a request, not a joke. JOKE's bare "joke" keyword caught these, so
+    // "tell me a joke" drew "was that supposed to be a joke?" — she reviewed a joke nobody told.
+    [InlineData("tell me a joke", "REQUEST")]
+    [InlineData("say something funny please", "REQUEST")]
+    [InlineData("give me a pun", "REQUEST")]
+    // And the referring uses JOKE exists for, which must stay with it. (A bare "lmao" is
+    // SMALL_TALK's on purpose — filler with no content to answer — so it is not pinned here.)
+    [InlineData("it was a joke", "JOKE")]
+    [InlineData("lmao that's hilarious", "JOKE")]
+    // "please" was matched as `'please '` with a trailing space, so a message ending in it — which
+    // is where the word usually sits — reached no request route at all. "say something funny
+    // please" landed on COMPLIMENT's "funny" keyword and drew thanks for a compliment nobody paid.
+    [InlineData("stop please", "REQUEST")]
+    // ...and the courtesy word must not now outrank the routes it decorates. "please" is polite
+    // padding on a request that already says what it wants, so REQUEST is the fallback for it and
+    // never the winner when a specific intent also matches.
+    [InlineData("play some music please", "PLAY_MUSIC")]
+    [InlineData("please recommend something", "RECOMMEND")]
     public void ShippedPersona_RecognizesPinnedBehaviors(string input, string expected)
     {
         IntentRecognizer recognizer = new(SeedPersona.Graph);

@@ -161,11 +161,26 @@ intents:
     - 'can you '
     - 'could you '
     - 'would you '
-    - 'please '
+    # `\b` not a trailing space: "please" is most often the last word of a message ("stop please",
+    # "play something please"), and with the space this pattern could only see it mid-sentence.
+    # The word boundary is what the space was really for -- it still keeps "pleased" out.
+    - please\b
     - i (?:need|want) you to
     - help me
     - do me a favor
     - 'give me '
+    # Asking for a joke is a request, and JOKE's bare "joke" keyword was eating it: "tell me a
+    # joke" drew "was that supposed to be a joke?" from humor_laughing -- she reviewed a joke
+    # nobody had told. A regex outranks a keyword on specificity (see the note above DADJOKE in
+    # social.yaml), so this wins without touching JOKE, and the referring uses it exists for
+    # ("it was a joke", "can't take a joke") keep it.
+    #
+    # request_general rather than a new pool: it is the refusal pool, and refusing to perform on
+    # demand is both in voice and true. Her having no joke to tell is the joke.
+    - (?:tell|say|give|sing|show) (?:me |us )?(?:a|an|another|some|the) ?(?:joke|jokes|pun|puns)\b
+    # Same defect, different word: "say something funny" hit COMPLIMENT's "funny" keyword, so she
+    # thanked the reader for a compliment nobody paid.
+    - (?:tell|say) (?:me |us )?something funny
   pool: request_general
 - id: PREFERENCE
   match:
