@@ -32,6 +32,13 @@ public static class JobServiceCollectionExtensions
         services.AddScoped<IRetentionRepository, RetentionRepository>();
         services.AddHostedService<RetentionPruner>();
 
+        // The nightly dump, half an hour before that sweep. The probe is what turns a failure into
+        // docs/08's red line in the log channel, so both halves are registered together — a runner
+        // whose failures nobody sees is worse than no runner.
+        services.AddSingleton<BackupState>();
+        services.AddSingleton<ISelfTestProbe, BackupProbe>();
+        services.AddHostedService<BackupRunner>();
+
         return services;
     }
 }

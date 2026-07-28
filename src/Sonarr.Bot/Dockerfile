@@ -24,6 +24,14 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app ./
 
+# BackupRunner shells out to pg_dump (docs/08) — nothing in .NET writes a pg_restore-compatible
+# archive, and a restore drill that needs a custom tool is a drill that fails. Debian 13 ships
+# postgresql-client 17, matching the postgres:17 in the compose file; a client older than the
+# server refuses to dump at all. `BackupProbe` goes red at boot if this ever disappears.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
 # `app` (uid 1654) ships with the aspnet image. Mounted dirs must be writable by it:
 # /backups (pg_dump output) is created here so a fresh host bind mount has sane ownership.
 RUN mkdir -p /backups /app/persona && chown -R app:app /backups /app/persona

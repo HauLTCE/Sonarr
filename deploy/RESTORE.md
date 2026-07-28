@@ -7,23 +7,32 @@ and verifies. Nothing here touches the live database.
 Backup layout (written by BackupRunner, 03:30 nightly):
 
 ```
-/root/backups/sonarr/YYYY/MM/sonarr-YYYY-MM-DD.dump.gz   # pg_dump -Fc | gzip
-/root/backups/sonarr/YYYY/MM/config-YYYY-MM-DD.tar.gz     # weekly: persona/ + .env
+/root/backups/sonarr/YYYY/MM/sonarr-YYYY-MM-DD.dump      # pg_dump --format=custom
+/root/backups/sonarr/YYYY/MM/config-YYYY-MM-DD.tar.gz    # weekly: persona/ + .env
 ```
+
+No `.gz` on the dump: `--format=custom` is already zlib-compressed, so piping it through
+gzip would cost J2900 CPU to add nothing and invite a drill that gunzips first. The
+config archive *is* gzipped — that one is text.
+
+A file named `*.dump.partial` is a dump still being written (or a killed one). It is not a
+backup: `BackupRetention.Parse` cannot see it, so the nightly prune leaves it alone, and
+the runner only renames to the real name once the header check passes. Never restore one.
 
 ## 0. Pick a dump and sanity-check it
 
 ```sh
-DUMP=$(ls -1 /root/backups/sonarr/$(date +%Y)/$(date +%m)/sonarr-*.dump.gz | tail -1)
+DUMP=$(ls -1 /root/backups/sonarr/$(date +%Y)/$(date +%m)/sonarr-*.dump | tail -1)
 echo "$DUMP"
-ls -lh "$DUMP"                     # must be non-zero; ~50-100MB at this scale
-gzip -t "$DUMP" && echo "gzip ok"  # archive intact
-# pg_dump custom-format magic is "PGDMP"
-gzip -dc "$DUMP" | head -c 5 | grep -q PGDMP && echo "pg_dump header ok"
+ls -lh "$DUMP"                                 # must be non-zero; ~50-100MB at this scale
+head -c 5 "$DUMP" | grep -q PGDMP && echo "pg_dump header ok"
+# The strongest check short of restoring: pg_restore reads the whole table of contents.
+pg_restore --list "$DUMP" >/dev/null && echo "table of contents ok"
 ```
 
-If any check fails, stop and use the previous night's dump — then find out why the
-sanity check in BackupRunner did not catch it.
+If any check fails, stop and use the previous night's dump — then find out why
+`BackupVerification` did not catch it (`/status` should already be red on the Backups
+check; that is the same verdict docs/08's log line reports).
 
 ## 1. Fresh throwaway Postgres
 
@@ -47,8 +56,8 @@ uses the pgvector image, same as prod.
 ## 2. Restore
 
 ```sh
-gzip -dc "$DUMP" | docker exec -i sonarr-restore-test \
-  pg_restore -U sonarr -d sonarr_restore --no-owner --no-privileges --exit-on-error -v
+docker exec -i sonarr-restore-test \
+  pg_restore -U sonarr -d sonarr_restore --no-owner --no-privileges --exit-on-error -v < "$DUMP"
 ```
 
 `--no-owner --no-privileges` so the restore does not depend on prod role names.
