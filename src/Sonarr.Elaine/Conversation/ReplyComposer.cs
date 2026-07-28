@@ -29,8 +29,23 @@ public sealed class ReplyComposer(
     /// <summary>The pool the callback tail is drawn from (<c>persona/pools/memory.yaml</c>).</summary>
     public const string CallbackPool = "callback_tail";
 
+    /// <summary>
+    /// The pool a quote-board line is drawn from, when the quote is someone else's
+    /// (<c>persona/pools/memory.yaml</c>).
+    /// </summary>
+    /// <remarks>
+    /// A separate pool rather than a second source behind <see cref="CallbackPool"/>, because
+    /// every line in that pool claims the quote as hers — "i already told you", "my notes say".
+    /// Feeding a member's saved line through those would have her taking credit for it, and the
+    /// point of the board is who said it.
+    /// </remarks>
+    public const string QuoteBoardPool = "quote_board_tail";
+
     /// <summary>Capture name the remembered quote is substituted into: <c>{$quote}</c>.</summary>
     public const string CallbackCapture = "quote";
+
+    /// <summary>Capture name the quote's author is substituted into: <c>{$who}</c>.</summary>
+    public const string AuthorCapture = "who";
 
     /// <summary>The pool a shaky remembered value is wrapped in (<c>persona/pools/memory.yaml</c>).</summary>
     public const string HedgePool = "fact_hedge";
@@ -70,15 +85,15 @@ public sealed class ReplyComposer(
     /// produce a renderable line at all (the caller falls back to the activity's pool).
     /// </summary>
     /// <param name="callback">
-    /// An authored callback tail the adapter supplies from a relevance-gated pgvector episode
-    /// lookup. Null on the common path; the engine never searches for one itself.
+    /// A quote the adapter supplies — a relevance-gated pgvector episode of her own, or a line off
+    /// the guild's quote board. Null on the common path; the engine never searches for one itself.
     /// </param>
     public string? Compose(
         MatchCandidate candidate,
         ConversationState state,
         string modeId,
         IDeterministicRandom rng,
-        string? callback = null)
+        RecalledQuote? callback = null)
     {
         ArgumentNullException.ThrowIfNull(candidate);
         ArgumentNullException.ThrowIfNull(state);
@@ -112,7 +127,7 @@ public sealed class ReplyComposer(
         ConversationState state,
         string modeId,
         IDeterministicRandom rng,
-        string? callback = null)
+        RecalledQuote? callback = null)
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(rng);
@@ -194,7 +209,7 @@ public sealed class ReplyComposer(
         IReadOnlyDictionary<string, string> slots,
         string modeId,
         IDeterministicRandom rng,
-        string? callback)
+        RecalledQuote? callback)
     {
         StringBuilder reply = new();
 
@@ -214,12 +229,17 @@ public sealed class ReplyComposer(
 
         // The adapter supplies the remembered quote; the framing around it is authored, same as
         // everything else. No pool, no renderable line, no tail — the core reply still ships.
-        if (!string.IsNullOrWhiteSpace(callback) && WantsCallback(rng))
+        if (callback is { Quote: { } quote } && !string.IsNullOrWhiteSpace(quote) && WantsCallback(rng))
         {
             string? tail = _picker.Pick(
-                CallbackPool, modeId, rng, slots, new Dictionary<string, string>
+                callback.Author is null ? CallbackPool : QuoteBoardPool,
+                modeId,
+                rng,
+                slots,
+                new Dictionary<string, string>(StringComparer.Ordinal)
                 {
-                    [CallbackCapture] = callback.Trim(),
+                    [CallbackCapture] = quote.Trim(),
+                    [AuthorCapture] = callback.Author?.Trim() ?? string.Empty,
                 });
             if (tail is not null)
             {

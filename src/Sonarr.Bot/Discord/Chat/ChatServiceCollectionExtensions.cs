@@ -4,6 +4,7 @@ using Sonarr.Domain.Abstractions;
 using Sonarr.Elaine.Determinism;
 using Sonarr.Infrastructure.Embeddings;
 using Sonarr.Infrastructure.Persistence.Repositories.Chat;
+using Sonarr.Infrastructure.Persistence.Repositories.Social;
 
 namespace Sonarr.Bot.Discord.Chat;
 
@@ -48,8 +49,11 @@ public static class ChatServiceCollectionExtensions
         services.AddSingleton<SemanticIntentIndex>();
         services.AddHostedService<SemanticWarmup>();
 
-        // Fills TurnInput.Callback from episodic memory when something relevant exists.
+        // Fills TurnInput.Callback from episodic memory when something relevant exists, and from
+        // the guild's quote board when it does not.
         services.AddScoped<CallbackRetriever>();
+        services.AddScoped<IQuoteRepository, QuoteRepository>();
+        services.AddScoped<QuoteBoardRecall>();
 
         // Nothing else ever writes chat.episode.embedding: the turn path stores episodes
         // unembedded and this drains the queue in the background (docs/11 cutover step 4).

@@ -15,6 +15,7 @@ public static partial class PersonaValidator
         {
             ReplyComposer.MoodFragmentPool,
             ReplyComposer.CallbackPool,
+            ReplyComposer.QuoteBoardPool,
             ReplyComposer.HedgePool,
         };
 

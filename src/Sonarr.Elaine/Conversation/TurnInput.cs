@@ -27,10 +27,11 @@ public sealed record TurnInput
     public int ExtraDecaySteps { get; init; }
 
     /// <summary>
-    /// An authored callback tail from a relevance-gated episode lookup, or null. The adapter
-    /// runs the pgvector query; the engine only decides whether to use the line.
+    /// A quote to hang a callback tail off — her own recalled episode, or a line off the guild's
+    /// quote board — or null. The adapter runs the lookup; the engine only decides whether to use
+    /// it, and which authored pool fits who said it.
     /// </summary>
-    public string? Callback { get; init; }
+    public RecalledQuote? Callback { get; init; }
 
     /// <summary>
     /// Slot names she is only half-sure of — facts heard once and never confirmed.
