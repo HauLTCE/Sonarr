@@ -30,7 +30,7 @@ src/Sonarr.Bot             host: gateway, interaction modules, API controllers
 src/Sonarr.Migrator        one-shot: old SQLite/JSON -> Postgres
 tests/                     xUnit — engine behavior catalog + service tests
 deploy/                    prod compose skeleton, deploy script, restore drill
-_bot_legacy/               the retired Python bot (see below)
+web/                       the Next.js panel (user + admin)
 ```
 
 ## Running the dev stack
@@ -73,15 +73,24 @@ drill — run it before cutover, then quarterly.
 
 ## The legacy Python bot
 
-`_bot_legacy/` is the retired bot, kept on purpose:
+The retired Python bot used to live in `_bot_legacy/`. It is gone from the working tree;
+everything it was kept for has been extracted:
 
-- **Reference implementation** — the persona YAML, matcher behavior, and music quirks it
-  hand-patched are the spec for their .NET replacements.
-- **Conformance suite** — `_bot_legacy/tests/test_logical_response.py` is mined into the
-  engine behavior catalog. Every pinned behavior there has to survive the rewrite.
+- **Reference implementation** — its persona YAML now lives in `persona/`, loaded directly
+  by the engine rather than copied.
+- **Conformance suite** — `tests/Sonarr.Elaine.Tests/BehaviorCatalogTests.cs` is the mined
+  catalog, restated against the v2 engine. Every behavior pinned there still has to survive,
+  and the ones with no v2 route are recorded as comments rather than dropped.
 
-It is not built, not deployed, and gets deleted only after cutover plus the rollback
-window.
+The last commit containing the tree is the `python-bot-final` tag, so provenance comments
+stay resolvable:
+
+```sh
+git show python-bot-final:_bot_legacy/tests/test_logical_response.py
+```
+
+The bot still *running* on the server is that Python bot; deleting the source copy here
+does not touch it. Cutover is docs/11.
 
 ## Ground rules
 

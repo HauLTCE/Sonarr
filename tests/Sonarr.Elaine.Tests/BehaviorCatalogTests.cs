@@ -4,8 +4,9 @@ using Sonarr.Elaine.Persona;
 namespace Sonarr.Elaine.Tests;
 
 /// <summary>
-/// The regression floor: every behavior the v1 suite pinned
-/// (<c>_bot_legacy/tests/test_logical_response.py</c>), restated against the v2 engine.
+/// The regression floor: every behavior the v1 suite pinned, restated against the v2 engine.
+/// The v1 tree is deleted; read the source with
+/// <c>git show python-bot-final:_bot_legacy/tests/test_logical_response.py</c>.
 /// </summary>
 /// <remarks>
 /// v1 pinned these as FSM transitions and matcher class names; v2 has neither, so each
