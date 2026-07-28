@@ -27,6 +27,38 @@ public class SeedPersonaTests
         Assert.Empty(shadowed);
     }
 
+    /// <summary>
+    /// A ratchet, not a floor: the orphan count may fall, never rise.
+    /// </summary>
+    /// <remarks>
+    /// <para>An orphan pool is authored text no route can reach — the same defect as a shadowed
+    /// intent, one level down, and the validator has reported it as a Warning all along with the
+    /// comment "an unused one is dead weight, not a crash". That was true for 109 of them and
+    /// wrong for the tenth: <c>disruptive_hate_speech</c> shipped with 20 authored lines and
+    /// nothing pointed at it, so <c>heil hitler</c> drew its reply from the *neutral* fallback
+    /// pool — the same pool that answers "go destroy account" with "okay?". Getting something
+    /// acceptable was a coin toss, and one new pool line was all it took to lose the flip.</para>
+    /// <para>The number cannot go to zero in one sitting, so it is pinned instead. Bulk-migrating
+    /// another persona and wiring none of it now fails here rather than sitting in a warning
+    /// nobody reads.</para>
+    /// </remarks>
+    [Fact]
+    public void ShippedPersona_DoesNotGrowMoreOrphanPools()
+    {
+        // 110 when the finding was made; 106 after disruptive.yaml wired four of them.
+        const int recorded = 106;
+
+        List<PersonaIssue> orphans =
+            [.. SeedPersona.Result.Issues.Where(i => i.Rule == Rules.OrphanPool)];
+
+        Assert.True(
+            orphans.Count <= recorded,
+            $"{orphans.Count} orphan pools, was {recorded}. New authored text that nothing routes "
+                + $"to is unreachable — wire an intent to it, or lower the recorded count if you "
+                + $"deleted pools:{Environment.NewLine}"
+                + string.Join(Environment.NewLine, orphans.Select(o => "  " + o.Message)));
+    }
+
     [Fact]
     public void ShippedPersona_HasSubstantialAuthoredContent()
     {
