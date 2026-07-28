@@ -6,7 +6,7 @@ using Sonarr.Domain.Music;
 namespace Sonarr.Bot.Discord.Music;
 
 /// <summary>
-/// Writes every live player to <c>music:session:{guild}</c> every 30 s so <c>/resume</c> can rebuild
+/// Writes every live player to <c>music:session:{guild}</c> every 30 s so <c>/restore-queue</c> can rebuild
 /// the queue and position after a crash (docs/08-background-services.md).
 /// </summary>
 /// <remarks>
@@ -59,7 +59,7 @@ public sealed class MusicSessionSnapshotter(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            // A lost snapshot costs a /resume, nothing else. Not worth failing the service over.
+            // A lost snapshot costs a /restore-queue, nothing else. Not worth failing the service over.
             log.LogWarning(ex, "Music session snapshot pass failed");
         }
     }

@@ -118,7 +118,7 @@ public interface IMusicService
     Task<MusicResult> DeletePlaylistAsync(
         MusicContext context, string name, CancellationToken cancellationToken = default);
 
-    /// <summary><c>/resume</c> — rebuild the queue and position from <c>music:session:{guild}</c>.</summary>
+    /// <summary><c>/restore-queue</c> — rebuild the queue and position from <c>music:session:{guild}</c>.</summary>
     Task<MusicResult> ResumeSessionAsync(MusicContext context, CancellationToken cancellationToken = default);
 
     Task<MusicStats> GetStatsAsync(ulong guildId, CancellationToken cancellationToken = default);

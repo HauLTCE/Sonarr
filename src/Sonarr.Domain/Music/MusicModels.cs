@@ -30,7 +30,7 @@ public enum AutoplayMode
 /// <param name="Title">Display title.</param>
 /// <param name="Author">Uploader/artist.</param>
 /// <param name="Uri">Canonical URL — the identity used for ratings and history.</param>
-/// <param name="Identifier">What we hand back to Lavalink to re-resolve this track (<c>/resume</c>).</param>
+/// <param name="Identifier">What we hand back to Lavalink to re-resolve this track (<c>/restore-queue</c>).</param>
 /// <param name="DurationMs">Length; 0 for a live stream.</param>
 /// <param name="RequesterId">Who asked for it. 0 when the bot picked it (autoplay).</param>
 /// <param name="ArtworkUri">Thumbnail for the now-playing embed, when the source has one.</param>

@@ -54,7 +54,7 @@ public sealed partial class MusicService
         await player.StopAsync(cancellationToken).ConfigureAwait(false);
         await player.DisconnectAsync(cancellationToken).ConfigureAwait(false);
 
-        // The session is over on purpose, so /resume must not offer to restore it.
+        // The session is over on purpose, so /restore-queue must not offer to restore it.
         await cache.ClearSessionAsync(context.GuildId, cancellationToken).ConfigureAwait(false);
         await cache.ClearNowPlayingMessageAsync(context.GuildId, cancellationToken).ConfigureAwait(false);
 

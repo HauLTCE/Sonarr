@@ -16,7 +16,7 @@ public interface IMusicSessionCache
     Task SaveSessionAsync<TSnapshot>(ulong guildId, TSnapshot snapshot, CancellationToken cancellationToken = default)
         where TSnapshot : class;
 
-    /// <summary>Snapshot for <c>/resume</c>, or <c>null</c> when there is nothing to resume.</summary>
+    /// <summary>Snapshot for <c>/restore-queue</c>, or <c>null</c> when there is nothing to resume.</summary>
     Task<TSnapshot?> GetSessionAsync<TSnapshot>(ulong guildId, CancellationToken cancellationToken = default)
         where TSnapshot : class;
 

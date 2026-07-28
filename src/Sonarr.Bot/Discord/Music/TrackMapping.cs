@@ -53,7 +53,7 @@ internal static class TrackMapping
 
     /// <summary>
     /// Rebuilds a queue item from a snapshot row. The identifier is what Lavalink re-resolves,
-    /// so <c>/resume</c> costs one load per track instead of storing encoded blobs.
+    /// so <c>/restore-queue</c> costs one load per track instead of storing encoded blobs.
     /// </summary>
     public static SonarrQueueItem FromDomain(TrackInfo track)
         => new(new TrackReference(track.Identifier), track.RequesterId);

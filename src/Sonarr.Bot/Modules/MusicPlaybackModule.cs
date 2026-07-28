@@ -8,9 +8,9 @@ using Sonarr.Domain.Music;
 namespace Sonarr.Bot.Modules;
 
 /// <summary>
-/// <c>/play</c>, <c>/playnext</c>, <c>/pause</c>, <c>/resume-playback</c>, <c>/stop</c>,
+/// <c>/play</c>, <c>/playnext</c>, <c>/pause</c>, <c>/resume</c>, <c>/stop</c>,
 /// <c>/seek</c>, <c>/replay</c>, <c>/skip</c>, <c>/undo-skip</c>, <c>/previous</c>,
-/// <c>/volume</c>, <c>/filter</c>, <c>/autoplay</c>, <c>/resume</c>
+/// <c>/volume</c>, <c>/filter</c>, <c>/autoplay</c>, <c>/restore-queue</c>
 /// (docs/07-commands.md#music). Guard, call, format.
 /// </summary>
 [RequireFeature(FeatureNames.Music)]
@@ -111,7 +111,10 @@ public sealed class MusicPlaybackModule(IMusicService music, IGuildConfigService
         }
     }
 
-    [SlashCommand("resume-playback", "Carry on from where it paused.")]
+    // /resume is the unpause, because that is what everyone reaches for. The crash-session
+    // restore held this name until now and is /restore-queue instead — it is the rare one, and
+    // it is what pushed the unpause onto the unguessable /resume-playback.
+    [SlashCommand("resume", "Carry on from where it paused.")]
     public async Task ResumePlaybackAsync()
     {
         if (await ContextAsync() is { } context)
@@ -229,7 +232,7 @@ public sealed class MusicPlaybackModule(IMusicService music, IGuildConfigService
         }
     }
 
-    [SlashCommand("resume", "Restore the queue from before I restarted.")]
+    [SlashCommand("restore-queue", "Restore the queue from before I restarted.")]
     public async Task ResumeSessionAsync()
     {
         if (await ContextAsync() is not { } context)

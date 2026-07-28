@@ -4,7 +4,7 @@ namespace Sonarr.Application.Music;
 
 /// <summary>
 /// What <c>MusicSessionSnapshotter</c> writes to <c>music:session:{guild}</c> every 30 s and
-/// <c>/resume</c> reads back (docs/08-background-services.md, docs/05-caching.md).
+/// <c>/restore-queue</c> reads back (docs/08-background-services.md, docs/05-caching.md).
 /// </summary>
 /// <remarks>
 /// Plain properties with a parameterless constructor on purpose: this round-trips through
