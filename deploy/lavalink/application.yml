@@ -6,17 +6,25 @@
 # LAVALINK_SERVER_PASSWORD from .env, which is why this file is safe to commit.
 server:
   port: 2333
-  # 0.0.0.0 rather than 127.0.0.1 because the legacy Python bot still connects over the
-  # box's LAN address during the rollback window. Once it is gone this should become
-  # 127.0.0.1 — with network_mode: host the .NET bot reaches loopback either way.
-  address: 0.0.0.0
+  # Loopback only. This was 0.0.0.0 so the legacy Python bot could dial the box's LAN
+  # address; that bot is gone (cutover 2026-07-28), and with network_mode: host the .NET
+  # bot reaches the node over loopback. An audio node reachable from the LAN is a remote
+  # code path guarded by one shared secret, so don't widen this without a reason.
+  # If a rollback ever needs the old bot again, set LAVALINK_URI to 127.0.0.1 there too
+  # rather than reopening this.
+  address: 127.0.0.1
 lavalink:
   plugins:
     - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.1"
       snapshot: false
   server:
     # Overridden by LAVALINK_SERVER_PASSWORD; the placeholder keeps the file valid standalone.
-    password: "${LAVALINK_SERVER_PASSWORD:youshallnotpass}"
+    # No default on purpose. The upstream sample ships `youshallnotpass` and this file used to
+    # keep it as a fallback, which is how the node ended up genuinely running on the default
+    # password at cutover — Lavalink4NET warned about it in the bot log and nothing else did.
+    # compose passes LAVALINK_SERVER_PASSWORD with `:?required`, so an unset value now fails
+    # the node's startup instead of quietly making it world-openable.
+    password: "${LAVALINK_SERVER_PASSWORD}"
     sources:
       # Built-in youtube source off on purpose: the youtube-plugin below replaces it.
       youtube: false
