@@ -68,7 +68,13 @@ USER app
 # the other, or GUILD_AVAILABLE starts failing and guilds silently never populate.
 
 ENV ASPNETCORE_URLS=http://0.0.0.0:5088 \
-    DOTNET_gcServer=0
+    DOTNET_gcServer=0 \
+    ASPNETCORE_HTTP_PORTS=
+# ^ blanked, not ours: the aspnet base image sets ASPNETCORE_HTTP_PORTS=8080, and having both
+# that and ASPNETCORE_URLS makes Kestrel log a warning at every startup about overriding it.
+# URLS wins either way, so this only removes the noise — but the noise is the point: two of the
+# three cutover bugs were found by reading warning lines, and a log with a standing warning in
+# it trains you to skim past the next one.
 
 # Dev convenience only. Prod uses `network_mode: host` (docs/11) so this mapping is
 # ignored there and the process binds :5088 on the host directly.
