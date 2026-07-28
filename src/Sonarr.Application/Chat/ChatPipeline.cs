@@ -109,6 +109,7 @@ public sealed class ChatPipeline(
             ActiveOverlays = signals.Overlays,
             ExtraDecaySteps = signals.ExtraDecaySteps,
             Callback = await CallbackAsync(request, state, salt, ct).ConfigureAwait(false),
+            ShakySlots = await ShakySlotsAsync(guildId, userId, state, ct).ConfigureAwait(false),
         });
 
         IReadOnlyList<AffectDelta> adapterAffect = ChatAffect.Deltas(
@@ -174,6 +175,43 @@ public sealed class ChatPipeline(
             (long)request.GuildId, (long)request.UserId, request.Text, turn, ct)
             .ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Which of the slots she is about to substitute are facts she only heard once.
+    /// </summary>
+    /// <remarks>
+    /// Confidence lives in <c>chat.fact</c>, so the threshold comparison happens here and the
+    /// engine receives names only (docs/10 contract: nothing database-shaped crosses into
+    /// <c>Sonarr.Elaine</c>). Fact predicates and slot names are the same vocabulary — a fact is
+    /// what a slot value was learned as — so the intersection needs no mapping table.
+    /// <para>Skipped entirely when she is holding no slots, which is the common case for a
+    /// stranger: no slots, no possible hedge, no query.</para>
+    /// </remarks>
+    private async Task<IReadOnlySet<string>> ShakySlotsAsync(
+        long guildId, long userId, ConversationState state, CancellationToken ct)
+    {
+        if (state.Slots.Count == 0)
+        {
+            return EmptySlotNames;
+        }
+
+        IReadOnlyList<Fact> facts = await people.GetFactsAsync(guildId, userId, ct)
+            .ConfigureAwait(false);
+
+        return facts
+            .Where(f => f.Confidence < HedgeBelowConfidence && state.Slots.ContainsKey(f.Predicate))
+            .Select(f => f.Predicate)
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// Below this she hedges. Sits above the initial 0.6 and below one reinforcement (0.75), so a
+    /// fact heard once is shaky and a fact you repeated once is not — which is the whole point.
+    /// </summary>
+    public const float HedgeBelowConfidence = 0.7f;
+
+    private static readonly IReadOnlySet<string> EmptySlotNames =
+        new HashSet<string>(StringComparer.Ordinal);
 
     /// <summary>Typing delay proportional to the reply, clamped so she is neither instant nor slow.</summary>
     public static TimeSpan TypingDelayFor(string? text)

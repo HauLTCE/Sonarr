@@ -17,6 +17,11 @@ namespace Sonarr.Application.Tests.Chat;
 /// </summary>
 internal sealed class FakePersonRepository : IPersonRepository
 {
+    /// <summary>Same numbers as PersonRepository — a fake that drifts from them proves nothing.</summary>
+    private const float InitialConfidence = 0.6f;
+
+    private const float ReinforceStep = 0.15f;
+
     private readonly Dictionary<(long GuildId, long UserId), Person> _people = [];
     private readonly List<Fact> _facts = [];
 
@@ -76,16 +81,29 @@ internal sealed class FakePersonRepository : IPersonRepository
         Events.AddRange(write.Events);
         foreach (FactWrite fact in write.Facts)
         {
-            _facts.RemoveAll(f =>
+            Fact? existing = _facts.Find(f =>
                 f.GuildId == write.Person.GuildId
                 && f.UserId == write.Person.UserId
                 && f.Predicate == fact.Predicate);
+
+            // Mirrors PersonRepository.UpsertFactAsync: repeat mention reinforces, a new value
+            // replaces at the starting confidence. A fake that stored 0 would make every fact
+            // look shaky and every reply hedge.
+            if (existing is not null && existing.Value == fact.Value)
+            {
+                existing.Confidence = Math.Min(1f, existing.Confidence + ReinforceStep);
+                existing.LearnedAtTurn = fact.LearnedAtTurn;
+                continue;
+            }
+
+            _facts.Remove(existing!);
             _facts.Add(new Fact
             {
                 GuildId = write.Person.GuildId,
                 UserId = write.Person.UserId,
                 Predicate = fact.Predicate,
                 Value = fact.Value,
+                Confidence = InitialConfidence,
                 LearnedAtTurn = fact.LearnedAtTurn,
             });
         }
@@ -96,10 +114,16 @@ internal sealed class FakePersonRepository : IPersonRepository
     // Newest first, like the real repository — /memories renders in this order and truncates
     // the tail, so the order is part of the contract.
     public Task<IReadOnlyList<Fact>> GetFactsAsync(long guildId, long userId, CancellationToken ct = default)
-        => Task.FromResult<IReadOnlyList<Fact>>(
+    {
+        FactReads++;
+        return Task.FromResult<IReadOnlyList<Fact>>(
             [.. _facts
                 .Where(f => f.GuildId == guildId && f.UserId == userId)
                 .OrderByDescending(f => f.LearnedAtTurn)]);
+    }
+
+    /// <summary>How many times the fact table was read — the hedge must not add one per turn.</summary>
+    public int FactReads { get; private set; }
 
     public Task<bool> ForgetFactAsync(long guildId, long userId, string predicate, CancellationToken ct = default)
         => Task.FromResult(_facts.RemoveAll(f =>

@@ -15,6 +15,7 @@ public static partial class PersonaValidator
         {
             ReplyComposer.MoodFragmentPool,
             ReplyComposer.CallbackPool,
+            ReplyComposer.HedgePool,
         };
 
         // The tier-up moment: one pool per declared tier, drawn by id (ChatEngine). Optional the

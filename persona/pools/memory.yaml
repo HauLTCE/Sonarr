@@ -15,6 +15,20 @@ pools:
   - 'my notes say "{$quote}". nothing has changed.'
   - 'you heard "{$quote}" from me once already.'
   - 'previously, on you and me: "{$quote}"'
+  # A remembered value she is not sure of. {$value} is the fact itself; the hedge wraps it in
+  # place, so an authored line keeps its own wording and only the value sounds shaky:
+  # "you're {name}" → "you're sam, i think". Code-referenced (ReplyComposer.HedgePool).
+  #
+  # Every line here has to work mid-sentence — no openers, no trailing period.
+  fact_hedge:
+  - '{$value}, i think'
+  - '{$value}? or was it something else'
+  - '{$value} — don''t quote me'
+  - 'something like {$value}'
+  - '{$value}, if i''m remembering right'
+  - '{$value}, probably'
+  - '{$value}. maybe. you only said it once'
+  - '{$value}, allegedly'
   memory_retrieve:
   - 'caught in 4k:'
   - let me pull up the logs...

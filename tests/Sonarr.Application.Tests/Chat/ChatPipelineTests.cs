@@ -2,6 +2,7 @@ using Sonarr.Application.Chat;
 using Sonarr.Domain.Chat;
 using Sonarr.Domain.Configuration;
 using Sonarr.Domain.Entities.Chat;
+using Sonarr.Elaine.Conversation;
 
 namespace Sonarr.Application.Tests.Chat;
 
@@ -174,6 +175,46 @@ public sealed class ChatPipelineTests
             Boredom(people.Writes[^1].Person) > boredomAfterFirst,
             "pinging twice with nothing new should register");
     }
+
+    [Fact]
+    public async Task A_name_she_heard_once_is_recalled_hedged_and_a_confirmed_one_is_not()
+    {
+        FakePersonRepository people = new();
+        ChatPipeline pipeline = Build.Pipeline(people, new FakeSessionCache());
+
+        // Said once: chat.fact starts below the hedge threshold, so the recall wears a hedge.
+        await pipeline.HandleAsync(Build.Request("my name is Hau"));
+        string once = await Recall(pipeline);
+
+        // Said again: UpsertFactAsync reinforces past the threshold and she stops qualifying it.
+        await pipeline.HandleAsync(Build.Request("my name is Hau"));
+        string twice = await Recall(pipeline);
+
+        Assert.Contains("Hau", once, StringComparison.Ordinal);
+        Assert.Contains("Hau", twice, StringComparison.Ordinal);
+        Assert.True(IsHedged(once), $"a fact heard once should hedge: {once}");
+        Assert.False(IsHedged(twice), $"a confirmed fact should not hedge: {twice}");
+    }
+
+    [Fact]
+    public async Task A_stranger_costs_no_fact_query()
+    {
+        FakePersonRepository people = new();
+
+        await Build.Pipeline(people, new FakeSessionCache()).HandleAsync(Build.Request("hey sonarr"));
+
+        // No slots means nothing hedgeable, so the hedge must not add a read on a Pentium.
+        Assert.Equal(0, people.FactReads);
+    }
+
+    private static async Task<string> Recall(ChatPipeline pipeline)
+        => (await pipeline.HandleAsync(Build.Request("what's my name"))).Text ?? string.Empty;
+
+    private static bool IsHedged(string text) =>
+        Build.Graph.Pools[ReplyComposer.HedgePool].Lines
+            .Select(line => line.Replace("{$value}", string.Empty, StringComparison.Ordinal).Trim())
+            .Where(fragment => fragment.Length > 3)
+            .Any(fragment => text.Contains(fragment, StringComparison.Ordinal));
 
     [Theory]
     [InlineData(null)]
