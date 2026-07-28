@@ -63,9 +63,15 @@ pools:
   # and this pool still has 23.
   #
   # Also dropped: "that i'd delete." off the email line, since she cannot delete anything.
+  # "did i ask?" and "i don't remember asking." survived the cull above and are the same shape as
+  # the eight lines it removed: both assert the reader volunteered something. They are wrong for
+  # everything this fallback actually receives -- "fix what?" and "Explain" are questions aimed at
+  # her, "make me a sandwich" is an order -- and slice-1 caught "i don't remember asking." answering
+  # a request to define a word. Replaced with two that work for a statement, a question and an
+  # order alike, which is this pool's whole constraint.
   - okay. and?
-  - did i ask?
-  - i don't remember asking.
+  - that's a lot of words for nothing.
+  - not doing anything with that.
   - that's nice. anyway.
   - fascinating. not.
   - is there a point to this?

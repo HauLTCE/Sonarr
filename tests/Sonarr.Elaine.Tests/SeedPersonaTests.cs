@@ -156,6 +156,52 @@ public class SeedPersonaTests
                 + string.Join(Environment.NewLine, bad));
     }
 
+    /// <summary>The fallback pool may not assert the reader volunteered something.</summary>
+    /// <remarks>
+    /// <para><c>neutral_statement</c> answers messages nothing matched, so it does not know whether
+    /// it is looking at a statement, a question or an order — every line has to work for all three.
+    /// Ten lines presupposed an overshare, and the corpus review caught them answering "fix what?",
+    /// "Explain", "help", "wife, make me a sandwich" and a probability question. Four of the five
+    /// review slices flagged it independently, which made it the largest single defect in the
+    /// sheet.</para>
+    /// <para>Pinned to the pool rather than the phrasing: these same lines are correct in
+    /// <c>user_oversharing</c>, where the route guarantees somebody actually overshared, and in
+    /// <c>user_affection</c> / <c>user_love</c>, where a declaration genuinely was volunteered. The
+    /// defect is the pairing, not the words, so the guard names the pool.</para>
+    /// </remarks>
+    [Fact]
+    public void FallbackPool_DoesNotPresupposeAnOvershare()
+    {
+        string[] presupposes =
+        [
+            @"did i ask",
+            @"(?:don'?t|didn'?t) (?:remember|recall) asking",
+            @"(?:didn'?t|don'?t) need to know that",
+            @"keep that to yourself",
+            @"not your diary",
+            @"why (?:are|would) you telling me",
+            @"thanks for the update",
+            @"(?:really )?needed to share",
+            @"cool story",
+            @"groundbreaking information",
+        ];
+
+        PoolDef fallback = SeedPersona.Graph.Pools["neutral_statement"];
+        List<string> bad =
+        [
+            .. from line in fallback.Lines.Concat(fallback.ByMode.Values.SelectMany(v => v))
+               from claim in presupposes
+               where Regex.IsMatch(line, claim, RegexOptions.IgnoreCase)
+               select line,
+        ];
+
+        Assert.True(
+            bad.Count == 0,
+            "neutral_statement is the fallback and answers questions and orders too; these lines "
+                + $"assert the reader volunteered something:{Environment.NewLine}"
+                + string.Join(Environment.NewLine, bad));
+    }
+
     /// <summary>A line may not be a subordinate clause with nothing to depend on.</summary>
     /// <remarks>
     /// <para><c>LinePicker.Pick</c> draws exactly one line and <c>ReplyComposer</c> never joins two,
