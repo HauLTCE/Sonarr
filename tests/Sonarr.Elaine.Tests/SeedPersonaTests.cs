@@ -47,8 +47,10 @@ public class SeedPersonaTests
     public void ShippedPersona_DoesNotGrowMoreOrphanPools()
     {
         // 110 when the finding was made, 106 after disruptive.yaml, 99 after coverage.yaml,
-        // 98 after HARM_HOWTO wired mixed_question_threat, 97 after Q_OPINION.
-        const int recorded = 97;
+        // 98 after HARM_HOWTO wired mixed_question_threat, 97 after Q_OPINION, 96 after the
+        // dangling-clause pass folded a pool away. Lowered on sight: a ratchet left one notch
+        // above the real count is one free regression, which is the thing it exists to refuse.
+        const int recorded = 96;
 
         List<PersonaIssue> orphans =
             [.. SeedPersona.Result.Issues.Where(i => i.Rule == Rules.OrphanPool)];

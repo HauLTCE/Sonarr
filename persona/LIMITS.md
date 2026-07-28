@@ -71,8 +71,15 @@ record.
 ## Structural
 
 - **A pool with authored lines and no intent pointing at it is invisible.** Two were found this
-  way (`joke_dad`, `question_hypothetical` with 19 unreachable lines). There is no guard for it;
-  it takes a deliberate sweep.
+  way (`joke_dad`, `question_hypothetical` with 19 unreachable lines). There *is* a guard, and it
+  is a ratchet rather than a floor: `PersonaValidator` reports `orphan-pool` as a Warning
+  (`PersonaValidator.Content.cs:63`) and `ShippedPersona_DoesNotGrowMoreOrphanPools` pins the
+  count at **96**, so it may fall and never rise. What it cannot do is get to zero — 96 pools
+  really are unrouted today, and bulk-migrating a persona and wiring none of it is the case the
+  ratchet catches. Finding which of the 96 *matter* is still a deliberate sweep: of the ten
+  sampled, the warning was right about nine being dead weight and wrong about the tenth, where
+  `disruptive_hate_speech` had 20 authored lines nothing pointed at, so `heil hitler` drew from
+  the neutral fallback — the pool that answers "go destroy account" with "okay?".
 - **Pool lines never join.** `LinePicker.Pick` draws exactly one line and `ReplyComposer` never
   concatenates two, so every line must stand alone as a whole reply. A mood fragment can
   prepend, but "mm." is not a main clause.
