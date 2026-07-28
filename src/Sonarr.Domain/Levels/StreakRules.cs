@@ -32,4 +32,20 @@ public static class StreakRules
 
     /// <summary>Once-per-day bonus: granted when the stored bonus day is not today.</summary>
     public static bool FirstMessageBonusDue(DateOnly? bonusDay, DateOnly today) => bonusDay != today;
+
+    /// <summary>
+    /// The streak as it stands <em>now</em>, for display. The stored number is only true as of
+    /// <paramref name="lastDay"/>: someone who last spoke three days ago has a broken streak that
+    /// nothing has written yet.
+    /// </summary>
+    /// <remarks>
+    /// Derived on read rather than swept nightly, deliberately. A sweep would be one UPDATE per
+    /// stale row per guild per night to produce a number this computes for free, and it would be
+    /// wrong between midnight and whenever the sweep ran — worse, a failed sweep leaves an inflated
+    /// streak on someone's card. This is also why <c>DailyTick</c> has no streak duty.
+    /// </remarks>
+    public static int CurrentDays(int storedDays, DateOnly? lastDay, DateOnly today)
+        => lastDay is { } day && (day == today || day == today.AddDays(-1))
+            ? Math.Max(storedDays, 0)
+            : 0;
 }

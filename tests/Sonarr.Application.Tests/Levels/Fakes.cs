@@ -193,12 +193,38 @@ internal sealed class FakeMemberRepository : IMemberRepository
     public Task SetTimezoneAsync(long guildId, long userId, string? ianaTimezone, CancellationToken ct = default)
         => Task.CompletedTask;
 
+    /// <summary>Adds a row directly, for tests that need one to already exist.</summary>
+    public Member Seed(long guildId, long userId, DateTimeOffset firstSeenAt, DateOnly? birthday = null)
+        => _rows[(guildId, userId)] = new Member
+        {
+            GuildId = guildId,
+            UserId = userId,
+            FirstSeenAt = firstSeenAt,
+            Birthday = birthday,
+        };
+
     public Task SetBirthdayAsync(long guildId, long userId, DateOnly? birthday, CancellationToken ct = default)
-        => Task.CompletedTask;
+    {
+        // Mirrors the real ExecuteUpdateAsync: no row, no write, no insert.
+        if (_rows.TryGetValue((guildId, userId), out Member? row))
+        {
+            row.Birthday = birthday;
+        }
+
+        return Task.CompletedTask;
+    }
 
     public Task<IReadOnlyList<Member>> GetBirthdaysAsync(
         long guildId, int month, int day, CancellationToken ct = default)
-        => Task.FromResult<IReadOnlyList<Member>>([]);
+        => Task.FromResult<IReadOnlyList<Member>>(
+            [.. _rows.Values.Where(m => m.GuildId == guildId
+                && m.Birthday is { } b && b.Month == month && b.Day == day)]);
+
+    public Task<IReadOnlyList<Member>> GetJoinAnniversariesAsync(
+        long guildId, int month, int day, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<Member>>(
+            [.. _rows.Values.Where(m => m.GuildId == guildId
+                && m.FirstSeenAt.Month == month && m.FirstSeenAt.Day == day)]);
 }
 
 /// <summary>

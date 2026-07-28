@@ -42,6 +42,9 @@ public static class UtilityServiceCollectionExtensions
         services.AddHostedService<CommandUsageCounter>();
         services.AddHostedService<PresenceSampler>();
 
+        // Birthday + anniversary greetings, one guild-local morning at a time.
+        services.AddHostedService<DailyTick>();
+
         return services;
     }
 }

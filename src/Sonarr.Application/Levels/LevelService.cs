@@ -142,6 +142,15 @@ public sealed class LevelService(
         var rank = await progress.GetRankAsync((long)guildId, (long)userId, cancellationToken);
         LevelCurve.Progress(row.Xp, row.Level, out var into, out var span);
 
+        // Derived, not stored: the row's streak is only true as of StreakLastDay, and nothing
+        // rewrites it when a day passes in silence. See StreakRules.CurrentDays for why there is
+        // no nightly sweep.
+        //
+        // UTC, matching the day XpOnMessage stamps the row with. Reading in the guild's zone would
+        // be nicer to look at and wrong: west of UTC the stored day can be "tomorrow" by that
+        // clock, and a member who just spoke would be shown a streak of zero.
+        DateOnly today = DateOnly.FromDateTime(DateTime.UtcNow);
+
         return new LevelCard(
             guildId,
             userId,
@@ -150,7 +159,7 @@ public sealed class LevelService(
             into,
             span,
             rank,
-            row.StreakDays,
+            StreakRules.CurrentDays(row.StreakDays, row.StreakLastDay, today),
             row.VoiceSeconds,
             row.LastMessageXpAt);
     }

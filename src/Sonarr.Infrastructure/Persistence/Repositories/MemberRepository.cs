@@ -111,6 +111,22 @@ public sealed class MemberRepository(SonarrDbContext db) : IMemberRepository
                 && m.Birthday.Value.Day == day)
             .ToListAsync(ct);
 
+    // ponytail: month+day matched in UTC, not in the guild's zone. A member first seen within a few
+    // hours of midnight UTC can therefore be greeted a day either side in a far-west/far-east
+    // guild. Fixing it properly needs `first_seen_at AT TIME ZONE <guild zone>` in the WHERE, which
+    // is a raw-SQL query and an index that no longer helps; upgrade there if anyone ever notices.
+    public async Task<IReadOnlyList<Member>> GetJoinAnniversariesAsync(
+        long guildId,
+        int month,
+        int day,
+        CancellationToken ct = default)
+        => await db.Members
+            .AsNoTracking()
+            .Where(m => m.GuildId == guildId
+                && m.FirstSeenAt.Month == month
+                && m.FirstSeenAt.Day == day)
+            .ToListAsync(ct);
+
     private static string Trim(string value)
         => value.Length <= 64 ? value : value[..64];
 }

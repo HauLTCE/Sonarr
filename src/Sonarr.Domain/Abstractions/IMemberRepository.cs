@@ -21,6 +21,13 @@ public interface IMemberRepository
 
     /// <summary>Birthday announcer: everyone in the guild whose month+day matches.</summary>
     Task<IReadOnlyList<Member>> GetBirthdaysAsync(long guildId, int month, int day, CancellationToken ct = default);
+
+    /// <summary>
+    /// Anniversary announcer: everyone in the guild who was first seen on this month+day in an
+    /// earlier year. Same shape as <see cref="GetBirthdaysAsync"/>, over <c>first_seen_at</c>.
+    /// </summary>
+    Task<IReadOnlyList<Member>> GetJoinAnniversariesAsync(
+        long guildId, int month, int day, CancellationToken ct = default);
 }
 
 /// <summary>One member's accumulated activity since the last flush.</summary>
