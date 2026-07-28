@@ -122,8 +122,9 @@ else
         echo "   or use --build to build from source on this box." >&2
         exit 1
     fi
-    # All four services, not just bot+web: postgres and redis are pinned tags, so this is
-    # a no-op for them unless the pin moved, and then it should move here too.
+    # Every service, not just bot+web: postgres, redis and lavalink are pinned tags and
+    # yt-cipher is pinned by digest, so this is a no-op for them unless a pin moved, and
+    # then it should move here too.
     echo "==> pulling images"
     docker compose -f "$COMPOSE_FILE" pull
 fi
@@ -161,4 +162,5 @@ echo
 echo "==> bot log tail"
 docker compose -f "$COMPOSE_FILE" logs --tail 20 bot || true
 echo
-echo "Done. Untouched as always: lavalink.service, yt-cipher, /root/lavalink/*."
+echo "Done. Music is in this stack now (lavalink + yt-cipher) — a 'compose down' takes it"
+echo "down too. Prefer 'up -d <service>' / 'restart <service>' for routine work."
