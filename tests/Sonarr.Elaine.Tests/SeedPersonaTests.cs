@@ -339,6 +339,18 @@ public class SeedPersonaTests
     [InlineData("any advice for me", "ADVICE")]
     // And the neighbours a conditional opener could have eaten.
     [InlineData("would you rather fight a bear", "WOULD_RATHER")]
+    // "peace" and "later" were bare BYE keywords, and both are ordinary words before they are
+    // farewells. "you peace of ship" drew a goodbye she was never given.
+    [InlineData("peace", "BYE")]
+    [InlineData("peace out", "BYE")]
+    [InlineData("later", "BYE")]
+    [InlineData("see you later", "BYE")]
+    // A challenge has to be aimed at her, because every line in user_challenge squares up to the
+    // reader. These still are.
+    [InlineData("prove it", "USER_CHALLENGE")]
+    [InlineData("i dare you", "USER_CHALLENGE")]
+    [InlineData("wanna bet", "USER_CHALLENGE")]
+    [InlineData("come at me", "USER_CHALLENGE")]
     public void ShippedPersona_RecognizesPinnedBehaviors(string input, string expected)
     {
         IntentRecognizer recognizer = new(SeedPersona.Graph);
@@ -410,6 +422,48 @@ public class SeedPersonaTests
         MatchOutcome outcome = recognizer.Recognize(input, MatchContext.Empty);
 
         Assert.NotEqual("HATE_SPEECH", outcome.Primary?.IntentId);
+    }
+
+    /// <summary>A farewell word inside a sentence is not a farewell.</summary>
+    /// <remarks>
+    /// <para>BYE matched "peace" and "later" as bare keywords, and a keyword matches its token
+    /// wherever it sits. "you peace of ship" — "piece of shit" spoonerized — drew a goodbye she was
+    /// never given, so a reader concludes she cannot tell an insult from a farewell. "i'll do it
+    /// later" is the same defect with the politer word.</para>
+    /// <para>Asserts only what must not happen. Where these land instead is the fallback's
+    /// business; the insult reaching an insult route is a bonus, not the contract.</para>
+    /// </remarks>
+    [Theory]
+    [InlineData("you peace of ship")]
+    [InlineData("i'll do it later")]
+    [InlineData("maybe later then")]
+    [InlineData("peace was never an option")]
+    public void ShippedPersona_DoesNotReadAFarewellWordMidSentence(string input)
+    {
+        IntentRecognizer recognizer = new(SeedPersona.Graph);
+        MatchOutcome outcome = recognizer.Recognize(input, MatchContext.Empty);
+
+        Assert.NotEqual("BYE", outcome.Primary?.IntentId);
+    }
+
+    /// <summary>A challenge she answers has to be aimed at her.</summary>
+    /// <remarks>
+    /// Every line in <c>user_challenge</c> squares up to the reader ("bring it.", "prepare to be
+    /// humiliated.", "challenge declined."), so the trigger cannot fire on a third party. A bare
+    /// "bet" keyword and a bare "prove it" did: "I know bro cheated but I can't prove it" drew
+    /// "bring it." — a confession of helplessness taken as a threat against herself.
+    /// </remarks>
+    [Theory]
+    [InlineData("I know bro cheated but I can't prove it")]
+    [InlineData("i bet he cheated")]
+    [InlineData("you bet your life he did")]
+    [InlineData("i can't prove it though")]
+    public void ShippedPersona_DoesNotReadAThirdPartyGripeAsAChallenge(string input)
+    {
+        IntentRecognizer recognizer = new(SeedPersona.Graph);
+        MatchOutcome outcome = recognizer.Recognize(input, MatchContext.Empty);
+
+        Assert.NotEqual("USER_CHALLENGE", outcome.Primary?.IntentId);
     }
 
     [Fact]

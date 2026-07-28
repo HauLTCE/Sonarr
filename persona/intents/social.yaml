@@ -39,9 +39,7 @@ intents:
     - bye
     - goodbye
     - cya
-    - later
     - gtg
-    - peace
     - ttyl
     regex:
     - see ya
@@ -49,6 +47,16 @@ intents:
     - have to go
     - gotta go
     - good ?night
+    # "peace" and "later" were bare keywords, and both are ordinary words before they are
+    # farewells. "you peace of ship" (a spoonerized insult) drew a goodbye she was never given, and
+    # "i'll do it later" would too. As farewells they only ever appear alone or with a particle, so
+    # the anchored forms lose nothing: "peace out", "later!", "see you later".
+    #
+    # A regex here also outranks a keyword on specificity, which is the point -- the insult above
+    # now reaches the insult route instead of tying with a farewell.
+    - ^(?:peace|later)$
+    - \bpeace out\b
+    - (?:see|catch) (?:you|ya|u) later\b
   examples:
   - alright, i am logging off for the night
   - that is me done, catch you tomorrow

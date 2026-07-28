@@ -46,17 +46,27 @@ intents:
     trust: 0.5
 - id: USER_CHALLENGE
   match:
-    keyword:
-    - bet
+    # Every line in user_challenge squares up to the reader ("bring it.", "prepare to be
+    # humiliated.", "challenge declined."), so the challenge has to be aimed at her. A bare "bet"
+    # keyword and a bare "prove it" were not: "I know bro cheated but I can't prove it" drew
+    # "bring it." -- she took a confession of helplessness about a third party as a threat against
+    # herself, and "i bet he cheated" would do the same.
     regex:
     - bet you can'?t
-    - prove it
+    # Anchored, or negated-and-aimed. "prove it" alone is most often about something else entirely;
+    # as a challenge to her it stands alone or follows a "then".
+    - ^(?:then )?prove it$
+    - prove it to me\b
     - i dare you
     - you can'?t (?:do|beat|handle)
     - fight me
     - try me
-    - wanna bet
+    # Not "you bet": that is agreement ("you bet your life he did"), the opposite of a challenge.
+    # A bare "bet." is the real one -- it means "watch me" -- so it gets the anchor.
+    - '(?:wanna|want to|you wanna) bet\b'
+    - ^bet$
     - come at me
+    - '(?:bring|brought) it on?\b'
   examples:
   - go on then, show me you can actually do it
   - there is no way you manage that
