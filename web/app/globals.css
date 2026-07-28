@@ -71,7 +71,11 @@ body {
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-body), system-ui, sans-serif;
+  /* Fallback inside the var(), not after it. --font-body is set by next/font on <html>, and if it
+     ever is not, `var(--font-body), system-ui` does not fall through to system-ui -- an undefined
+     custom property with no fallback makes the whole declaration invalid at computed-value time and
+     takes the rest of the stack with it. The comma list only covers a font that fails to *load*. */
+  font-family: var(--font-body, system-ui), sans-serif;
   font-size: 15px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -80,7 +84,7 @@ body {
 h1,
 h2,
 h3 {
-  font-family: var(--font-head), system-ui, sans-serif;
+  font-family: var(--font-head, system-ui), sans-serif;
   font-weight: 650;
   letter-spacing: -0.015em;
   line-height: 1.25;
@@ -120,7 +124,7 @@ a {
 /* The mono face carries ids, counts and section labels — anything a person might compare
    character by character. */
 .mono {
-  font-family: var(--font-mono), ui-monospace, monospace;
+  font-family: var(--font-mono, ui-monospace), monospace;
   font-variant-numeric: tabular-nums;
 }
 
@@ -151,7 +155,7 @@ a {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  font-family: var(--font-head), sans-serif;
+  font-family: var(--font-head, system-ui), sans-serif;
   font-weight: 650;
   letter-spacing: -0.02em;
 }
@@ -411,7 +415,7 @@ a {
 }
 
 .stat-value {
-  font-family: var(--font-head), sans-serif;
+  font-family: var(--font-head, system-ui), sans-serif;
   font-size: 1.5rem;
   font-weight: 650;
   letter-spacing: -0.02em;
