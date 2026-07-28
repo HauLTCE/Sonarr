@@ -50,8 +50,9 @@ public class SeedPersonaTests
     }
 
     [Theory]
-    // Behavior floor carried over from _bot_legacy/tests/test_logical_response.py: these
-    // are the pinned recognitions, asserted against the new scored matcher.
+    // Behavior floor carried over from the v1 suite (git show
+    // python-bot-final:_bot_legacy/tests/test_logical_response.py): these are the pinned
+    // recognitions, asserted against the new scored matcher.
     [InlineData("hey", "GREETING")]
     [InlineData("hello there", "GREETING")]
     [InlineData("you're such an idiot", "INSULT")]

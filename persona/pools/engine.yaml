@@ -1,7 +1,8 @@
 # Pools the v2 engine needs that the v1 persona kept as inline state grammar rather than
-# as pools. Lines are lifted verbatim from _bot_legacy/elaine/persona/elaine.yaml
-# (states.CHAT.grammar / states.RPS.grammar / states.ARGUMENT.grammar) so her voice is
-# unchanged; only their home moved.
+# as pools. Lines are lifted verbatim from the v1 persona (states.CHAT.grammar /
+# states.RPS.grammar / states.ARGUMENT.grammar) so her voice is unchanged; only their home
+# moved. The v1 tree is deleted: `git show
+# python-bot-final:_bot_legacy/elaine/persona/elaine.yaml`.
 pools:
   # Mood fragment prepended during composition. Mode-covered: every non-fallback mode has
   # its own openers, taken from the v1 CHAT mode_grammar block.

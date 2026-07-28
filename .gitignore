@@ -32,15 +32,6 @@ out/
 next-env.d.ts
 *.tsbuildinfo
 .pnpm-store/
-
-# Python (legacy bot in _bot_legacy/)
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
 ENV/
 develop-eggs/
 downloads/

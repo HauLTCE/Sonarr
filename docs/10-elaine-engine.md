@@ -1,8 +1,9 @@
 # 10 — Chat Engine (internal name: Elaine)
 
 The personality module. Deterministic, authored, zero generative AI. This doc covers
-the new engine design; the old Python `elaine/` package (kept in `_bot_legacy/`) is
-the reference implementation and its test suite is the behavior catalog.
+the new engine design. The old Python `elaine/` package was the reference implementation
+and its test suite the behavior catalog; both have been extracted (`persona/` and
+`BehaviorCatalogTests`), so the tree itself is gone — see the `python-bot-final` tag.
 
 ## Design contract (carried over from the old engine — its best ideas)
 
@@ -81,9 +82,11 @@ shadowing report, pool coverage per mode, overlay collisions.
 
 ## Testing
 
-- **Behavior catalog**: every pinned behavior from `_bot_legacy/tests/
-  test_logical_response.py` rewritten against the new engine (same scenarios, new
-  format). This is the regression floor.
+- **Behavior catalog**: every pinned behavior from the v1 suite (`git show
+  python-bot-final:_bot_legacy/tests/test_logical_response.py`) rewritten against the new
+  engine in `BehaviorCatalogTests` — same scenarios, new format. This is the regression
+  floor, and legacy behaviors with no v2 route are recorded there as comments rather than
+  dropped silently.
 - **Golden conversations**: scripted multi-turn dialogues with full state assertions,
   run deterministically (injected clock/RNG).
 - **Persona lint in CI**: the validator runs on every persona change; shadowing

@@ -1,4 +1,5 @@
-# topics intents — migrated from _bot_legacy/elaine/persona/elaine.yaml (v1 CHAT state).
+# topics intents — migrated from the v1 persona, CHAT state (deleted tree; read it with
+# `git show python-bot-final:_bot_legacy/elaine/persona/elaine.yaml`).
 # Patterns carry over verbatim; Python (?P<x>) named groups rewritten to .NET (?<x>).
 intents:
 - id: VIBE
