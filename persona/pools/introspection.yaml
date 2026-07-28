@@ -71,6 +71,23 @@ pools:
   - this week specifically has not helped your case.
   - and it's been getting worse, if you were wondering.
 
+  # Holding the top or the bottom of the guild's trust ordering (ChatIntrospection.StandingAsync).
+  # Only the extremes get a line — "you're fourth" is a leaderboard and she doesn't hand out
+  # numbers — and nobody else is ever named, because who her other favorites are is their
+  # business, not yours (docs/06). Code-referenced, appended after the tier and trend lines.
+  standing_top:
+  - and nobody here is ahead of you. i've checked. twice.
+  - you're at the top of my list, which says more about this server than about you.
+  - currently my favorite person here. the bar was on the floor.
+  - nobody's beaten you yet. try not to notice.
+  - top of the list. i'm not putting that on a plaque.
+  standing_bottom:
+  - and you are, at this moment, the worst of them. congratulations.
+  - nobody here has done worse. that took effort.
+  - you're at the bottom of my list. there was competition.
+  - last place. actively last, not by default.
+  - i've ranked everyone. you're the one at the end.
+
   # /relationship on somebody else: she has an opinion and she is not sharing it. Her state
   # about another user is theirs, not yours (docs/06 — the panel sees counts, not other
   # people's facts, and neither does this command).

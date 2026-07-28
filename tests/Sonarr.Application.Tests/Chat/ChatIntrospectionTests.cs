@@ -49,6 +49,71 @@ public class ChatIntrospectionTests
     }
 
     [Fact]
+    public async Task Her_favorite_is_told_they_are_and_the_runner_up_is_not()
+    {
+        FakePersonRepository people = new();
+        people.Seed(Guild, User, p => p.Registers = new PersonRegisters { Trust = 15 });
+        people.Seed(Guild, Other, p => p.Registers = new PersonRegisters { Trust = 9 });
+        ChatIntrospection chat = Build.Introspection(people);
+
+        string top = await chat.DescribeRelationshipAsync(Guild, User, User);
+        string second = await chat.DescribeRelationshipAsync(Guild, Other, Other);
+
+        Assert.Contains(Pool(ChatIntrospection.TopStandingPool), top.EndsWith);
+        Assert.DoesNotContain(Pool(ChatIntrospection.TopStandingPool), second.EndsWith);
+    }
+
+    [Fact]
+    public async Task The_least_favorite_hears_about_it_from_the_other_end_of_the_ordering()
+    {
+        FakePersonRepository people = new();
+        people.Seed(Guild, User, p => p.Registers = new PersonRegisters { Trust = -12 });
+        people.Seed(Guild, Other, p => p.Registers = new PersonRegisters { Trust = -4 });
+
+        string line = await Build.Introspection(people).DescribeRelationshipAsync(Guild, User, User);
+
+        Assert.Contains(Pool(ChatIntrospection.BottomStandingPool), line.EndsWith);
+    }
+
+    [Fact]
+    public async Task Topping_a_list_of_one_is_not_a_ranking()
+    {
+        FakePersonRepository people = new();
+        people.Seed(Guild, User, p => p.Registers = new PersonRegisters { Trust = 15 });
+
+        string line = await Build.Introspection(people).DescribeRelationshipAsync(Guild, User, User);
+
+        Assert.Contains(line, Pool("relationship_favorite"));
+    }
+
+    [Fact]
+    public async Task A_standing_line_never_names_anybody_else()
+    {
+        // Her favorite being told they're her favorite is fine. Telling them who came second
+        // would publish that person's standing to someone it doesn't belong to (docs/06).
+        FakePersonRepository people = new();
+        people.Seed(Guild, User, p => p.Registers = new PersonRegisters { Trust = 15 });
+        people.Seed(Guild, Other, p => p.Registers = new PersonRegisters { Trust = 9 });
+
+        string line = await Build.Introspection(people).DescribeRelationshipAsync(Guild, User, User);
+
+        Assert.DoesNotContain(Other.ToString(System.Globalization.CultureInfo.InvariantCulture), line, StringComparison.Ordinal);
+        Assert.DoesNotContain("<@", line, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Someone_she_feels_nothing_about_costs_no_ordering_query()
+    {
+        FakePersonRepository people = new();
+        people.Seed(Guild, User, p => p.Registers = new PersonRegisters { Trust = 1 });
+
+        await Build.Introspection(people).DescribeRelationshipAsync(Guild, User, User);
+
+        // Below the threshold there is no list to be at the top of, so there is no query.
+        Assert.Equal(0, people.TrustRankReads);
+    }
+
+    [Fact]
     public async Task Relationship_never_leaks_a_register_number()
     {
         FakePersonRepository people = new();

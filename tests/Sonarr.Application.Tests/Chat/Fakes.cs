@@ -141,6 +141,23 @@ internal sealed class FakePersonRepository : IPersonRepository
         => Task.FromResult(_facts.RemoveAll(f =>
             f.GuildId == guildId && f.UserId == userId && f.Predicate == predicate) > 0);
 
+    /// <remarks>Same trust-0 exclusion as the SQL: a stranger tops neither list.</remarks>
+    public Task<IReadOnlyList<long>> GetTrustRankedUsersAsync(
+        long guildId, int limit, bool lowestFirst = false, CancellationToken ct = default)
+    {
+        TrustRankReads++;
+        IEnumerable<Person> people = _people.Values.Where(p => p.GuildId == guildId);
+        return Task.FromResult<IReadOnlyList<long>>(
+            [.. (lowestFirst
+                    ? people.Where(p => p.Registers.Trust < 0).OrderBy(p => p.Registers.Trust)
+                    : people.Where(p => p.Registers.Trust > 0).OrderByDescending(p => p.Registers.Trust))
+                .Select(p => p.UserId)
+                .Take(limit)]);
+    }
+
+    /// <summary>How many times the ordering was queried — a neutral person must not cost one.</summary>
+    public int TrustRankReads { get; private set; }
+
     public Task<IReadOnlyList<RelationshipEvent>> GetRecentEventsAsync(
         long guildId, long userId, DateTimeOffset since, int limit, CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<RelationshipEvent>>(
