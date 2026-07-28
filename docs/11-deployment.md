@@ -85,6 +85,42 @@ Reverting is deleting that one file and `systemctl reload ssh`; a mistake there 
 lockout, since the Proxmox host always has console access (`pct enter 103`). Add a key
 with `ssh-copy-id` from a box that already has one, not by re-enabling passwords.
 
+## Host slimming (2026-07-28)
+
+The CT was at 87% of a 20G disk with `apt autoremove` finding nothing — every package was
+marked manual, so apt could never reclaim on its own. 604 → 545 packages, 87% → 64%.
+
+Purged: `reportbug python3-reportbug python3-debianbts debian-faq doc-debian
+apt-listchanges wamerican manpages-dev build-essential gcc-14 g++-14 dpkg-dev python3-dev
+python3.13-dev libpython3-dev mesa-vulkan-drivers inetutils-telnet traceroute dhcpcd-base`,
+then `apt-get autoremove --purge` took the 38-package toolchain tail (cpp, libc6-dev, the
+sanitizers, `libpython3.13`).
+
+The two removals that needed proving rather than assuming:
+
+- **`dhcpcd-base`** — safe only because `/etc/network/interfaces` is `iface eth0 inet
+  static` and no dhcp client was running. On a DHCP host this is how you lose the network.
+- **`libpython3.13`** — the live bot runs `/root/sonarr/venv/bin/python` → `/usr/bin/
+  python3.13`, which is built static (`ldd` shows no libpython). Checked all 308 `.so`
+  files in the venv with `objdump -p | grep NEEDED` too: none link it. Re-verify both if
+  the venv is ever rebuilt.
+
+Kept deliberately: **`ffmpeg` and its whole dependency tree** (GTK, mesa-libgallium,
+pocketsphinx, the va-drivers — ~250MB of apparent desktop cruft on a headless box). It is
+not cruft: `discord.py`'s voice client shells out to the `ffmpeg` binary, so the legacy bot
+needs it through the rollback window. `openjdk-21-jre-headless` (199MB, the largest package
+on the box) is Lavalink's, which is never touched. `postfix` listens on loopback only and
+`cron` mail goes through it — the nightly backup would go silent without it.
+
+Docker was the bigger win: `docker image prune -f` + `docker builder prune -f` freed
+2.9GB of a dangling build and stale cache. `sonarr-bot:rollback` (2.03GB, 2026-05-31) stays
+until the cutover rollback window closes.
+
+`/root/dpkg-selections-before-cleanup.txt` is the pre-cleanup `dpkg --get-selections`
+snapshot; `apt-get install $(...)` off it restores the old set if something surfaces later.
+Verified after each step: all six services active, containers healthy, Lavalink still on
+2333, venv imports `discord/wavelink/transformers/numpy`, `docker compose config -q` clean.
+
 ## Migration & cutover (end of phase 2)
 
 Prep that needs no freeze (done on the CT 2026-07-28): `/root/sonarr-net/` holds the
