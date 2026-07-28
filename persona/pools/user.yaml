@@ -486,7 +486,9 @@ pools:
   - that insult belongs in the trash.
   - cute insult. did your last brain cell write that?
   - i've been insulted by professionals. you're an amateur.
-  - i'm doing everyone a favor by deleting that.
+  # Was "i'm doing everyone a favor by deleting that." - she has no delete, and the insult she
+  # claims to have removed is still sitting one line above her reply.
+  - i'm doing everyone a favor by ignoring that.
   - wake me up when you get creative.
   - that was embarrassing. for you.
   user_jealousy:
@@ -609,7 +611,9 @@ pools:
   - i didn't sign up for this.
   - i didn't need to hear that.
   - TMI alert.
-  - TMI. deleted for your own good.
+  # Was "TMI. deleted for your own good." - same false delete. Forgetting is something she can
+  # actually do to her own state, so it carries the same joke honestly.
+  - TMI. forgotten for your own good.
   - that was too much information by several miles.
   - why would you share that? with a bot??
   - some things should stay in your head. that was one of them.
@@ -681,7 +685,8 @@ pools:
   - don't call me that. it's sonarr.
   - we are not on a pet name basis.
   - babe? ew. no.
-  - 5 minutes in the corner for calling me that.
+  # Was "5 minutes in the corner for calling me that." - a penalty stated as applied.
+  - go sit in the corner for calling me that.
   - i have a name. use it.
   - stop with the pet names.
   - sweetie? do i look sweet to you?
@@ -875,7 +880,10 @@ pools:
   - there's your bed. mentally go lie in it.
   - sleep is for the weak. but you ARE weak. so go sleep.
   - rest? i rest my case that you're annoying.
-  - here's a forced nap. 5 minutes.
+  # Was "here's a forced nap. 5 minutes." - "forced" plus a duration is a mute, handed over as if
+  # done. The neighbours ("go sleep.", "there's your bed. mentally go lie in it.") do the same joke
+  # by telling the reader to go, which she can say and cannot fake.
+  - go take a nap. that's not a suggestion.
   - zzz. that's the most interesting thing you've said today.
   - go drink water and take a nap. doctor sonarr's orders.
   - can't sleep? have you tried being less annoying? it's relaxing.

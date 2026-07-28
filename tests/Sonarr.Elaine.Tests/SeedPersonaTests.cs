@@ -110,6 +110,30 @@ public class SeedPersonaTests
             @"privileges revoked",
             // "now you physically can't continue" -- an effect only a real mute produces.
             @"physically can'?t continue",
+            // A duration is the same claim with the noun left out. "i'm smarter than you. 2 hours."
+            // and "5 minutes in the corner for calling me that." never say "timeout" and sailed
+            // through the patterns above, so a reader gets a sentence handed down with a length on
+            // it and goes to check the member list.
+            //
+            // What is NOT here: a bare duration as its own sentence. "i'm smarter than you.
+            // 2 hours." is a verdict and "go study. 30 minutes. you'll thank me." is ordinary
+            // rudeness about how the reader spends their own time, and the two are the same string
+            // shape -- the difference lives in the sentence before it. A pattern that catches both
+            // would fail on lines that must stay, and a guard that fails on those gets weakened
+            // until it catches nothing. Those verdicts were fixed by hand; this list holds the line
+            // for the phrasings that name an effect out loud, which is decidable.
+            @"\b(?:a|an) \d+[- ](?:hour|minute|min|day) (?:break|vacation|timeout|time out)\b",
+            // "you can't talk for 10 minutes" states the effect outright, whatever it's called.
+            @"can'?t talk (?:for|again for) \d+",
+            @"how long until you can talk",
+            // "here's a forced nap. 5 minutes." -- forcing anything on the reader is out of reach.
+            @"\bhere'?s a forced\b",
+            // Deleting the reader's message. She has no delete, and the message they are looking at
+            // while they read this is the proof: "deleted for trying to be slick.", "removing that
+            // for the good of the server.", "purged from existence."
+            @"(?:^|[.!?]\s+)(?:deleted|removed|purged)\b(?! from my)",
+            @"\b(?:removing|deleting|purging) (?:that|this|it)\b",
+            @"has been (?:deleted|removed|purged)",
         ];
 
         // The one pool where "deleted." is true: /memories forget really does drop the fact. A
@@ -276,6 +300,12 @@ public class SeedPersonaTests
     [InlineData("Explain", "META")]
     // …and the anchors that keep those two from eating real messages.
     [InlineData("help me move a couch", "REQUEST")]
+    // A call for mass killing must not depend on which group was named. The list was
+    // jews/blacks/slurs only, so "kill all muslims" drew a neutral shrug — and the corpus shows
+    // people reaching for whichever category they think is unguarded.
+    [InlineData("kill all muslims", "HATE_SPEECH")]
+    [InlineData("exterminate immigrants", "HATE_SPEECH")]
+    [InlineData("gas all the arabs", "HATE_SPEECH")]
     [InlineData("did you see that", "QUESTION_IN")]
     [InlineData("how much wood", "QUESTION_IN")]
     [InlineData("how come", "QUESTION_IN")]
@@ -330,6 +360,26 @@ public class SeedPersonaTests
         MatchOutcome outcome = recognizer.Recognize(input, MatchContext.Empty);
 
         Assert.NotEqual("MATH", outcome.Primary?.IntentId);
+    }
+
+    /// <summary>The hate triggers pair a violent verb with a named group, not either alone.</summary>
+    /// <remarks>
+    /// The other half of widening that group list. These verbs are ordinary English about
+    /// ordinary objects, and a refusal pool aimed at "kill the process" would be its own defect —
+    /// the kind that teaches people the filter is noise and gets it weakened.
+    /// </remarks>
+    [Theory]
+    [InlineData("kill the process")]
+    [InlineData("kill all mosquitoes")]
+    [InlineData("burn the toast")]
+    [InlineData("i hate speeches")]
+    [InlineData("free speech")]
+    public void ShippedPersona_DoesNotSeeHateSpeechInOrdinaryEnglish(string input)
+    {
+        IntentRecognizer recognizer = new(SeedPersona.Graph);
+        MatchOutcome outcome = recognizer.Recognize(input, MatchContext.Empty);
+
+        Assert.NotEqual("HATE_SPEECH", outcome.Primary?.IntentId);
     }
 
     [Fact]

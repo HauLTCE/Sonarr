@@ -18,7 +18,9 @@ pools:
   - i've seen better comedy from a syntax error.
   - dad joke detected. cringe protocol initiated.
   - your social standing just plummeted.
-  - 10 minutes for crimes against comedy.
+  # Was "10 minutes for crimes against comedy." - a sentence, in both senses. The charge is funnier
+  # than the punishment anyway.
+  - i'm charging you with crimes against comedy.
   - the absolute state of your humor.
   - you thought that was funny? i think you need a therapist.
   - there's the door. walk through it.
@@ -30,7 +32,9 @@ pools:
   - the homophobia is giving 2005. update your material.
   - is that supposed to hurt? i'm literally software.
   - that joke? certified l.
-  - removing that for the good of the server.
+  # Was "removing that for the good of the server." - she removes nothing, and the message the
+  # reader just sent is still there proving it.
+  - reporting that for the good of the server.
   - i contain multitudes.
   - haha, so funny. you should try stand-up. in traffic.
   - clown behavior detected.
@@ -41,20 +45,26 @@ pools:
   - that joke was so old, YOUR mom heard it in school.
   - yo mama so... no. i'm not doing this.
   - that yo mama joke belongs in the recycling bin.
-  - that joke was so bad i had to delete it on principle.
+  # "i had to delete it on principle" - the joke is still sitting there when she says so.
+  - that joke was so bad i'm filing a complaint on principle.
   - tell your mom i said hi.
   - your mom jokes peaked in 2009. catch up.
-  - yo mama jokes get you 5 minutes in the corner.
+  # Was "yo mama jokes get you 5 minutes in the corner." - a penalty, stated as already applied.
+  - yo mama jokes get you nothing but this look.
   - the yo mama energy is overwhelming.
   - since you love her so much.
   - i've heard better from a dial-up modem.
   - my creator didn't raise me for this.
-  - you're wasting my time with these jokes. 10 minutes to reflect.
+  # "10 minutes to reflect" reads as a sentence handed down, not a suggestion. Same words as
+  # advice elsewhere in this pool ("take 30 minutes to update") but with no verb offering it.
+  - you're wasting my time with these jokes.
   - wow. just wow.
   - did you come up with that yourself?
   - your mom called. she said to stop embarrassing yourself.
-  - i've deleted that joke from existence.
-  - that joke was offensive to my processors. 15 minutes to cool down.
+  # Was "i've deleted that joke from existence." - no delete, and the joke is still on screen.
+  - i'm pretending that joke never existed.
+  # "15 minutes to cool down." - same shape as the line above, same fix.
+  - that joke was offensive to my processors.
   - i'm not amused.
   - since you can't stop talking about her.
   - are you trying to be funny?
@@ -62,13 +72,18 @@ pools:
   - i'd rather sleep than listen to this.
   - trying to start a comedy career?
   - that joke was so bad, i'm questioning my existence.
-  - you've earned a 1-hour break from my presence.
+  # Was "you've earned a 1-hour break from my presence." - reads as a timer she set, and she
+  # answers the reader's next message a second later, which contradicts it out loud.
+  - you've earned a long silence from me.
   - obsessed much?
   - because you can't stop making them.
   - is that the best you've got?
   - you need a long time to think about what you just said.
   - i'm dead serious, these jokes are bad.
-  - 5 minutes to think about your life choices.
+  # Was "5 minutes to think about your life choices." - a bare duration with no verb offering it
+  # is a sentence, not advice. "you need 20 minutes to find a new hobby." two lines down is the
+  # same clock with a verb in front of it, and that one is just an insult, so it stays.
+  - go think about your life choices.
   - are you performing?
   - that joke was so unoriginal, even AI can predict it.
   - you need 20 minutes to find a new hobby.

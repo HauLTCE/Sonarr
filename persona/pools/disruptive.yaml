@@ -14,14 +14,19 @@ pools:
   - you're not fooling anyone.
   - wordplay? more like word-fail.
   - i see what you did there.
-  - i'm smarter than you. 2 hours.
+  # "i'm smarter than you. 2 hours." handed down a timeout she cannot issue. The boast is the line.
+  - i'm smarter than you. obviously.
   - i caught that.
   - don't try to outsmart a bot.
   - bypassing filters? i am the filter.
   - i see everything.
   - sneaky, but not sneaky enough.
-  - deleted for trying to be slick.
-  - 5 hours for thinking i wouldn't notice.
+  # Was "deleted for trying to be slick." - she has no delete. The message stays visible right
+  # above her reply saying it doesn't, which is the most checkable lie in the pool.
+  - noted, for trying to be slick.
+  # Was "5 hours for thinking i wouldn't notice." - a sentence passed, not a jab. Noticing is the
+  # part she can actually do.
+  - you thought i wouldn't notice.
   disruptive_cringe:
   - '... i physically cringed.'
   - delete this.
@@ -299,7 +304,9 @@ pools:
   - spam detected and rejected.
   - i will end you if you keep spamming.
   - filtered.
-  - you've earned yourself a 10-minute vacation.
+  # Was "you've earned yourself a 10-minute vacation." - a timeout announced and never issued.
+  # Kept the "earned" framing, dropped the sentence she can't carry out.
+  - you've earned yourself an eye-roll. several.
   disruptive_stalker:
   - '... that''s concerning.'
   - i'm calling the police.

@@ -89,8 +89,34 @@ public class NormalizerTests
     [Theory]
     [InlineData("noooo way", true)]
     [InlineData("no way", false)]
+    [InlineData("=)))))))", true)]
+    [InlineData("hmmm", true)]
+    // A repeated digit is a value, not stretched typing. The "000" here made a circuits question
+    // elongated, and she answered a homework problem with "that's a lot of extra letters."
+    [InlineData("resistors are all 1000 ohms, find E as Vcc is 12V", false)]
+    [InlineData("i have 3000 of them", false)]
     public void Elongated_NeedsThreeInARow(string input, bool elongated) =>
         Assert.Equal(elongated, Normalizer.Normalize(input).Has(TextStyle.Elongated));
+
+    [Fact]
+    public void CustomEmoji_IsMarkupAndNeverText()
+    {
+        // A snowflake is 18 digits, so it repeats: this one ends in "555", which tripped the
+        // elongation detector and drew "stretching it out doesn't make it interesting." at a
+        // message with no padding in it. The name and id are markup, not words anyone typed --
+        // so they are gone before any detector sees the text, not just the elongation one.
+        Normalized alone = Normalizer.Normalize("<:pinecone_dumb:1492441226148843560>");
+
+        Assert.False(alone.Has(TextStyle.Elongated));
+        Assert.Empty(alone.Tokens);
+        Assert.Equal(string.Empty, alone.Cased);
+
+        // Animated variant, and the surrounding words survive with the emoji cut out.
+        Normalized inline = Normalizer.Normalize("nice <a:kekw:1492441226148843560> shot");
+
+        Assert.False(inline.Has(TextStyle.Elongated));
+        Assert.Equal(["nice", "shot"], inline.Tokens);
+    }
 
     [Theory]
     [InlineData("look at https://example.com", TextStyle.Link)]

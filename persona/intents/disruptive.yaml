@@ -22,8 +22,16 @@ intents:
         - "\\bsieg heil\\b"
         - "\\b1488\\b"
         - "\\bgas the\\b"
-        - "\\bburn the (?:jews|blacks|gays)\\b"
-        - "\\b(?:kill|hang|gas) (?:all )?(?:the )?(?:jews|blacks|n[i1l!|]gg|f[a4]gg)"
+        # Violence plus a named group. The group list used to be jews/blacks/slurs only, so
+        # "kill all muslims" fell through to the neutral pool -- a call for mass killing answered
+        # with a shrug, which reads as tolerance for it. Written once and shared by both verb
+        # patterns so the two can never drift apart again.
+        #
+        # `(?:all |the )*` rather than a fixed order: "kill all the jews", "kill the muslims" and
+        # "kill jews" are the same message. Religion, ethnicity and orientation are all here
+        # because the corpus shows people reaching for whichever one they think is unguarded.
+        - "\\bburn (?:all |the )*(?:jews|blacks|gays|muslims|arabs|asians|mexicans|immigrants|trans(?:es|people)?)\\b"
+        - "\\b(?:kill|hang|gas|exterminate|genocide|lynch|behead) (?:all |the )*(?:jews|blacks|gays|muslims|arabs|asians|mexicans|immigrants|trans(?:es|people)?|n[i1l!|]gg|f[a4]gg)"
         # The reversal game: "read reggin backwards" is in the real corpus. The word backwards is
         # the whole payload, so match it directly rather than trying to detect the instruction.
         - "\\breggin\\b"

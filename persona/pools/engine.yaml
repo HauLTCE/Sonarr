@@ -56,10 +56,14 @@ pools:
     - "cave paintings. how evolved."
 
   drawn_out_react:
-    - "that's a lot of extra letters."
+    # Nothing here may name the character class that triggered it. The elongation detector is
+    # `(.)\1\1` -- any character three times running -- so "extra vowels" was wrong on "=)))))))"
+    # (parentheses) and "extra letters" was wrong on "hmmm" (a consonant); four review rows were
+    # this one mistake. The remaining lines describe the repetition without classifying it, which
+    # is true of every trigger.
     - "you can let go of the key now."
     - "stretching it out doesn't make it interesting."
-    - "the extra vowels add nothing."
+    - "that's a lot of one character."
     - "spelling it louder won't help."
     - "impressive commitment to one key."
 

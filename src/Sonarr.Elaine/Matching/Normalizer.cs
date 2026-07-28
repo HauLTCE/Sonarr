@@ -26,7 +26,7 @@ public static partial class Normalizer
 
     public static Normalized Normalize(string? text)
     {
-        string cased = Collapse(text ?? string.Empty);
+        string cased = Collapse(CustomEmojiRegex().Replace(text ?? string.Empty, " "));
         cased = cased.TrimEnd(TrailingPunctuation.ToCharArray()).TrimEnd();
         string lower = LowerPreservingLength(cased);
 
@@ -196,8 +196,30 @@ public static partial class Normalizer
         return count;
     }
 
-    [GeneratedRegex(@"(.)\1\1", RegexOptions.CultureInvariant)]
+    /// <summary>Any non-digit character three times running: "heyyy", "=))) ", "!!!".</summary>
+    /// <remarks>
+    /// Digits are excluded because a repeated digit is a value, not stretched typing. This was
+    /// <c>(.)\1\1</c>, so the "000" in "…resistor for each B-C-E pins are all 1000 ohms, find the
+    /// E output as Vcc is 12V" made a circuits question elongated, and she answered a homework
+    /// problem with "that's a lot of extra letters." Refusing the homework is in voice;
+    /// misdescribing it is not.
+    /// </remarks>
+    [GeneratedRegex(@"(\D)\1\1", RegexOptions.CultureInvariant)]
     private static partial Regex ElongationRegex();
+
+    /// <summary>
+    /// A Discord custom emoji, <c>&lt;:name:id&gt;</c> or animated <c>&lt;a:name:id&gt;</c>.
+    /// </summary>
+    /// <remarks>
+    /// Dropped before anything else looks at the text, because the snowflake is 18 digits and
+    /// repeats: <c>&lt;:pinecone_dumb:1492441226148843560&gt;</c> ends in "555", which trips the
+    /// elongation detector, so a single emoji drew "stretching it out doesn't make it
+    /// interesting." — she scolded someone for padding a message with no padding in it. Every
+    /// other detector had the same exposure: the name and id are markup, not something anyone
+    /// typed as words.
+    /// </remarks>
+    [GeneratedRegex(@"<a?:\w+:\d+>", RegexOptions.CultureInvariant)]
+    private static partial Regex CustomEmojiRegex();
 
     [GeneratedRegex(@"https?://|www\.\w|\w+\.(?:com|net|org|io|gg)\b", RegexOptions.CultureInvariant)]
     private static partial Regex LinkRegex();

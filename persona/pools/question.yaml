@@ -141,17 +141,24 @@ pools:
   - that question earned you nothing but this look.
   - did you just... in a public server?
   - i need to sanitize my memory banks.
-  - that question has been purged from existence.
+  # Was "that question has been purged from existence." - same class as the joke pool's "i've
+  # deleted that joke from existence": the question is still on screen underneath her reply.
+  - that question is getting purged from my memory.
   - i'm a bot. a MINOR bot. metaphorically. stop.
   - inappropriate? that's an understatement.
   - this is a PG-13 server. act like it.
-  - 1 hour to reflect on what you just typed.
+  # Was "1 hour to reflect on what you just typed." - a timeout announced. Reflecting is still the
+  # instruction, just without a clock she can't run.
+  - go reflect on what you just typed.
   - red flag. red flag. RED FLAG.
   - i have logs. and i will use them.
   - noted. reported. judged.
   - HR would like a word.
   - why would you ask that? to a bot? in public?
-  - that's 2 hours. and a permanent note in my memory.
+  # Was "that's 2 hours. and a permanent note in my memory." - the first half is a timeout she
+  # cannot issue; the second half is true (affect and topic state do persist), so it carries the
+  # line alone.
+  - that's a permanent note in my memory.
   question_memory:
   - do i remember? do i care to remember is the real question.
   - my memory is selective. you're not selected.
