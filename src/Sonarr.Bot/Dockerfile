@@ -14,10 +14,20 @@ COPY src/Sonarr.Bot/Sonarr.Bot.csproj                         src/Sonarr.Bot/
 COPY src/Sonarr.Migrator/Sonarr.Migrator.csproj               src/Sonarr.Migrator/
 COPY tests/Sonarr.Elaine.Tests/Sonarr.Elaine.Tests.csproj     tests/Sonarr.Elaine.Tests/
 COPY tests/Sonarr.Application.Tests/Sonarr.Application.Tests.csproj tests/Sonarr.Application.Tests/
-RUN dotnet restore src/Sonarr.Bot/Sonarr.Bot.csproj
+RUN dotnet restore src/Sonarr.Bot/Sonarr.Bot.csproj \
+    && dotnet restore src/Sonarr.Migrator/Sonarr.Migrator.csproj
 
 COPY src/ src/
 RUN dotnet publish src/Sonarr.Bot/Sonarr.Bot.csproj -c Release --no-restore -o /app
+
+# The Migrator rides along in /app/migrator instead of getting its own image. Nothing
+# applies migrations at boot on purpose (a gateway that silently reshapes the DB on
+# restart is how you lose data), so `migrate` has to be runnable in prod — and the server
+# has no .NET SDK. One image, two entrypoints:
+#     docker compose run --rm --entrypoint dotnet bot /app/migrator/Sonarr.Migrator.dll migrate
+# It shares the bot's .env, so it needs no connection string of its own. Costs ~15MB of
+# shared-runtime assemblies; a second image would cost 200MB and drift from the bot.
+RUN dotnet publish src/Sonarr.Migrator/Sonarr.Migrator.csproj -c Release --no-restore -o /app/migrator
 
 # --- runtime: aspnet only, no SDK ---
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
