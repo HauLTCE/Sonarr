@@ -16,6 +16,10 @@ public static class UtilityServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddScoped<ZoneResolver>();
+
+        // /ship. Stateless and singleton-safe, but scoped like its neighbours: it holds nothing
+        // between calls and the PersonaHolder it reads is the singleton either way.
+        services.AddScoped<ShipMeter>();
         services.AddScoped<IReminderService, ReminderService>();
         services.AddScoped<IAnnounceService, AnnounceService>();
         services.AddScoped<IWelcomeService, WelcomeService>();
