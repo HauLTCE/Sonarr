@@ -47,15 +47,34 @@ public static class PanelEndpoints
     /// The servers this user shares with Sonarr — the panel's server picker. Every other page here
     /// is guild-scoped, and a visitor should not have to know a snowflake to use their own panel.
     /// </summary>
+    /// <remarks>
+    /// Each guild carries <c>canManage</c>, resolved live from the gateway, so the panel can build a
+    /// visitor's page list in one round trip instead of probing an admin route per server and reading
+    /// the 403s. A bot admin manages all of them by definition.
+    /// </remarks>
     private static async Task<IResult> GetGuildsAsync(
-        HttpContext http, IWebAuthService auth, IMemberRepository members, CancellationToken ct)
+        HttpContext http, IWebAuthService auth, IMemberRepository members, IGuildAuthority guilds,
+        CancellationToken ct)
     {
         PanelUser? me = await Me(http, auth, ct);
+        if (me is null)
+        {
+            return Results.Unauthorized();
+        }
 
-        return me is null
-            ? Results.Unauthorized()
-            : Results.Ok((await members.GetGuildsAsync((long)me.UserId, ct))
-                .Select(g => new { guildId = Id((ulong)g.GuildId), name = g.Name }));
+        IReadOnlyList<MemberGuild> mine = await members.GetGuildsAsync((long)me.UserId, ct);
+
+        IReadOnlySet<ulong> managed = me.IsAdmin
+            ? mine.Select(g => (ulong)g.GuildId).ToHashSet()
+            : await guilds.ManagedGuildsAsync(
+                me.UserId, [.. mine.Select(g => (ulong)g.GuildId)], ct);
+
+        return Results.Ok(mine.Select(g => new
+        {
+            guildId = Id((ulong)g.GuildId),
+            name = g.Name,
+            canManage = managed.Contains((ulong)g.GuildId),
+        }));
     }
 
     /// <summary>Level, rank, streak, activity and the user's own pending reminders.</summary>

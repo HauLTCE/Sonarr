@@ -35,6 +35,10 @@ public static class PanelApiServiceCollectionExtensions
         // Singleton: the allow-list is env-sourced and immutable for the process lifetime.
         services.AddSingleton(new AdminAllowList(options.AdminUserIds));
 
+        // The middle tier. Singleton because the gateway client is one; resolved per request rather
+        // than cached, because a role taken away on Discord must take effect on the next request.
+        services.AddSingleton<IGuildAuthority, GatewayGuildAuthority>();
+
         services.AddSingleton<LoginTokenSender>();
         services.AddHostedService<StatusPagePusher>();
 

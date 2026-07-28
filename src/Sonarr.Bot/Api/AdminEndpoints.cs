@@ -3,6 +3,7 @@ using Sonarr.Domain.Abstractions;
 using Sonarr.Domain.Configuration;
 using Sonarr.Domain.Entities.Web;
 using Sonarr.Domain.Moderation;
+using Sonarr.Domain.Web;
 
 namespace Sonarr.Bot.Api;
 
@@ -36,10 +37,10 @@ public static class AdminEndpoints
     }
 
     private static async Task<IResult> GetConfigAsync(
-        ulong guildId, HttpContext http, IWebAuthService auth, IGuildConfigService config,
-        CancellationToken ct)
+        ulong guildId, HttpContext http, IWebAuthService auth, IGuildAuthority guilds,
+        IGuildConfigService config, CancellationToken ct)
     {
-        if (await Gate(http, auth, write: false, ct) is null)
+        if (await Gate(http, auth, guilds, guildId, write: false, ct) is null)
         {
             return Deny(http);
         }
@@ -53,9 +54,9 @@ public static class AdminEndpoints
 
     private static async Task<IResult> SetConfigAsync(
         ulong guildId, ConfigWriteBody body, HttpContext http, IWebAuthService auth,
-        IGuildConfigService config, CancellationToken ct)
+        IGuildAuthority guilds, IGuildConfigService config, CancellationToken ct)
     {
-        if (await Gate(http, auth, write: true, ct) is not { } admin)
+        if (await Gate(http, auth, guilds, guildId, write: true, ct) is not { } admin)
         {
             return Deny(http);
         }
@@ -90,9 +91,10 @@ public static class AdminEndpoints
     }
 
     private static async Task<IResult> GetFlagsAsync(
-        ulong guildId, HttpContext http, IWebAuthService auth, IFeatureGate gate, CancellationToken ct)
+        ulong guildId, HttpContext http, IWebAuthService auth, IGuildAuthority guilds,
+        IFeatureGate gate, CancellationToken ct)
     {
-        if (await Gate(http, auth, write: false, ct) is null)
+        if (await Gate(http, auth, guilds, guildId, write: false, ct) is null)
         {
             return Deny(http);
         }
@@ -108,10 +110,10 @@ public static class AdminEndpoints
     }
 
     private static async Task<IResult> SetFlagAsync(
-        ulong guildId, FlagWriteBody body, HttpContext http, IWebAuthService auth, IFeatureGate gate,
-        CancellationToken ct)
+        ulong guildId, FlagWriteBody body, HttpContext http, IWebAuthService auth,
+        IGuildAuthority guilds, IFeatureGate gate, CancellationToken ct)
     {
-        if (await Gate(http, auth, write: true, ct) is not { } admin)
+        if (await Gate(http, auth, guilds, guildId, write: true, ct) is not { } admin)
         {
             return Deny(http);
         }
@@ -136,10 +138,10 @@ public static class AdminEndpoints
     }
 
     private static async Task<IResult> GetCasesAsync(
-        ulong guildId, HttpContext http, IWebAuthService auth, IModCaseRepository cases,
-        int page, string? target, CancellationToken ct)
+        ulong guildId, HttpContext http, IWebAuthService auth, IGuildAuthority guilds,
+        IModCaseRepository cases, int page, string? target, CancellationToken ct)
     {
-        if (await Gate(http, auth, write: false, ct) is null)
+        if (await Gate(http, auth, guilds, guildId, write: false, ct) is null)
         {
             return Deny(http);
         }
@@ -174,10 +176,10 @@ public static class AdminEndpoints
     /// member's timeline (docs/06).
     /// </remarks>
     private static async Task<IResult> GetStatsAsync(
-        ulong guildId, HttpContext http, IWebAuthService auth, IStatsRepository stats, int days,
-        CancellationToken ct)
+        ulong guildId, HttpContext http, IWebAuthService auth, IGuildAuthority guilds,
+        IStatsRepository stats, int days, CancellationToken ct)
     {
-        if (await Gate(http, auth, write: false, ct) is null)
+        if (await Gate(http, auth, guilds, guildId, write: false, ct) is null)
         {
             return Deny(http);
         }
@@ -200,11 +202,15 @@ public static class AdminEndpoints
         });
     }
 
+    /// <remarks>
+    /// Bot tier only: the audit log spans every guild, so there is no guild id a manager could be
+    /// checked against. Passing 0 is what selects <see cref="PanelScope.BotWide"/>.
+    /// </remarks>
     private static async Task<IResult> GetAuditAsync(
-        HttpContext http, IWebAuthService auth, IWebAuthRepository repo, int skip, int take,
-        CancellationToken ct)
+        HttpContext http, IWebAuthService auth, IGuildAuthority guilds, IWebAuthRepository repo,
+        int skip, int take, CancellationToken ct)
     {
-        if (await Gate(http, auth, write: false, ct) is null)
+        if (await Gate(http, auth, guilds, guildId: 0, write: false, ct) is null)
         {
             return Deny(http);
         }
@@ -226,22 +232,47 @@ public static class AdminEndpoints
     }
 
     /// <summary>
-    /// The three gates. Returns the admin on success and <c>null</c> otherwise; the caller turns
-    /// that into a status code through <see cref="Deny"/>, which re-reads the session to tell
-    /// "not logged in" apart from "logged in, not an admin".
+    /// The gates. Returns the caller on success and <c>null</c> otherwise; the caller turns that into
+    /// a status code through <see cref="Deny"/>, which re-reads the session to tell "not logged in"
+    /// apart from "logged in, not allowed here".
     /// </summary>
+    /// <param name="guildId">
+    /// The guild this route names, which is what a guild manager is checked against. Zero means the
+    /// route spans guilds and only the bot tier can reach it.
+    /// </param>
+    /// <remarks>
+    /// The session read is always fresh — never the Redis mirror — so a revoked cookie stops working
+    /// immediately. Manage Server is resolved live for this one guild rather than read from the
+    /// session, because the session outlives a role change. <see cref="PanelGate"/> makes the
+    /// decision; this method only gathers the facts it needs.
+    /// </remarks>
     private static async Task<PanelUser?> Gate(
-        HttpContext http, IWebAuthService auth, bool write, CancellationToken ct)
+        HttpContext http,
+        IWebAuthService auth,
+        IGuildAuthority guilds,
+        ulong guildId,
+        bool write,
+        CancellationToken ct)
     {
         PanelUser? user = await auth.AuthenticateAsync(
             http.Request.Cookies[PanelCookies.Session], requireFresh: true, ct);
 
-        if (user is null || !user.IsAdmin)
+        if (user is null)
         {
             return null;
         }
 
-        return write && !PanelCookies.CsrfMatches(http.Request) ? null : user;
+        PanelScope scope = guildId == 0 ? PanelScope.BotWide : PanelScope.Guild;
+
+        // Skipped for the bot tier: it already satisfies every scope, and asking the gateway would
+        // be a REST call whose answer cannot change the outcome.
+        bool manages = scope == PanelScope.Guild
+            && !user.IsAdmin
+            && await guilds.ManagesGuildAsync(user.UserId, guildId, ct);
+
+        return PanelGate.Allows(user, scope, manages, write, PanelCookies.CsrfMatches(http.Request))
+            ? user
+            : null;
     }
 
     /// <summary>
