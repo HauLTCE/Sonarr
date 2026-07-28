@@ -70,6 +70,50 @@ public class SeedPersonaTests
         Assert.True(lines >= 3000, $"only {lines} authored lines");
     }
 
+    /// <summary>
+    /// No authored line may announce a moderation action as something that just happened.
+    /// </summary>
+    /// <remarks>
+    /// <para>Chat has no powers. <c>TurnResult</c> carries words and at most an emoji — see
+    /// <c>Turn_NeverReturnsAnActionOnlyWordsAndMaybeAnEmoji</c> — so "enjoy your timeout" and
+    /// "nope. erased." are false statements about the world, not attitude. In v1 they were true:
+    /// the bot really did time people out, and the lines were migrated verbatim with the rest.</para>
+    /// <para>Bluster about <em>having</em> the power is fine and deliberately still here ("i have a
+    /// timeout button", "i only love timeouts"). Hot air is in voice. Announcing a completed action
+    /// is a lie the reader can check by looking at the member list.</para>
+    /// </remarks>
+    [Fact]
+    public void ShippedPersona_ClaimsNoModerationItCannotPerform()
+    {
+        // Past tense and imperative-with-an-object only. "i'll ban you" is a threat; "banned." is
+        // a claim. The distinction is the whole point, so the patterns are narrow on purpose.
+        string[] claims =
+        [
+            "enjoy your timeout", "enjoy the timeout", "you have been muted", "privileges revoked",
+            "here's a timeout", "nope. erased.", "deleted.", "i'm deleting", "earned a time out",
+            "physically can't continue", "i'll ban you instead",
+        ];
+
+        // The one pool where "deleted." is true: /memories forget really does drop the fact. A
+        // claim is only a lie when nothing backs it, so this is an exemption, not a hole.
+        string[] canActuallyDelete = ["memory_forget"];
+
+        List<string> bad =
+        [
+            .. from pool in SeedPersona.Graph.Pools
+               where !canActuallyDelete.Contains(pool.Key)
+               from line in pool.Value.Lines.Concat(pool.Value.ByMode.Values.SelectMany(v => v))
+               from claim in claims
+               where line.Contains(claim, StringComparison.OrdinalIgnoreCase)
+               select $"{pool.Key}: {line}",
+        ];
+
+        Assert.True(
+            bad.Count == 0,
+            $"authored lines claiming a moderation action chat cannot perform:{Environment.NewLine}"
+                + string.Join(Environment.NewLine, bad));
+    }
+
     [Fact]
     public void ShippedPersona_ExercisesEveryMatchKind()
     {

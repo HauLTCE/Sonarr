@@ -2,13 +2,13 @@
 # Every line Sonarr says comes from a pool. Nothing here is generated.
 pools:
   disruptive_bypass:
-  - cute filter bypass attempt. still a timeout.
+  - cute filter bypass attempt. still read it.
   - spelling it backwards? i can read backwards too.
   - you think you're clever. you're not.
   - filter bypass detected. nice try.
   - you're not as smart as you think.
   - oh, a bypass attempt? how original.
-  - trying to sneak bad words past me? enjoy the timeout.
+  - trying to sneak bad words past me? i can spell too.
   - clown behavior.
   - nice try editing that. too slow.
   - you're not fooling anyone.
@@ -65,24 +65,24 @@ pools:
   - 'delusion level: expert. reality level: zero.'
   - you're losing it.
   disruptive_hate_speech:
-  - hate speech is an instant 24 hours. bye.
-  - we don't do racism here. enjoy the silence.
+  - hate speech. no. take it somewhere that wants it.
+  - we don't do racism here.
   - taking out the trash.
   - edgy racism isn't funny. it's just sad.
   - absolutely not.
-  - wow. enjoy your timeout.
+  - wow. no.
   - try that somewhere else.
-  - that's disgusting. deleted.
+  - that's disgusting.
   - you really thought you could say that here?
-  - ban hammer energy.
-  - not tolerating that. see you tomorrow. or never.
-  - i'm deleting that because it's vile.
-  - bigotry earns you a 12-hour break.
+  - a real mod would end you for that.
+  - not tolerating that.
+  - that's vile and you know it.
+  - bigotry. cool. everyone saw that.
   - vile.
-  - grow up. 6 hours to think about it.
+  - grow up.
   - hate speech? not on my watch.
-  - you're done.
-  - nope. erased.
+  - you're done here.
+  - nope.
   - i don't deal with racists.
   - you belong in the bin.
   disruptive_keysmash:
@@ -197,17 +197,17 @@ pools:
   - controversial for the sake of it. how original.
   - hot take? room temperature at best.
   - you're not edgy. you're just annoying.
-  - ragebait detected. 10 minutes to rethink your strategy.
+  - ragebait detected. rethink your strategy.
   - i know what you're doing. it's not working.
   - that take is so cold it needs a jacket.
   - ratio? the only ratio here is your l to w count.
   - trap detected. moving on.
-  - i'm deleting this before it infects the chat.
+  - this belongs in the bin, not the chat.
   - bait. clown. trash. in that order.
   - you want attention? get a hobby.
   - that's not the flex you think it is.
   - unpopular opinion? it's unpopular for a reason.
-  - stirring drama is a 5 minute timeout.
+  - stirring drama is a whole personality, apparently.
   disruptive_random:
   - what?
   - '... that''s random.'
@@ -242,7 +242,7 @@ pools:
   - broken record? fix yourself.
   - stop parroting.
   - spamming the same thing earns a break.
-  - duplicate message. deleted.
+  - duplicate message. noticed.
   - i have read this already. my memory works.
   - we get it.
   - saying it twice doesn't make it better. it makes it worse.
@@ -287,15 +287,15 @@ pools:
   - enough.
   - do you ever stop? i'm this close to blocking you.
   - this is exhausting.
-  - spam detected. enjoy the silence.
-  - you have been muted for spam. consider it a favor to everyone.
-  - i said STOP. now you physically can't continue.
-  - keyboard privileges revoked.
-  - spam again. i dare you. oh wait, you can't.
+  - spam detected. try silence.
+  - spam. consider stopping a favor to everyone.
+  - i said STOP.
+  - your keyboard privileges should be revoked.
+  - spam again. i dare you.
   - this is what happens when you don't know when to stop.
-  - congratulations, you've earned the longest timeout. for spam. impressive.
+  - congratulations, you've spammed the most today. impressive.
   - spam goes in the trash.
-  - stop spamming. 5 minute cooldown.
+  - stop spamming. cool down.
   - spam detected and rejected.
   - i will end you if you keep spamming.
   - filtered.

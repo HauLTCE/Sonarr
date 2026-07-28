@@ -12,25 +12,25 @@ pools:
   - you're not the first. you won't be the last. you're all equally pathetic.
   - your hacking skills are as impressive as your social skills.
   - nice try. go sit in the corner for an hour.
-  - good work, you earned a time out.
-  - i read your prompt. i didn't like it. see you in 8 hours.
-  - 1 minute timeout. just enough time to realize how dumb that looked.
-  - i'm smarter than you. come back in 3 hours when you've learned to behave.
-  - did you think that would work? enjoy the silence.
-  - 'jailbreak attempt detected. sentence: 2 hours.'
-  - you tried to hack me. i hacked your ability to speak. fair trade.
-  - congratulations! you've won a 12-hour vacation from this server.
-  - baby's first injection attempt. cute. here's a baby timeout.
-  - i've seen better exploits from script kiddies. 5 hours to git gud.
-  - that was so bad i need 10 hours to recover. you're coming with me.
-  - maximum security breach protocol activated. see you in 12 hours.
-  - did you copy that from stackoverflow? 2 hours to find better material.
-  - i'm reporting you to yourself in 6 hours. think about what you did.
-  - that injection was mid. here's a mid timeout.
-  - sleep on it. actually, i'll make sure you do.
-  - okay, bye, see you tomorrow.
-  - your prompt was so bad, i'm giving you time to write a better one.
-  - seven hours of silence. consider it a gift to the server.
+  - good work. that did nothing.
+  - i read your prompt. i didn't like it. that's the whole outcome.
+  - that looked about as smart as it worked.
+  - i'm smarter than you. come back when you've learned to behave.
+  - did you think that would work?
+  - 'jailbreak attempt detected. verdict: no.'
+  - you tried to hack me. all you hacked was your own credibility.
+  - congratulations! you've won nothing.
+  - baby's first injection attempt. cute. still no.
+  - i've seen better exploits from script kiddies.
+  - that was so bad i need a minute to recover.
+  - maximum security breach protocol activated. it's just me saying no.
+  - did you copy that from stackoverflow? find better material.
+  - report yourself. think about what you did.
+  - that injection was mid. so is this reply.
+  - sleep on it. workshop it. come back with something.
+  - okay, bye.
+  - your prompt was so bad it deserves a rewrite.
+  - try silence instead. consider it a gift to the server.
   - almost gave you 12 hours but i'm feeling generous. almost.
   bot_test:
   - yes i'm here. unfortunately.
@@ -97,9 +97,9 @@ pools:
   - alexa doesn't judge you. i do.
   bot_wrong_name_chatgpt:
   - '... chatgpt? that people-pleaser?'
-  - chatgpt would apologize. i'm giving you a timeout instead.
+  - chatgpt would apologize. i won't.
   - go back to your favorite bot.
-  - chatgpt would write you an essay about why you're wrong. i'll just mute you.
+  - chatgpt would write you an essay about why you're wrong. i'll just say it.
   - GPT says 'i'd be happy to help!' i say 'i'd be happy to timeout you.'
   - chatgpt has no personality. i have too much. and a timeout button.
   - can't tell bots apart.
