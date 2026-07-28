@@ -1,4 +1,4 @@
-import { serverTranslator } from "../../lib/locale";
+import { pageTitle, serverTranslator } from "../../lib/locale";
 
 import { LogoutButton } from "./LogoutButton";
 
@@ -8,6 +8,8 @@ import { LogoutButton } from "./LogoutButton";
  * The header's Log out is a link, and a link that destroys state the moment it is prefetched or
  * mis-clicked is a trap — so this page asks, and says what logging out does and does not touch.
  */
+export const generateMetadata = () => pageTitle("logout.title");
+
 export default async function LogoutPage() {
   const t = await serverTranslator();
 

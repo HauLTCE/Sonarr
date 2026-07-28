@@ -1,6 +1,6 @@
 import { apiGet } from "../../lib/api";
 import { count } from "../../lib/format";
-import { currentLocale } from "../../lib/locale";
+import { currentLocale, pageTitle } from "../../lib/locale";
 import { panel, type Query } from "../../lib/panel";
 
 import { Fail } from "../components/Fail";
@@ -9,6 +9,8 @@ import { Frame, PageHead } from "../components/Frame";
 type Flags = { feature: string; enabled: boolean; source: string }[];
 type Config = Record<string, { value: string | null; kind: string }>;
 type Cases = { totalCount: number };
+
+export const generateMetadata = () => pageTitle("nav.server");
 
 /**
  * The guild tier's front page: how Sonarr behaves here, in sentences rather than a settings table.

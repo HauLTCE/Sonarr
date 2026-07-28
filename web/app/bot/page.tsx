@@ -1,6 +1,6 @@
 import { apiGet } from "../../lib/api";
 import { count, when } from "../../lib/format";
-import { currentLocale } from "../../lib/locale";
+import { currentLocale, pageTitle } from "../../lib/locale";
 import { panel, type Query } from "../../lib/panel";
 
 import { Fail } from "../components/Fail";
@@ -20,6 +20,8 @@ type Status = {
   } | null;
   mood: string | null;
 };
+
+export const generateMetadata = () => pageTitle("nav.health");
 
 /**
  * Is she up, and what is playing. Bot-wide, so bot tier only.

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { apiGet } from "../../lib/api";
-import { serverTranslator } from "../../lib/locale";
+import { pageTitle, serverTranslator } from "../../lib/locale";
 
 import { LoginForm } from "./LoginForm";
 
@@ -13,6 +13,8 @@ type Me = { userId: string };
  * A live session skips straight through: arriving at /login while logged in is almost always a stale
  * tab or a bookmark, and showing a login form to someone already logged in is a dead end.
  */
+export const generateMetadata = () => pageTitle("login.title");
+
 export default async function LoginPage() {
   const t = await serverTranslator();
 

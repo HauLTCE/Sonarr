@@ -1,6 +1,6 @@
 import { apiGet } from "../../lib/api";
 import { count } from "../../lib/format";
-import { currentLocale } from "../../lib/locale";
+import { currentLocale, pageTitle } from "../../lib/locale";
 import { panel, type Query } from "../../lib/panel";
 import type { StringKey } from "../../lib/strings";
 
@@ -32,6 +32,8 @@ const AREAS: readonly (keyof Data["counts"])[] = [
   "capsules",
   "modCases",
 ];
+
+export const generateMetadata = () => pageTitle("nav.privacy");
 
 /**
  * Export and delete. The only page whose buttons cannot be undone, so every one of them says what

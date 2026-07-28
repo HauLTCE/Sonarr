@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { apiGet } from "../../../lib/api";
 import { when } from "../../../lib/format";
-import { currentLocale } from "../../../lib/locale";
+import { currentLocale, pageTitle } from "../../../lib/locale";
 import { panel, type Query } from "../../../lib/panel";
 
 import { Fail } from "../../components/Fail";
@@ -32,6 +32,8 @@ function describe(detail: Record<string, unknown> | null): string {
 
 /** What the API returns per request when `take` is not given, and what this page asks for. */
 const TAKE = 50;
+
+export const generateMetadata = () => pageTitle("nav.audit");
 
 /**
  * Every change made through this panel. Bot tier only, because the log spans guilds — there is no

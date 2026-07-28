@@ -1,5 +1,6 @@
 import { apiGet } from "../../../lib/api";
 import { configFields } from "../../../lib/config";
+import { pageTitle } from "../../../lib/locale";
 import { panel, type Query } from "../../../lib/panel";
 import type { StringKey } from "../../../lib/strings";
 
@@ -10,6 +11,8 @@ import { FlagToggles, type Flag } from "./FlagToggles";
 
 type Flags = { feature: string; enabled: boolean; source: string }[];
 type Config = Record<string, { value: string | null; kind: string }>;
+
+export const generateMetadata = () => pageTitle("nav.behaviour");
 
 /**
  * The only page in the guild tier that writes. Features first, because turning an area off is the

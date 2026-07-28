@@ -1,12 +1,14 @@
 import { apiGet } from "../../lib/api";
 import { when } from "../../lib/format";
-import { currentLocale } from "../../lib/locale";
+import { currentLocale, pageTitle } from "../../lib/locale";
 import { panel, type Query } from "../../lib/panel";
 
 import { Fail } from "../components/Fail";
 import { Frame, PageHead } from "../components/Frame";
 
 type UserError = { caseId: string; command: string; message: string; at: string };
+
+export const generateMetadata = () => pageTitle("nav.errors");
 
 /**
  * Your own failed commands. Not guild-scoped and not bot-wide: the API keys this list to the

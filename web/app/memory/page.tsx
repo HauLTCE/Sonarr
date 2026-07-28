@@ -1,5 +1,5 @@
 import { apiGet } from "../../lib/api";
-import { currentLocale } from "../../lib/locale";
+import { currentLocale, pageTitle } from "../../lib/locale";
 import { panel, type Query } from "../../lib/panel";
 import { when } from "../../lib/format";
 
@@ -11,6 +11,8 @@ type SonarrAndMe = {
   opener: string | null;
   facts: { predicate: string; value: string; confidence: number; learnedAt: string }[];
 };
+
+export const generateMetadata = () => pageTitle("nav.memory");
 
 /** The facts she has picked up, each with the button that makes her drop it. */
 export default async function MemoryPage({ searchParams }: { searchParams: Query }) {

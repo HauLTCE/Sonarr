@@ -1,6 +1,6 @@
 import { apiGet } from "../lib/api";
 import { count, when } from "../lib/format";
-import { currentLocale } from "../lib/locale";
+import { currentLocale, pageTitle } from "../lib/locale";
 import { panel, type Query } from "../lib/panel";
 
 import { Fail } from "./components/Fail";
@@ -15,6 +15,8 @@ type SonarrAndMe = {
 };
 
 type Overview = { messageCount: number };
+
+export const generateMetadata = () => pageTitle("nav.you");
 
 /**
  * The panel root: who you are to Sonarr, in her words, and where to go next.

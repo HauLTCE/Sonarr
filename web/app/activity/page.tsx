@@ -1,6 +1,6 @@
 import { apiGet } from "../../lib/api";
 import { count, percent, when } from "../../lib/format";
-import { currentLocale } from "../../lib/locale";
+import { currentLocale, pageTitle } from "../../lib/locale";
 import { panel, type Query } from "../../lib/panel";
 
 import { Fail } from "../components/Fail";
@@ -17,6 +17,8 @@ type Overview = {
   firstSeenAt: string | null;
   reminders: { jobId: number; runAt: string; text: string; recurrence: string | null }[];
 };
+
+export const generateMetadata = () => pageTitle("nav.activity");
 
 /** Level, streak and reminders — the numbers `/rank` shows, in a place you can read at leisure. */
 export default async function ActivityPage({ searchParams }: { searchParams: Query }) {

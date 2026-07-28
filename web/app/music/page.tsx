@@ -1,6 +1,6 @@
 import { apiGet } from "../../lib/api";
 import { count } from "../../lib/format";
-import { currentLocale } from "../../lib/locale";
+import { currentLocale, pageTitle } from "../../lib/locale";
 import { panel, type Query } from "../../lib/panel";
 
 import { Fail } from "../components/Fail";
@@ -11,6 +11,8 @@ type Music = {
   ratings: { title: string; uri: string; vote: number; score: number; at: string }[];
   serverTop: { title: string; uri: string; likes: number; dislikes: number; score: number }[];
 };
+
+export const generateMetadata = () => pageTitle("nav.music");
 
 /** What you have played and rated, plus what this server rates highest. */
 export default async function MusicPage({ searchParams }: { searchParams: Query }) {

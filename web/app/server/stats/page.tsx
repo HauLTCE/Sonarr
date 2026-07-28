@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { apiGet } from "../../../lib/api";
 import { count, day, percent } from "../../../lib/format";
-import { currentLocale } from "../../../lib/locale";
+import { currentLocale, pageTitle } from "../../../lib/locale";
 import { panel, type Query } from "../../../lib/panel";
 
 import { Fail } from "../../components/Fail";
@@ -17,6 +17,8 @@ type Stats = {
 
 /** The windows the page offers. Anything else in the URL falls back to 30. */
 const WINDOWS = [7, 30, 90] as const;
+
+export const generateMetadata = () => pageTitle("nav.stats");
 
 /**
  * Counts for one server. Aggregates only — the API returns messages per hour and joins per day, so

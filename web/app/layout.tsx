@@ -28,7 +28,11 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sonarr",
+  // A template rather than a bare string: every page sets its own `title`, and 2.4.2 wants that
+  // title to describe the page. Without this, fourteen tabs, bookmarks and history entries all
+  // read "Sonarr" and two bookmarks are indistinguishable. `default` covers the pages that set
+  // none (and 404).
+  title: { template: "%s · Sonarr", default: "Sonarr" },
   description: "Your data, your server's settings, and the bot's health.",
   // The panel is behind a login and holds personal data; there is nothing here for a crawler.
   robots: { index: false, follow: false },
