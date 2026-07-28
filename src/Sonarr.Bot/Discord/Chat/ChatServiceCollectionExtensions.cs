@@ -26,6 +26,9 @@ public static class ChatServiceCollectionExtensions
         services.AddScoped<IPersonRepository, PersonRepository>();
         services.AddScoped<IIntentEmbeddingRepository, IntentEmbeddingRepository>();
         services.AddScoped<IEpisodeRepository, EpisodeRepository>();
+
+        // Server-event memory: written by PresenceSampler, read when she brings a record up.
+        services.AddScoped<IGuildStateRepository, GuildStateRepository>();
         services.AddScoped<IChatPipeline, ChatPipeline>();
         services.AddScoped<ChatEditWatcher>();
 

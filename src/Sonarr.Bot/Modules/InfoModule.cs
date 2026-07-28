@@ -3,15 +3,18 @@ using System.Text;
 using Discord;
 using Discord.Interactions;
 using Sonarr.Bot.Discord;
+using Sonarr.Domain.Abstractions;
+using Sonarr.Domain.Chat;
 
 namespace Sonarr.Bot.Modules;
 
 /// <summary>
 /// <c>/serverinfo</c>, <c>/roleinfo</c>, <c>/avatar</c> and the avatar user context menu
-/// (docs/07-commands.md#utility). Everything here is read from the gateway cache the bot already
-/// holds — no database, no REST calls.
+/// (docs/07-commands.md#utility). Read from the gateway cache the bot already holds — no REST
+/// calls — plus the one row of server-event memory that <c>/serverinfo</c> reports.
 /// </summary>
-public sealed class InfoModule : SonarrModuleBase<SocketInteractionContext>
+public sealed class InfoModule(IGuildStateRepository guildState)
+    : SonarrModuleBase<SocketInteractionContext>
 {
     [SlashCommand("serverinfo", "Facts about this server.")]
     public async Task ServerInfoAsync()
@@ -32,10 +35,20 @@ public sealed class InfoModule : SonarrModuleBase<SocketInteractionContext>
             .AddField("Channels", $"{guild.TextChannels.Count} text · {guild.VoiceChannels.Count} voice", inline: true)
             .AddField("Roles", guild.Roles.Count.ToString(CultureInfo.InvariantCulture), inline: true)
             .AddField("Boosts", $"{guild.PremiumSubscriptionCount} (tier {(int)guild.PremiumTier})", inline: true)
-            .WithFooter($"ID {guild.Id}")
-            .Build();
+            .WithFooter($"ID {guild.Id}");
 
-        await RespondAsync(embed: report);
+        // Server-event memory (docs/10): the sampler only writes a row when the count is beaten,
+        // so this is one small read and usually one line.
+        IReadOnlyList<GuildEvent> events = await guildState.GetEventsAsync((long)guild.Id);
+        if (events.FirstOrDefault(e => e.Kind == GuildEvent.OnlineRecord) is { } record)
+        {
+            report.AddField(
+                "Busiest",
+                $"{record.Value.ToString(CultureInfo.InvariantCulture)} online · <t:{record.At.ToUnixTimeSeconds()}:R>",
+                inline: true);
+        }
+
+        await RespondAsync(embed: report.Build());
     }
 
     [SlashCommand("roleinfo", "Who has a role, what it can do, and where it sits.")]
