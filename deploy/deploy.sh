@@ -8,7 +8,7 @@
 # when GitHub is having a day.
 #
 # Run FROM THE REPO ROOT on your dev box:
-#     DEPLOY_HOST=192.168.1.101 DEPLOY_USER=root sh deploy/deploy.sh
+#     DEPLOY_HOST=your.server DEPLOY_USER=root sh deploy/deploy.sh
 # or, if you are already on the server, in /root/sonarr-net:
 #     sh deploy.sh --local
 #
@@ -51,7 +51,7 @@ done
 
 # ── remote mode: rsync the deploy dir + sources, then re-invoke ourselves over ssh ──
 if [ "$MODE" = remote ]; then
-    : "${DEPLOY_HOST:?set DEPLOY_HOST (e.g. 192.168.1.101)}"
+    : "${DEPLOY_HOST:?set DEPLOY_HOST (hostname or IP of the target box)}"
     DEPLOY_USER="${DEPLOY_USER:-root}"
     DEPLOY_REMOTE_DIR="${DEPLOY_REMOTE_DIR:-/root/sonarr-net}"
     TARGET="${DEPLOY_USER}@${DEPLOY_HOST}"
