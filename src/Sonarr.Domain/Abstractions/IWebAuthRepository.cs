@@ -39,9 +39,6 @@ public interface IWebAuthRepository
     /// <summary>"Log out everywhere" — returns the hashes revoked so the caller can drop the mirrors.</summary>
     Task<IReadOnlyList<string>> RevokeAllSessionsAsync(long userId, CancellationToken ct = default);
 
-    /// <summary>The user's live sessions, newest first — the "sessions" block on the my-data page.</summary>
-    Task<IReadOnlyList<WebSession>> GetActiveSessionsAsync(long userId, CancellationToken ct = default);
-
     /// <summary>One row per panel action (docs/09: every admin write is audited).</summary>
     Task AddAuditAsync(WebAudit entry, CancellationToken ct = default);
 

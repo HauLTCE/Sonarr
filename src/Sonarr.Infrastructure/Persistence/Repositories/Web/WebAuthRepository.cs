@@ -109,15 +109,6 @@ public sealed class WebAuthRepository(SonarrDbContext db) : IWebAuthRepository
         return hashes;
     }
 
-    public async Task<IReadOnlyList<WebSession>> GetActiveSessionsAsync(
-        long userId, CancellationToken ct = default)
-        => await db.WebSessions
-            .AsNoTracking()
-            .Where(s => s.UserId == userId && !s.Revoked && s.ExpiresAt > DateTimeOffset.UtcNow)
-            .OrderByDescending(s => s.CreatedAt)
-            .ToListAsync(ct)
-            .ConfigureAwait(false);
-
     public async Task AddAuditAsync(WebAudit entry, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(entry);
