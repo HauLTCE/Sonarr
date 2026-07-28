@@ -74,4 +74,23 @@ internal sealed class RedisWebSessionCache : RedisCacheBase, IWebSessionCache
             CacheTtl.WebLiveStatus,
             "web:live_status set");
     }
+
+    public async Task<string?> GetMoodAsync(CancellationToken cancellationToken = default)
+    {
+        var raw = await ReadAsync(
+            db => db.StringGetAsync(RedisKeys.WebMood),
+            RedisValue.Null,
+            "web:mood get").ConfigureAwait(false);
+
+        return raw.IsNullOrEmpty ? null : raw.ToString();
+    }
+
+    public Task SetMoodAsync(string modeId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(modeId);
+        return WriteAsync(
+            (db, ttl) => db.StringSetAsync(RedisKeys.WebMood, modeId, ttl),
+            CacheTtl.WebMood,
+            "web:mood set");
+    }
 }

@@ -59,6 +59,9 @@ public static class RedisKeys
 
     public static string WebLiveStatus => $"{Prefix}:web:live_status";
 
+    /// <summary>Her current mood mode id, for the panel's accent colour.</summary>
+    public static string WebMood => $"{Prefix}:web:mood";
+
     // ---- area: cfg ----------------------------------------------------------------
     public static string ConfigGuild(ulong guildId) => $"{Prefix}:cfg:guild:{guildId}";
 
@@ -102,6 +105,12 @@ public static class CacheTtl
     /// <summary>Ceiling for the session mirror; the actual TTL is min(this, row expiry).</summary>
     public static readonly TimeSpan WebSessionMax = TimeSpan.FromDays(30);
     public static readonly TimeSpan WebLiveStatus = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// Long enough that a quiet channel does not reset the page to neutral mid-afternoon, short
+    /// enough that a mood from yesterday does not colour today.
+    /// </summary>
+    public static readonly TimeSpan WebMood = TimeSpan.FromHours(1);
 
     // cfg
     public static readonly TimeSpan ConfigGuild = TimeSpan.FromMinutes(10);

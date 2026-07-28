@@ -269,6 +269,17 @@ const en = {
   "admin.audit.note":
     "Every panel write lands here, including logins and self-deletions, which is why this list is not per server. Audit rows are kept indefinitely — the nightly sweep does not touch them.",
 
+  // Her mood, as the accent colour's name. Ids come from persona/sonarr.yaml → modes; the panel
+  // never shows the id itself, so a mode rename here is a translation change, not a code change.
+  "mood.label": "Sonarr's mood: {mood}",
+  "mood.SEETHING": "seething",
+  "mood.ANNOYED": "annoyed",
+  "mood.BORED": "bored",
+  "mood.SMUG": "smug",
+  "mood.PLAYFUL": "playful",
+  "mood.FOND": "fond",
+  "mood.NEUTRAL": "neutral",
+
   "common.loading": "Loading…",
   "common.retry": "Try again",
   "common.error": "Could not load that. Try again.",

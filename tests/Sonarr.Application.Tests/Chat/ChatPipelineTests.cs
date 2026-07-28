@@ -110,6 +110,30 @@ public sealed class ChatPipelineTests
     }
 
     [Fact]
+    public async Task A_reply_publishes_her_mood_for_the_panel()
+    {
+        Web.FakeWebSessionCache web = new();
+
+        await Build.Pipeline(web: web).HandleAsync(Build.Request("hello"));
+
+        // A mode id, never a message, a user or a guild — that is what makes it safe to serve the
+        // accent colour on the unauthenticated status route.
+        Assert.NotNull(web.Mood);
+        Assert.DoesNotContain(' ', web.Mood!);
+    }
+
+    [Fact]
+    public async Task An_ambient_message_publishes_no_mood()
+    {
+        Web.FakeWebSessionCache web = new();
+
+        await Build.Pipeline(web: web)
+            .HandleAsync(Build.Request("not talking to her", addressed: false));
+
+        Assert.Null(web.Mood);
+    }
+
+    [Fact]
     public async Task The_second_turn_reads_the_hot_cache_instead_of_the_row()
     {
         FakePersonRepository people = new();

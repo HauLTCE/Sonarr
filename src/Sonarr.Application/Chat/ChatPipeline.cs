@@ -32,7 +32,8 @@ public sealed class ChatPipeline(
     ILogger<ChatPipeline> log,
     SemanticIntentIndex? semantic = null,
     CallbackRetriever? callbacks = null,
-    QuoteBoardRecall? quotes = null) : IChatPipeline
+    QuoteBoardRecall? quotes = null,
+    IWebSessionCache? web = null) : IChatPipeline
 {
     /// <summary>Replies per channel per hour. Above this she has said enough (docs/05 budget).</summary>
     public const int EngagementBudget = 30;
@@ -167,6 +168,14 @@ public sealed class ChatPipeline(
             ct).ConfigureAwait(false);
 
         await AfterCommitAsync(request, next, normalized, now, ct).ConfigureAwait(false);
+
+        // The mood the panel tints itself with. After the commit and never awaited for correctness:
+        // a failed write means the page keeps the previous colour, which is not a reason to drop a
+        // reply. Optional dependency so nothing but the composition root has to know about it.
+        if (web is not null && result.ModeId is { Length: > 0 } mode)
+        {
+            await web.SetMoodAsync(mode, ct).ConfigureAwait(false);
+        }
 
         string hash = Hash(normalized);
         await cache.MarkRepliedAsync(request.ChannelId, request.MessageId, hash, ct).ConfigureAwait(false);

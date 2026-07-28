@@ -57,14 +57,14 @@ export default async function SonarrPage({ searchParams }: { searchParams: Searc
         <dl className="grid">
           <div className="stat">
             <dt>{t("sonarr.nickname")}</dt>
-            <dd style={{ fontSize: "1.1rem" }}>
+            <dd>
               {her.nickname ?? <span className="empty">{t("sonarr.nicknameNone")}</span>}
             </dd>
           </div>
           {her.tier && (
             <div className="stat">
               <dt>{t("sonarr.tier")}</dt>
-              <dd style={{ fontSize: "1.1rem" }}>{her.tier}</dd>
+              <dd>{her.tier}</dd>
             </div>
           )}
         </dl>

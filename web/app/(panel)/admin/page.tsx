@@ -1,3 +1,4 @@
+import { apiGet } from "@/lib/api";
 import { count, when } from "@/lib/format";
 import { currentLocale } from "@/lib/locale";
 import { translator, type Translate } from "@/lib/strings";
@@ -13,31 +14,26 @@ type Status = {
     gateway: string;
     latencyMs: number;
     guilds: number;
-    players: { guildId: string; state: string; queued: number; nowPlaying: string | null }[];
+    // Optional: the API strips the player rows for anyone without an admin session, so a request
+    // that forgot to forward the cookie gets a `live` object with no `players` key at all.
+    players?: { guildId: string; state: string; queued: number; nowPlaying: string | null }[];
   } | null;
 };
 
 /**
  * Uptime, the self-test checks and live gateway state (checklist 295).
  *
- * `/api/status` is the unauthenticated blob the status page uses, so this reads it directly rather
- * than through the session helper — there is nothing here an admin sees that a visitor could not.
- * A missing `live` object means the pusher has not written in the last five seconds, which the page
- * says rather than papering over with an old latency figure.
+ * Read through `apiGet` rather than a bare fetch, even though `/api/status` needs no auth: the
+ * player rows are the admin-only half of that blob, and they only come back when the caller's
+ * session rides along. A missing `live` object means the pusher has not written in the last five
+ * seconds, which the page says rather than papering over with an old latency figure.
  */
 export default async function AdminStatusPage() {
   const locale = await currentLocale();
   const t = translator(locale);
 
-  const base = process.env.SONARR_API_URL ?? "http://127.0.0.1:5088";
-  let status: Status | null = null;
-
-  try {
-    const response = await fetch(`${base}/api/status`, { cache: "no-store" });
-    status = response.ok ? ((await response.json()) as Status) : null;
-  } catch {
-    status = null;
-  }
+  const result = await apiGet<Status>("/api/status");
+  const status = result.ok ? result.data : null;
 
   if (!status) {
     return (
@@ -62,23 +58,23 @@ export default async function AdminStatusPage() {
         <dl className="grid">
           <div className="stat">
             <dt>{t("admin.status.uptime")}</dt>
-            <dd style={{ fontSize: "1.1rem" }}>{uptime(t, status.uptimeSeconds)}</dd>
+            <dd>{uptime(t, status.uptimeSeconds)}</dd>
           </div>
           <div className="stat">
             <dt>{t("admin.status.gateway")}</dt>
-            <dd style={{ fontSize: "1.1rem" }}>
+            <dd>
               {status.live?.gateway ?? t("admin.status.unknown")}
             </dd>
           </div>
           <div className="stat">
             <dt>{t("admin.status.latency")}</dt>
-            <dd style={{ fontSize: "1.1rem" }}>
+            <dd>
               {status.live ? `${count(locale, status.live.latencyMs)} ms` : "—"}
             </dd>
           </div>
           <div className="stat">
             <dt>{t("admin.status.guilds")}</dt>
-            <dd style={{ fontSize: "1.1rem" }}>
+            <dd>
               {status.live ? count(locale, status.live.guilds) : "—"}
             </dd>
           </div>
@@ -123,7 +119,7 @@ export default async function AdminStatusPage() {
 
       <section className="card">
         <h2>{t("admin.status.players")}</h2>
-        {!status.live || status.live.players.length === 0 ? (
+        {!status.live?.players?.length ? (
           <p className="empty">{t("admin.status.noPlayers")}</p>
         ) : (
           <div className="scroll">
@@ -139,7 +135,7 @@ export default async function AdminStatusPage() {
                 </tr>
               </thead>
               <tbody>
-                {status.live.players.map((p) => (
+                {status.live.players?.map((p) => (
                   <tr key={p.guildId}>
                     <td className="mono">{p.guildId}</td>
                     <td>{p.state}</td>

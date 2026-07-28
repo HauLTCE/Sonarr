@@ -1,10 +1,13 @@
 import Link from "next/link";
 
+import { moodNames } from "@/lib/mood";
 import type { Locale, StringKey } from "@/lib/strings";
 import { translator } from "@/lib/strings";
 
 import { LogoutButton } from "./LogoutButton";
+import { MoodAccent } from "./MoodAccent";
 import { Nav } from "./Nav";
+import { PageSlide } from "./PageSlide";
 
 /** One nav entry. `href` is a panel route; the label is a string key, never literal text. */
 type Tab = { href: string; label: StringKey };
@@ -46,6 +49,10 @@ export function Shell({
   const t = translator(locale);
   const label = (tabs: Tab[]) => tabs.map((tab) => ({ href: tab.href, label: t(tab.label) }));
 
+  // The nav's own order is the direction the slide reads from, admin tabs after user tabs — so
+  // moving from the last user tab to the first admin tab slides forward, which is how it looks.
+  const order = [...userTabs, ...adminTabs].map((tab) => tab.href);
+
   return (
     <div className="shell">
       <a className="skip" href="#main">
@@ -54,6 +61,7 @@ export function Shell({
 
       <header className="topbar">
         <Link href="/" className="brand">
+          <MoodAccent names={moodNames(t)} label={t("mood.label")} />
           {t("app.name")}
         </Link>
 
@@ -66,7 +74,9 @@ export function Shell({
         <LogoutButton label={t("nav.logOut")} />
       </header>
 
-      <main id="main">{children}</main>
+      <main id="main">
+        <PageSlide order={order}>{children}</PageSlide>
+      </main>
 
       <footer className="footer">{t("app.tagline")}</footer>
     </div>

@@ -8,8 +8,8 @@ namespace Sonarr.Bot.Api;
 
 /// <summary>
 /// <c>GET /api/status</c> — the public status blob (docs/09). Anonymous callers get uptime, gateway
-/// state and the self-test rows only; nothing there may name a user, a channel or a guild. The
-/// per-guild player rows are added for an admin session.
+/// state, the self-test rows and her current mood only; nothing there may name a user, a channel or
+/// a guild. The per-guild player rows are added for an admin session.
 /// </summary>
 /// <remarks>
 /// The live half comes from <c>web:live_status</c>, written by the pusher at most once every 5 s,
@@ -36,6 +36,7 @@ public static class StatusEndpoints
     {
         SelfTestReport? report = selfTest.Last;
         string? liveJson = await cache.GetLiveStatusJsonAsync(ct);
+        string? mood = await cache.GetMoodAsync(ct);
 
         // The live blob carries per-guild player rows — guild id, state, and the track title. That
         // is more than a visitor should read off an unauthenticated route now that the panel answers
@@ -64,6 +65,11 @@ public static class StatusEndpoints
             // Passed through as a node, not a string, so the page gets one object to read. Null
             // when the blob is older than 5 s — a stale latency number is worse than none.
             live,
+
+            // A persona mode id (NEUTRAL, PLAYFUL, SEETHING…) or null if she has not spoken in an
+            // hour. The panel maps it to an accent colour. Public on purpose: it names nobody, and
+            // hiding "she is in a good mood" from a visitor protects nothing.
+            mood,
         });
     }
 

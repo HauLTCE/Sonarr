@@ -401,7 +401,8 @@ internal static class Build
         FakeFeatureGate? features = null,
         DateTimeOffset? now = null,
         FakeChatConfig? config = null,
-        FakeQuoteRepository? quotes = null)
+        FakeQuoteRepository? quotes = null,
+        Web.FakeWebSessionCache? web = null)
         => new(
             Persona(),
             people ?? new FakePersonRepository(),
@@ -412,7 +413,8 @@ internal static class Build
             NullLogger<ChatPipeline>.Instance,
             quotes: quotes is null
                 ? null
-                : new QuoteBoardRecall(quotes, NullLogger<QuoteBoardRecall>.Instance));
+                : new QuoteBoardRecall(quotes, NullLogger<QuoteBoardRecall>.Instance),
+            web: web);
 
     public static ChatIntrospection Introspection(
         FakePersonRepository people, DateTimeOffset? now = null)

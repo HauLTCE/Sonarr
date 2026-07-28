@@ -1,30 +1,74 @@
 /*
- * Dark theme first (docs/09 — it's a Discord crowd). One stylesheet of plain CSS with variables:
- * the panel is a dozen pages of tables and forms, which is below the weight class where a utility
- * framework or a component library pays for itself.
+ * Registered so the mood drift can interpolate it. An ordinary custom property is a token stream
+ * as far as the animation engine is concerned, so `@keyframes` on it would jump from one shade to
+ * the next at the halfway point instead of sliding; typing it as <color> makes it animatable.
+ * `inherits: true` keeps every descendant reading the animated value rather than the initial one.
+ */
+@property --accent {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #2b6149;
+}
+
+@keyframes mood-drift {
+  from {
+    --accent: var(--accent-from);
+  }
+  to {
+    --accent: var(--accent-to);
+  }
+}
+
+/*
+ * One stylesheet of plain CSS with variables: the panel is a dozen pages of tables and forms,
+ * which is below the weight class where a utility framework or a component library pays for itself.
  *
- * Contrast: every foreground/background pair below clears WCAG AA at body size (--muted on
- * --surface is 4.7:1, --text on --bg is 14:1). Focus rings are never removed, only restyled.
+ * Three faces, each with a job (docs/09): Inter for headings, Plus Jakarta Sans for body copy,
+ * JetBrains Mono for ids, counts and anything a person might copy. They are self-hosted by
+ * `next/font/google` in app/layout.tsx, which sets --font-heading/--font-sans/--font-mono.
+ * Every stack here still ends in a system fallback, so a font that failed to build degrades to
+ * a sans-serif rather than to the browser's default serif.
+ *
+ * Contrast: every foreground/background pair below clears WCAG AA at body size — --muted on --bg
+ * is 5.0:1, --text on --bg is 15.8:1, and white on every mood accent in moods.css is at least
+ * 4.9:1. Focus rings are never removed, only restyled.
  */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  --bg: #101014;
-  --surface: #17171d;
-  --surface-2: #1f1f27;
-  --border: #2e2e39;
-  --text: #ececf1;
-  --muted: #a3a3b2;
-  --accent: #7c6cf0;
+  --bg: #f3f5f2;
+  --surface: #ffffff;
+  --surface-2: #e8ebe6;
+  --border: #d7dcd6;
+  --border-strong: #c3cabf;
+  --text: #0f1612;
+  --muted: #5d6d63;
+
+  /* Overridden per mood by MoodAccent.tsx. The default is her NEUTRAL green, so the page is
+     already correct before the first mood arrives — and stays correct if the bot is down. */
+  --accent: #2b6149;
+  --accent-from: #2b6149;
+  --accent-to: #2f5d6b;
+  --accent-soft: #2b614914;
   --accent-text: #ffffff;
-  --good: #4ade80;
-  --bad: #f87171;
-  --warn: #fbbf24;
 
-  --radius: 8px;
+  --good: #1c6b46;
+  --bad: #a3231f;
+  --warn: #8a5a09;
+
+  --radius: 10px;
+  --radius-sm: 6px;
   --gap: 1rem;
-  --page: 68rem;
+  --page: 74rem;
+
+  /* Two shadows only: one for things resting on the page, one for things floating above it. */
+  --shadow: 0 1px 2px rgba(15, 22, 18, 0.04), 0 1px 3px rgba(15, 22, 18, 0.06);
+  --shadow-lift: 0 2px 4px rgba(15, 22, 18, 0.05), 0 8px 24px rgba(15, 22, 18, 0.08);
+
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --fast: 140ms;
+  --slow: 260ms;
 }
 
 * {
@@ -35,52 +79,77 @@
 
 html {
   height: 100%;
+  /* Anchored headings on the long pages clear the sticky topbar. */
+  scroll-padding-top: 5rem;
 }
 
 body {
   min-height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-sans), "Plus Jakarta Sans", system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Kills the 300ms tap delay without disabling zoom. */
+  touch-action: manipulation;
 }
 
 a {
   color: var(--accent);
   text-decoration: none;
+  transition: color var(--fast) var(--ease);
 }
 
 a:hover,
 a:focus-visible {
   text-decoration: underline;
+  text-underline-offset: 0.15em;
 }
 
 /* Visible on every interactive element, including ones with a custom background. */
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading), Inter, system-ui, sans-serif;
+  font-weight: 650;
+  letter-spacing: -0.018em;
+  /* Two-line headings break where the sentence does, not wherever the box ends. */
+  text-wrap: balance;
 }
 
 h1 {
-  font-size: 1.6rem;
-  line-height: 1.25;
+  font-size: clamp(1.55rem, 1.2rem + 1.2vw, 2rem);
+  line-height: 1.18;
 }
 
 h2 {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   line-height: 1.3;
 }
 
 h3 {
-  font-size: 1rem;
+  font-size: 0.98rem;
 }
 
 code,
 .mono {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 0.9em;
+  font-family: var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.88em;
+  font-variant-ligatures: none;
+}
+
+code {
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 0.1em 0.35em;
 }
 
 /* Reachable by keyboard, out of the way until focused — the first tab stop on every page. */
@@ -90,9 +159,9 @@ code,
   top: 0;
   background: var(--accent);
   color: var(--accent-text);
-  padding: 0.5rem 0.75rem;
+  padding: 0.55rem 0.85rem;
   border-radius: 0 0 var(--radius) 0;
-  z-index: 10;
+  z-index: 40;
 }
 
 .skip:focus {
@@ -103,77 +172,189 @@ code,
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
+/* ---- topbar ------------------------------------------------------------------------------ */
+
 .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
   display: flex;
   align-items: center;
-  gap: var(--gap);
+  gap: 1.25rem;
   flex-wrap: wrap;
-  padding: 0.75rem 1.25rem;
-  background: var(--surface);
+  padding: 0.6rem max(1.25rem, env(safe-area-inset-left)) 0;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
 }
 
 .brand {
+  font-family: var(--font-heading), Inter, system-ui, sans-serif;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
   color: var(--text);
+  padding-bottom: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.topbar nav {
-  display: flex;
-  gap: 0.25rem;
-  flex-wrap: wrap;
+.brand:hover {
+  text-decoration: none;
+}
+
+/* The live mood dot: the accent has a shape as well as a colour, so the mood is legible to
+   someone who cannot tell #a3365e from #2b6149. Its title attribute names the mood in words. */
+.brand .dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  transition: background var(--slow) var(--ease);
 }
 
 .topbar .spacer {
   flex: 1;
 }
 
+.topbar nav {
+  display: flex;
+  align-items: stretch;
+  gap: 0.15rem;
+  flex-wrap: wrap;
+}
+
+/* ---- tabs: the sliding underline ---------------------------------------------------------- */
+
+/*
+ * The bar under the open tab is a pseudo-element that scales along X rather than a measured,
+ * absolutely-positioned element that JS has to keep in sync with the layout. Transform-only, so
+ * it composites, and it stays correct when the nav wraps to two rows on a phone.
+ */
 .tab {
-  padding: 0.35rem 0.7rem;
-  border-radius: var(--radius);
+  position: relative;
+  padding: 0.4rem 0.7rem 0.75rem;
   color: var(--muted);
-  font-size: 0.95rem;
+  font-size: 0.92rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color var(--fast) var(--ease);
+}
+
+.tab::after {
+  content: "";
+  position: absolute;
+  left: 0.35rem;
+  right: 0.35rem;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--slow) var(--ease), background var(--slow) var(--ease);
 }
 
 .tab:hover,
 .tab:focus-visible {
-  background: var(--surface-2);
   color: var(--text);
   text-decoration: none;
 }
 
-.tab[aria-current="page"] {
-  background: var(--surface-2);
-  color: var(--text);
+.tab:hover::after {
+  transform: scaleX(0.45);
 }
+
+.tab[aria-current="page"] {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.tab[aria-current="page"]::after {
+  transform: scaleX(1);
+}
+
+/* ---- main / page transition -------------------------------------------------------------- */
 
 main {
   flex: 1;
   width: 100%;
   max-width: var(--page);
   margin: 0 auto;
-  padding: 1.5rem 1.25rem 3rem;
+  padding: 2rem max(1.25rem, env(safe-area-inset-left)) 4rem
+    max(1.25rem, env(safe-area-inset-right));
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
+/*
+ * Route changes slide in from the side the visitor moved toward — forward through the nav comes
+ * in from the right, back comes in from the left. Opacity and transform only.
+ */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  animation: slide-in var(--slow) var(--ease) both;
+}
+
+.page[data-dir="back"] {
+  animation-name: slide-in-back;
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translate3d(1.25rem, 0, 0);
+  }
+}
+
+@keyframes slide-in-back {
+  from {
+    opacity: 0;
+    transform: translate3d(-1.25rem, 0, 0);
+  }
+}
+
+/* Inherits main's column flow so a page's own cards keep their spacing inside the animated box. */
+.page-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+/* Login is two short cards; at full page width they read as banners rather than a form. */
+main.narrow {
+  max-width: 32rem;
+  padding-top: 3.5rem;
+}
+
 .lead {
   color: var(--muted);
-  max-width: 60ch;
+  max-width: 62ch;
+  font-size: 1.02rem;
 }
+
+/* ---- cards, stats, charts ---------------------------------------------------------------- */
 
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1rem 1.15rem;
+  padding: 1.15rem 1.25rem;
+  box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.85rem;
+  /* A card holding a wide table must be allowed to shrink, or .scroll never scrolls. */
+  min-width: 0;
 }
 
 .grid {
@@ -184,79 +365,140 @@ main {
 
 .stat {
   background: var(--surface-2);
-  border-radius: var(--radius);
-  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.9rem;
+  min-width: 0;
 }
 
 .stat dt {
+  font-family: var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.07em;
 }
 
 .stat dd {
-  font-size: 1.35rem;
+  font-family: var(--font-heading), Inter, system-ui, sans-serif;
+  font-size: 1.4rem;
+  font-weight: 620;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
+  margin-top: 0.15rem;
+  /* A long value (a track title, a timezone) wraps instead of widening the grid column. */
+  overflow-wrap: anywhere;
 }
+
+.bar {
+  height: 0.45rem;
+  background: var(--surface-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.bar > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: background var(--slow) var(--ease);
+}
+
+/* Charts are CSS bars, not a charting library: the J2900 ships HTML and a bar is a div. */
+.chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 8rem;
+  padding-top: 0.5rem;
+}
+
+.chart > div {
+  flex: 1;
+  min-width: 2px;
+  background: var(--accent);
+  border-radius: 3px 3px 0 0;
+  transition: background var(--slow) var(--ease);
+}
+
+/* ---- tables ------------------------------------------------------------------------------ */
 
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.95rem;
+  font-size: 0.93rem;
 }
 
 caption {
   text-align: left;
   color: var(--muted);
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.6rem;
 }
 
 th,
 td {
   text-align: left;
-  padding: 0.5rem 0.6rem;
+  padding: 0.6rem;
   border-bottom: 1px solid var(--border);
   vertical-align: top;
 }
 
 th {
+  font-family: var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.7rem;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
 }
 
 tbody tr:last-child td {
   border-bottom: none;
 }
 
+tbody tr {
+  transition: background var(--fast) var(--ease);
+}
+
+tbody tr:hover {
+  background: var(--surface-2);
+}
+
 .num {
+  font-family: var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
   text-align: right;
+  white-space: nowrap;
 }
 
 .scroll {
   overflow-x: auto;
+  /* A swipe that runs out of table must not turn into a page-back gesture. */
+  overscroll-behavior-x: contain;
 }
+
+/* ---- forms ------------------------------------------------------------------------------- */
 
 form {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.85rem;
 }
 
 label {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.9rem;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 500;
   color: var(--muted);
+  min-width: 0;
 }
 
 .row {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.6rem;
   flex-wrap: wrap;
   align-items: flex-end;
 }
@@ -264,63 +506,105 @@ label {
 .check {
   flex-direction: row;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
+  /* Checkbox and its words are one hit target, not two. */
+  cursor: pointer;
+  color: var(--text);
 }
 
 input[type="text"],
 input[type="number"],
 select {
-  background: var(--bg);
+  background: var(--surface);
   color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.65rem;
   font: inherit;
   min-width: 0;
+  transition: border-color var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+}
+
+input[type="text"]:hover,
+input[type="number"]:hover,
+select:hover {
+  border-color: var(--muted);
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+input::placeholder {
+  color: var(--muted);
+  opacity: 0.75;
 }
 
 .hint {
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
 }
+
+/* ---- buttons ----------------------------------------------------------------------------- */
 
 button {
   font: inherit;
+  font-weight: 560;
   background: var(--accent);
   color: var(--accent-text);
   border: 1px solid transparent;
-  border-radius: var(--radius);
-  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 1rem;
   cursor: pointer;
+  transition: background var(--slow) var(--ease), transform var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease), opacity var(--fast) var(--ease);
 }
 
 button:hover:not(:disabled) {
-  filter: brightness(1.1);
+  box-shadow: var(--shadow-lift);
+  filter: brightness(1.08);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: none;
 }
 
 button:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 button.quiet {
-  background: var(--surface-2);
+  background: var(--surface);
   color: var(--text);
-  border-color: var(--border);
+  border-color: var(--border-strong);
+}
+
+button.quiet:hover:not(:disabled) {
+  background: var(--surface-2);
+  filter: none;
 }
 
 button.danger {
   background: var(--bad);
-  color: #1a0505;
+  color: #ffffff;
 }
+
+/* ---- notices, pills ---------------------------------------------------------------------- */
 
 /* Colour is never the only signal: each of these carries its own text or an icon character. */
 .notice {
+  border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
-  background: var(--surface-2);
-  border-radius: var(--radius);
-  padding: 0.7rem 0.85rem;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.9rem;
   color: var(--text);
+  font-size: 0.93rem;
 }
 
 .notice.bad {
@@ -337,25 +621,14 @@ button.danger {
 
 .pill {
   display: inline-block;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: 999px;
-  padding: 0.05rem 0.55rem;
-  font-size: 0.8rem;
+  padding: 0.1rem 0.6rem;
+  font-family: var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
   color: var(--muted);
   background: var(--surface-2);
-}
-
-.bar {
-  height: 0.5rem;
-  background: var(--surface-2);
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.bar > span {
-  display: block;
-  height: 100%;
-  background: var(--accent);
+  white-space: nowrap;
 }
 
 .muted {
@@ -367,25 +640,54 @@ button.danger {
   font-style: italic;
 }
 
-/* Charts are CSS bars, not a charting library: the J2900 ships HTML and a bar is a div. */
-.chart {
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  height: 8rem;
-  padding-top: 0.5rem;
-}
-
-.chart > div {
-  flex: 1;
-  min-width: 2px;
-  background: var(--accent);
-  border-radius: 2px 2px 0 0;
-}
+/* ---- footer ------------------------------------------------------------------------------ */
 
 .footer {
-  padding: 1rem 1.25rem;
+  padding: 1.25rem max(1.25rem, env(safe-area-inset-left))
+    max(1.25rem, env(safe-area-inset-bottom));
   border-top: 1px solid var(--border);
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+/* ---- motion ------------------------------------------------------------------------------ */
+
+/*
+ * Reduced motion means no motion, not less: the sliding page, the underline and the mood
+ * crossfade all become instant. The mood colour still changes — it carries information — it just
+ * stops animating between shades (moods.css turns the keyframe animation off too).
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Cancelled outright rather than run instantly: a 0.01ms alternate animation would leave the
+     accent parked on --accent-to, which is the shade nobody chose as the mood's primary. */
+  :root {
+    animation: none !important;
+    --accent: var(--accent-from);
+  }
+}
+
+/* ---- utility ----------------------------------------------------------------------------- */
+
+/* Present to assistive tech, absent to the eye — the standard clip pattern, not display:none,
+   which would take it out of the accessibility tree as well. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }

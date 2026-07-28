@@ -2,8 +2,10 @@ import { redirect } from "next/navigation";
 
 import { hasSession } from "@/lib/api";
 import { currentLocale } from "@/lib/locale";
+import { moodNames } from "@/lib/mood";
 import { translator } from "@/lib/strings";
 
+import { MoodAccent } from "../components/MoodAccent";
 import { LoginForm } from "./LoginForm";
 
 /**
@@ -25,10 +27,15 @@ export default async function LoginPage() {
       </a>
 
       <header className="topbar">
-        <span className="brand">{t("app.name")}</span>
+        <span className="brand">
+          {/* The accent works here too: /api/status is public, so the login page is tinted by her
+              mood before anyone has logged in. */}
+          <MoodAccent names={moodNames(t)} label={t("mood.label")} />
+          {t("app.name")}
+        </span>
       </header>
 
-      <main id="main">
+      <main id="main" className="narrow">
         <div className="card">
           <h1>{t("login.title")}</h1>
           <p className="lead">{t("login.lead")}</p>

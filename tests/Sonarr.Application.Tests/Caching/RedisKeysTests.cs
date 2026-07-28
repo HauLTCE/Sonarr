@@ -33,6 +33,7 @@ public class RedisKeysTests
     // web
     [InlineData("sonarr:web:session:abc123")]
     [InlineData("sonarr:web:live_status")]
+    [InlineData("sonarr:web:mood")]
     // cfg
     [InlineData("sonarr:cfg:guild:1")]
     [InlineData("sonarr:cfg:flags")]
@@ -82,6 +83,7 @@ public class RedisKeysTests
     [InlineData(60, nameof(CacheTtl.RateLimitXp))]
     [InlineData(10 * 60, nameof(CacheTtl.PresenceOnlineSample))]
     [InlineData(5, nameof(CacheTtl.WebLiveStatus))]
+    [InlineData(60 * 60, nameof(CacheTtl.WebMood))]
     [InlineData(10 * 60, nameof(CacheTtl.ConfigGuild))]
     [InlineData(60, nameof(CacheTtl.ConfigFlags))]
     public void Ttl_MatchesDocumentedPolicy(int expectedSeconds, string field)
@@ -172,6 +174,9 @@ public class RedisKeysTests
     // The session mirror only; web.session rows are the authority, so this is a re-login at worst.
     [InlineData("WebSession", ReLogin)]
     [InlineData("WebLiveStatus", ReLogin)]
+    // The panel's accent colour, nothing else. A flush leaves it on her neutral green until she
+    // next speaks, which is a colour, not a cost — Reset is the closest honest label.
+    [InlineData("WebMood", Reset)]
     // Config falls back to the Postgres row on a miss, so a flush costs one uncached read.
     [InlineData("ConfigGuild", Reset)]
     [InlineData("ConfigFlags", Reset)]
@@ -228,6 +233,7 @@ public class RedisKeysTests
         RedisKeys.PresenceOnlineSample(1),
         RedisKeys.WebSession("abc123"),
         RedisKeys.WebLiveStatus,
+        RedisKeys.WebMood,
         RedisKeys.ConfigGuild(1),
         RedisKeys.ConfigFlags,
     ];

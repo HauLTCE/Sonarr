@@ -126,6 +126,9 @@ public sealed class FakeWebSessionCache : IWebSessionCache
 
     public string? LiveStatus { get; private set; }
 
+    /// <summary>Her mood as last written. Settable so a test can seed it without a chat turn.</summary>
+    public string? Mood { get; set; }
+
     public int Removals { get; private set; }
 
     public Task<WebSessionSnapshot?> GetSessionAsync(string sessionHash, CancellationToken cancellationToken = default)
@@ -152,6 +155,15 @@ public sealed class FakeWebSessionCache : IWebSessionCache
     public Task SetLiveStatusJsonAsync(string json, CancellationToken cancellationToken = default)
     {
         LiveStatus = json;
+        return Task.CompletedTask;
+    }
+
+    public Task<string?> GetMoodAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(Mood);
+
+    public Task SetMoodAsync(string modeId, CancellationToken cancellationToken = default)
+    {
+        Mood = modeId;
         return Task.CompletedTask;
     }
 

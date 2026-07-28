@@ -30,4 +30,17 @@ public interface IWebSessionCache
     Task<string?> GetLiveStatusJsonAsync(CancellationToken cancellationToken = default);
 
     Task SetLiveStatusJsonAsync(string json, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Her mood right now — a persona mode id (<c>web:mood</c>, 1 h), or <c>null</c> when she has
+    /// not spoken lately. The panel tints itself with it; nothing behavioural reads it.
+    /// </summary>
+    /// <remarks>
+    /// One value for the whole install, not one per guild: it is a decoration on a page that is
+    /// not scoped to a guild, and a mode id names no user, channel or guild, so it is safe on the
+    /// unauthenticated route that serves it.
+    /// </remarks>
+    Task<string?> GetMoodAsync(CancellationToken cancellationToken = default);
+
+    Task SetMoodAsync(string modeId, CancellationToken cancellationToken = default);
 }
