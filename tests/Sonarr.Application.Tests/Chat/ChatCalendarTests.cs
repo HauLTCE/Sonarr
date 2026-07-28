@@ -149,6 +149,13 @@ public sealed class ChatCalendarTests
         Assert.Contains(ConfigKeys.All, k => k.Key == ConfigKeys.Timezone);
     }
 
+    /// <summary>
+    /// Contains rather than equals: <see cref="ReplyComposer"/> prepends a mood fragment on one
+    /// turn in three ("it's 4am." + the nap line), and which turn that is depends on the day seed
+    /// — so the Saigon case and the UTC case do not agree on whether the reply is bare. An
+    /// equality check passed on a Windows box only because no tz data makes both sides false.
+    /// </summary>
     private static bool Naps(ChatDecision decision) =>
-        decision.Text is { } text && Build.Graph.Pools["topic_nap"].Lines.Contains(text);
+        decision.Text is { } text
+        && Build.Graph.Pools["topic_nap"].Lines.Any(l => text.Contains(l, StringComparison.Ordinal));
 }
