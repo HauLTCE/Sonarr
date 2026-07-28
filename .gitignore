@@ -88,5 +88,9 @@ _server_log_raw.txt
 # for Elaine tuning but never committed.
 training-data/
 
+# Internal design notes and the build checklist. Kept on disk as the working record, out
+# of the published repo — they carry server layout, guild ids and operational detail.
+docs/
+
 # ONNX embedding model — 90MB of weights, fetched by scripts/fetch-model.sh (docs/03-stack.md)
 models/

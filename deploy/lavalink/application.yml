@@ -1,0 +1,58 @@
+# Lavalink node config. Copied verbatim off the CT on 2026-07-28 (the config that has been
+# serving music since May) with one change: the password is no longer hardcoded here.
+#
+# Lavalink is Spring Boot, so any key can be overridden by an env var with the path
+# uppercased and dots/dashes turned into underscores. compose passes
+# LAVALINK_SERVER_PASSWORD from .env, which is why this file is safe to commit.
+server:
+  port: 2333
+  # 0.0.0.0 rather than 127.0.0.1 because the legacy Python bot still connects over the LAN
+  # address (192.168.1.101:2333) during the rollback window. Once it is gone this should
+  # become 127.0.0.1 — with network_mode: host the .NET bot reaches loopback either way.
+  address: 0.0.0.0
+lavalink:
+  plugins:
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.1"
+      snapshot: false
+  server:
+    # Overridden by LAVALINK_SERVER_PASSWORD; the placeholder keeps the file valid standalone.
+    password: "${LAVALINK_SERVER_PASSWORD:youshallnotpass}"
+    sources:
+      # Built-in youtube source off on purpose: the youtube-plugin below replaces it.
+      youtube: false
+      bandcamp: true
+      soundcloud: true
+      twitch: true
+      vimeo: true
+      http: true
+      local: false
+    bufferDurationMs: 400
+    frameBufferDurationMs: 5000
+    opusEncodingQuality: 10
+    resamplingQuality: LOW
+    trackStuckThresholdMs: 10000
+    useSeekGhosting: true
+    youtubePlaylistLoadLimit: 6
+    playerUpdateInterval: 5
+    gc-warnings: true
+
+plugins:
+  youtube:
+    enabled: true
+    allowSearch: true
+    remoteCipher:
+      # The yt-cipher container in this same stack. Loopback works because both run with
+      # network_mode: host — this is the coupling that makes them one unit.
+      url: "http://127.0.0.1:8001/"
+    allowDirectVideoIds: true
+    allowDirectPlaylistIds: true
+    clients:
+      - MUSIC
+      - TVHTML5EMBEDDED
+      - WEB
+      - ANDROID_VR
+
+logging:
+  level:
+    lavalink.server: INFO
+    dev.lavalink.youtube: INFO

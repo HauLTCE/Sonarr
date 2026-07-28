@@ -1,8 +1,14 @@
 # Prod stack — lives at /root/sonarr-net/docker-compose.yml on the server (docs/11-deployment.md).
 #
-# MUSIC STACK IS DELIBERATELY ABSENT. Lavalink 4.2.2 (systemd `lavalink.service`),
-# yt-cipher (its own container) and /root/lavalink/* stay on the host, untouched forever.
-# The bot reaches them over localhost thanks to `network_mode: host`. Never add them here.
+# Everything in one bucket as of 2026-07-28: bot, panel, Postgres, Redis, Lavalink and
+# yt-cipher. Music used to be deliberately excluded (Lavalink ran as systemd
+# `lavalink.service` out of /root/lavalink, yt-cipher as a hand-started container) so a
+# rewrite deploy could never take music down. That trade is over — one `compose up` now
+# brings up or tears down the whole thing, and the node config lives in git at
+# deploy/lavalink/application.yml instead of only on the box.
+#
+# Every service uses `network_mode: host`, so they reach each other on 127.0.0.1 and the
+# published ports below are informational for the host, not container-to-container plumbing.
 name: sonarr
 
 services:
@@ -25,6 +31,11 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      # Not service_healthy: Lavalink takes ~20 s to boot and the bot reconnects to a node
+      # on its own anyway (that is what the old reconnect spam in the journal was). Waiting
+      # would only delay the gateway coming up.
+      lavalink:
+        condition: service_started
     restart: unless-stopped
 
   web:
@@ -77,6 +88,50 @@ services:
       retries: 5
     restart: unless-stopped
 
+  lavalink:
+    # Pinned, not :latest — an audio node that silently changes version under a working bot
+    # is the worst kind of surprise. This is the version that has been serving music since May.
+    image: ghcr.io/lavalink-devs/lavalink:4.2.2
+    # Host networking to match everything else: the youtube plugin's remoteCipher points at
+    # 127.0.0.1:8001 (yt-cipher below), and the bot reaches this node on 127.0.0.1:2333.
+    network_mode: host
+    environment:
+      # Keeps the node password out of the committed application.yml. Spring Boot maps this
+      # env var onto lavalink.server.password.
+      LAVALINK_SERVER_PASSWORD: ${LAVALINK_PASSWORD:?required}
+      # 4.2.2 needs a JVM heap ceiling or it sizes off total host RAM — 512m is comfortable
+      # for a handful of players and leaves room for the bot on a 4 GB box.
+      JAVA_OPTS: -Xmx512m
+    volumes:
+      - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
+      # Named volume, not a bind: Lavalink downloads the youtube plugin jar listed in
+      # application.yml on first boot and needs somewhere durable to keep it. Leaving it
+      # empty means re-downloading the plugin on every recreate.
+      - lavalinkplugins:/opt/Lavalink/plugins
+    healthcheck:
+      # /version is unauthenticated; every other endpoint needs the password.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:2333/version || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
+
+  yt-cipher:
+    # Solves YouTube's signature ciphers out of process for the youtube plugin above.
+    #
+    # Pinned by digest because upstream only publishes a moving `master` tag: this is the
+    # exact image that has been working on the CT. Bump it deliberately when YouTube breaks
+    # playback (`docker pull ghcr.io/kikkia/yt-cipher:master` then re-pin), not by accident
+    # on an unrelated redeploy.
+    image: ghcr.io/kikkia/yt-cipher@sha256:996a71e8d78476f5d7e2f2ae04fd3cbd06c7a1ee7c4c0d3e8302303d1cd096af
+    network_mode: host
+    environment:
+      # Same value the hand-started container ran with on the CT.
+      OVERRIDE_PLAYER_VARIANT: IAS
+    restart: unless-stopped
+
 volumes:
   pgdata:
   redisdata:
+  lavalinkplugins:
