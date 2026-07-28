@@ -104,10 +104,17 @@ services:
       JAVA_OPTS: -Xmx512m
     volumes:
       - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
-      # Named volume, not a bind: Lavalink downloads the youtube plugin jar listed in
-      # application.yml on first boot and needs somewhere durable to keep it. Leaving it
-      # empty means re-downloading the plugin on every recreate.
-      - lavalinkplugins:/opt/Lavalink/plugins
+      # ponytail: no volume for /opt/Lavalink/plugins, so the youtube plugin jar named in
+      # application.yml is re-downloaded on every container recreate (~5 MB, a few seconds).
+      # A named volume is the obvious thing and it is what broke this deploy: the image has
+      # no /opt/Lavalink/plugins for Docker to seed permissions from, so a fresh volume
+      # lands root-owned while the image runs as uid 322(lavalink), and the node crashloops
+      # on "youtube-plugin-1.18.1.jar (Permission denied)". Fixing that needs a host-side
+      # `chown 322` that lives nowhere in git and would be forgotten on the J2900 move.
+      # /opt/Lavalink is lavalink-owned, so with no mount the container just creates the
+      # directory itself and a clean checkout works with zero manual steps.
+      # Ceiling: recreates depend on GitHub being reachable. If that ever bites, bind-mount
+      # ./lavalink/plugins and chown it 322:322 in deploy.sh so the fix stays in the repo.
     healthcheck:
       # /version is unauthenticated; every other endpoint needs the password.
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:2333/version || exit 1"]
@@ -134,4 +141,3 @@ services:
 volumes:
   pgdata:
   redisdata:
-  lavalinkplugins:
