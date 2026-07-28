@@ -78,8 +78,14 @@ public static class PanelEndpoints
     }
 
     /// <summary>Level, rank, streak, activity and the user's own pending reminders.</summary>
+    /// <param name="guildId">
+    /// Nullable so a missing or unparseable value reaches this method instead of being rejected by
+    /// parameter binding — binding runs before the handler, so a non-nullable ulong here would answer
+    /// an anonymous caller 400 where the same route answers 401 once a guild is named, which tells
+    /// them the route exists. Every guard in this file wants the session read first.
+    /// </param>
     private static async Task<IResult> GetOverviewAsync(
-        ulong guildId,
+        ulong? guildId,
         HttpContext http,
         IWebAuthService auth,
         ILevelService levels,
@@ -92,17 +98,17 @@ public static class PanelEndpoints
             return Results.Unauthorized();
         }
 
-        if (guildId == 0)
+        if (guildId is null or 0)
         {
             return Results.BadRequest(new { error = "guildId is required." });
         }
 
-        MemberStats stats = await levels.GetStatsAsync(guildId, me.UserId, ct);
+        MemberStats stats = await levels.GetStatsAsync(guildId.Value, me.UserId, ct);
         IReadOnlyList<ReminderView> pending = await reminders.ListAsync(me.UserId, ct);
 
         return Results.Ok(new
         {
-            guildId = Id(guildId),
+            guildId = Id(guildId.Value),
             level = stats.Level.Level,
             xp = stats.Level.Xp,
             xpIntoLevel = stats.Level.XpIntoLevel,
@@ -133,8 +139,9 @@ public static class PanelEndpoints
     /// Her standing, the nickname she picked, and the facts she holds — each with the predicate the
     /// forget button posts back.
     /// </summary>
+    /// <param name="guildId">Nullable for the reason given on <see cref="GetOverviewAsync"/>.</param>
     private static async Task<IResult> GetSonarrAndMeAsync(
-        ulong guildId,
+        ulong? guildId,
         HttpContext http,
         IWebAuthService auth,
         ChatIntrospection chat,
@@ -147,12 +154,12 @@ public static class PanelEndpoints
             return Results.Unauthorized();
         }
 
-        if (guildId == 0)
+        if (guildId is null or 0)
         {
             return Results.BadRequest(new { error = "guildId is required." });
         }
 
-        var guild = (long)guildId;
+        var guild = (long)guildId.Value;
         var user = (long)me.UserId;
 
         // The same call /relationship makes, with the asker and the subject being the same person,
@@ -183,9 +190,10 @@ public static class PanelEndpoints
     /// Per-fact "ask her to forget" (docs/09). Same path <c>/memories forget</c> takes, so one
     /// implementation decides what a forget means.
     /// </summary>
+    /// <param name="guildId">Nullable for the reason given on <see cref="GetOverviewAsync"/>.</param>
     private static async Task<IResult> ForgetFactAsync(
         string predicate,
-        ulong guildId,
+        ulong? guildId,
         HttpContext http,
         IWebAuthService auth,
         ChatIntrospection chat,
@@ -205,7 +213,7 @@ public static class PanelEndpoints
             return Results.StatusCode(StatusCodes.Status403Forbidden);
         }
 
-        if (guildId == 0)
+        if (guildId is null or 0)
         {
             return Results.BadRequest(new { error = "guildId is required." });
         }
@@ -217,9 +225,9 @@ public static class PanelEndpoints
             return Results.BadRequest(new { error = $"predicate must be 1-{MaxPredicate} characters." });
         }
 
-        string line = await chat.ForgetAsync((long)guildId, (long)me.UserId, predicate, ct);
+        string line = await chat.ForgetAsync((long)guildId.Value, (long)me.UserId, predicate, ct);
 
-        await auth.AuditAsync(me, "me.forget_fact", predicate, guildId, cancellationToken: ct);
+        await auth.AuditAsync(me, "me.forget_fact", predicate, guildId.Value, cancellationToken: ct);
 
         return Results.Ok(new { message = line });
     }
@@ -245,8 +253,9 @@ public static class PanelEndpoints
     }
 
     /// <summary>My history, my ratings, and what the server rates highest.</summary>
+    /// <param name="guildId">Nullable for the reason given on <see cref="GetOverviewAsync"/>.</param>
     private static async Task<IResult> GetMusicAsync(
-        ulong guildId,
+        ulong? guildId,
         HttpContext http,
         IWebAuthService auth,
         IMusicStatsRepository music,
@@ -258,16 +267,17 @@ public static class PanelEndpoints
             return Results.Unauthorized();
         }
 
-        if (guildId == 0)
+        if (guildId is null or 0)
         {
             return Results.BadRequest(new { error = "guildId is required." });
         }
 
+        ulong guild = guildId.Value;
         IReadOnlyList<TrackPlayCount> history =
-            await music.GetUserHistoryAsync(guildId, me.UserId, MusicRows, ct);
+            await music.GetUserHistoryAsync(guild, me.UserId, MusicRows, ct);
         IReadOnlyList<MyRating> ratings =
-            await music.GetUserRatingsAsync(guildId, me.UserId, MusicRows, ct);
-        IReadOnlyList<RatedTrack> serverTop = await music.GetTopRatedAsync(guildId, MusicRows, ct);
+            await music.GetUserRatingsAsync(guild, me.UserId, MusicRows, ct);
+        IReadOnlyList<RatedTrack> serverTop = await music.GetTopRatedAsync(guild, MusicRows, ct);
 
         return Results.Ok(new
         {

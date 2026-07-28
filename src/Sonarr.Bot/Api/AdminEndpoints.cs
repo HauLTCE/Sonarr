@@ -137,9 +137,15 @@ public static class AdminEndpoints
         return Results.Ok(new { message = result.Message });
     }
 
+    /// <param name="page">
+    /// Nullable, and so are <c>days</c>/<c>skip</c>/<c>take</c> below: parameter binding runs before
+    /// the handler, so a non-nullable int here answers an anonymous caller 400 where the same route
+    /// answers 401 without the query string — which tells them the route exists. The gate reads the
+    /// session first, and a missing page is just page 1.
+    /// </param>
     private static async Task<IResult> GetCasesAsync(
         ulong guildId, HttpContext http, IWebAuthService auth, IGuildAuthority guilds,
-        IModCaseRepository cases, int page, string? target, CancellationToken ct)
+        IModCaseRepository cases, int? page, string? target, CancellationToken ct)
     {
         if (await Gate(http, auth, guilds, guildId, write: false, ct) is null)
         {
@@ -147,7 +153,7 @@ public static class AdminEndpoints
         }
 
         long? targetId = ulong.TryParse(target, out ulong parsed) ? (long)parsed : null;
-        CasePage result = await cases.GetPageAsync((long)guildId, targetId, Math.Max(page, 1), ct);
+        CasePage result = await cases.GetPageAsync((long)guildId, targetId, Math.Max(page ?? 1, 1), ct);
 
         return Results.Ok(new
         {
@@ -175,9 +181,10 @@ public static class AdminEndpoints
     /// and growth is joins per day, so the page an admin sees never becomes a way to read one
     /// member's timeline (docs/06).
     /// </remarks>
+    /// <param name="days">Nullable for the reason given on <see cref="GetCasesAsync"/>.</param>
     private static async Task<IResult> GetStatsAsync(
         ulong guildId, HttpContext http, IWebAuthService auth, IGuildAuthority guilds,
-        IStatsRepository stats, int days, CancellationToken ct)
+        IStatsRepository stats, int? days, CancellationToken ct)
     {
         if (await Gate(http, auth, guilds, guildId, write: false, ct) is null)
         {
@@ -185,7 +192,8 @@ public static class AdminEndpoints
         }
 
         // days is clamped in the repository; 30 is the page's default window.
-        GuildStats result = await stats.GetStatsAsync((long)guildId, days <= 0 ? 30 : days, ct);
+        GuildStats result = await stats.GetStatsAsync(
+            (long)guildId, days is null or <= 0 ? 30 : days.Value, ct);
 
         return Results.Ok(new
         {
@@ -206,9 +214,11 @@ public static class AdminEndpoints
     /// Bot tier only: the audit log spans every guild, so there is no guild id a manager could be
     /// checked against. Passing 0 is what selects <see cref="PanelScope.BotWide"/>.
     /// </remarks>
+    /// <param name="skip">Nullable for the reason given on <see cref="GetCasesAsync"/>.</param>
+    /// <param name="take">Nullable for the reason given on <see cref="GetCasesAsync"/>.</param>
     private static async Task<IResult> GetAuditAsync(
         HttpContext http, IWebAuthService auth, IGuildAuthority guilds, IWebAuthRepository repo,
-        int skip, int take, CancellationToken ct)
+        int? skip, int? take, CancellationToken ct)
     {
         if (await Gate(http, auth, guilds, guildId: 0, write: false, ct) is null)
         {
@@ -217,7 +227,7 @@ public static class AdminEndpoints
 
         // take is clamped in the repository, so a hand-typed take=100000 costs nothing.
         IReadOnlyList<WebAudit> rows = await repo.GetAuditAsync(
-            Math.Max(skip, 0), take <= 0 ? 50 : take, ct);
+            Math.Max(skip ?? 0, 0), take is null or <= 0 ? 50 : take.Value, ct);
 
         return Results.Ok(rows.Select(r => new
         {
