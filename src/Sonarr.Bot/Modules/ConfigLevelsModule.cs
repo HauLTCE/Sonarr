@@ -22,6 +22,8 @@ namespace Sonarr.Bot.Modules;
 /// </remarks>
 [Group("config-levels", "XP settings: role rewards, level-up channel, multiplier.")]
 [DefaultMemberPermissions(GuildPermission.ManageGuild)]
+// DefaultMemberPermissions is a default a server admin can override; this is the enforcement.
+[RequireUserPermission(GuildPermission.ManageGuild)]
 [RequireContext(ContextType.Guild)]
 public sealed class ConfigLevelsModule(IGuildConfigService config, ILevelService levels)
     : SonarrModuleBase<SocketInteractionContext>

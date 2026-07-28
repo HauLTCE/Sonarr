@@ -21,6 +21,10 @@ namespace Sonarr.Bot.Modules;
 /// </remarks>
 [RequireContext(ContextType.Guild)]
 [RequireFeature(FeatureNames.Moderation)]
+// Every command here needs the same permission, and DefaultMemberPermissions is only a default a
+// server admin can override — this is the enforcement, and infraction history is the sort of thing
+// that must not leak because someone loosened the group in Integrations.
+[RequireUserPermission(GuildPermission.ModerateMembers)]
 public sealed class ModLookupModule(IModerationService moderation) : ModModuleBase(moderation)
 {
     [SlashCommand("case", "Look up one moderation case by number.")]

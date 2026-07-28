@@ -11,6 +11,8 @@ namespace Sonarr.Bot.Modules;
 /// <c>core.job</c> row — one-shot or recurring — so a restart never swallows an announcement.
 /// </summary>
 [DefaultMemberPermissions(GuildPermission.ManageGuild)]
+// DefaultMemberPermissions is a default a server admin can override; this is the enforcement.
+[RequireUserPermission(GuildPermission.ManageGuild)]
 public sealed class AnnounceModule(IAnnounceService announcements) : SonarrModuleBase<SocketInteractionContext>
 {
     /// <summary>Matches <c>AnnounceService.MaxMessageLength</c>; the service is still the authority.</summary>

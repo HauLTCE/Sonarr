@@ -24,6 +24,8 @@ public sealed class ModPurgeModule(IModerationService moderation) : ModModuleBas
 {
     [SlashCommand("purge", "Bulk-delete recent messages. Use preview to see what would go first.")]
     [DefaultMemberPermissions(GuildPermission.ManageMessages)]
+    // DefaultMemberPermissions is a default a server admin can override; this is the enforcement.
+    [RequireUserPermission(GuildPermission.ManageMessages)]
     [RequireBotPermission(GuildPermission.ManageMessages)]
     public async Task PurgeAsync(
         [Summary("count", "How many messages to scan back over (1-100)")]
@@ -80,6 +82,8 @@ public sealed class ModPurgeModule(IModerationService moderation) : ModModuleBas
 
     [SlashCommand("slowmode", "Set this channel's slowmode, or turn it off.")]
     [DefaultMemberPermissions(GuildPermission.ManageChannels)]
+    // DefaultMemberPermissions is a default a server admin can override; this is the enforcement.
+    [RequireUserPermission(GuildPermission.ManageChannels)]
     [RequireBotPermission(GuildPermission.ManageChannels)]
     public async Task SlowmodeAsync(
         [Summary("duration", "Per-message delay — 10s, 2m, up to 6h. Say `off` to clear it.")] string duration)

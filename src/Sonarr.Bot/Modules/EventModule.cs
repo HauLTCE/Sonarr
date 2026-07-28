@@ -138,6 +138,9 @@ public sealed class EventModule(IEventService events) : SonarrModuleBase<SocketI
     /// </summary>
     [RequireContext(ContextType.Guild)]
     [RequireFeature(FeatureNames.Events)]
+    // No RequireUserPermission on this group, unlike /config and the mod modules: loosening
+    // /event so members can schedule things is a legitimate thing for a server to do, and
+    // CancelAsync below already re-checks live permissions to tell staff from an event's own owner.
     [DefaultMemberPermissions(GuildPermission.ManageEvents)]
     [Group("event", "Schedule something.")]
     public sealed class Manage(IEventService events) : SonarrModuleBase<SocketInteractionContext>

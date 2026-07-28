@@ -7,8 +7,9 @@ using Sonarr.Bot.Observability;
 namespace Sonarr.Bot.Api;
 
 /// <summary>
-/// <c>GET /api/status</c> — the public status blob (docs/09). No auth, so nothing here may name a
-/// user, a channel or a guild.
+/// <c>GET /api/status</c> — the public status blob (docs/09). Anonymous callers get uptime, gateway
+/// state and the self-test rows only; nothing there may name a user, a channel or a guild. The
+/// per-guild player rows are added for an admin session.
 /// </summary>
 /// <remarks>
 /// The live half comes from <c>web:live_status</c>, written by the pusher at most once every 5 s,
@@ -26,10 +27,29 @@ public static class StatusEndpoints
     }
 
     private static async Task<IResult> GetStatusAsync(
-        ISelfTest selfTest, IWebSessionCache cache, SonarrMetrics metrics, CancellationToken ct)
+        HttpContext http,
+        ISelfTest selfTest,
+        IWebSessionCache cache,
+        IWebAuthService auth,
+        SonarrMetrics metrics,
+        CancellationToken ct)
     {
         SelfTestReport? report = selfTest.Last;
         string? liveJson = await cache.GetLiveStatusJsonAsync(ct);
+
+        // The live blob carries per-guild player rows — guild id, state, and the track title. That
+        // is more than a visitor should read off an unauthenticated route now that the panel answers
+        // on the LAN and through the tunnel, so the rows are stripped for anyone who is not an
+        // admin. The cached read is enough here: this is a display field, not a write.
+        PanelUser? user = await auth.AuthenticateAsync(
+            http.Request.Cookies[PanelCookies.Session], requireFresh: false, ct);
+
+        JsonNode? live = Parse(liveJson);
+
+        if (live is JsonObject obj && user?.IsAdmin != true)
+        {
+            obj.Remove("players");
+        }
 
         return Results.Ok(new
         {
@@ -43,7 +63,7 @@ public static class StatusEndpoints
 
             // Passed through as a node, not a string, so the page gets one object to read. Null
             // when the blob is older than 5 s — a stale latency number is worse than none.
-            live = Parse(liveJson),
+            live,
         });
     }
 

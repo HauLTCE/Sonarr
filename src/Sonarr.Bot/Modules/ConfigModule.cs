@@ -11,8 +11,17 @@ namespace Sonarr.Bot.Modules;
 /// translator: parse, call <see cref="IGuildConfigService"/>, format. All validation lives in
 /// the service, so the panel and Discord reject the same values for the same reasons.
 /// </summary>
+/// <remarks>
+/// Two permission attributes, on purpose. <see cref="DefaultMemberPermissionsAttribute"/> is only a
+/// <em>default</em> — a server admin can override it in Server Settings → Integrations, up to and
+/// including granting the group to @everyone — so it hides the commands but does not enforce
+/// anything. <see cref="RequireUserPermissionAttribute"/> is the enforcement: it re-checks the
+/// caller's live gateway permissions on every invocation, the same belt-and-braces rule the
+/// moderation modules follow (docs/checklist.md — Moderation).
+/// </remarks>
 [Group("config", "Server settings: channels, roles, timezone, import/export.")]
 [DefaultMemberPermissions(GuildPermission.ManageGuild)]
+[RequireUserPermission(GuildPermission.ManageGuild)]
 public sealed class ConfigModule(IGuildConfigService config)
     : InteractionModuleBase<SocketInteractionContext>
 {

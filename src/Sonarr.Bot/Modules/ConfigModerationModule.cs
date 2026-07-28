@@ -22,6 +22,8 @@ namespace Sonarr.Bot.Modules;
 // [Group("moderation")] sub-module once that file's owner is done with it.
 [Group("config-moderation", "Anti-spam policy: thresholds, what a trip does.")]
 [DefaultMemberPermissions(GuildPermission.ManageGuild)]
+// DefaultMemberPermissions is a default a server admin can override; this is the enforcement.
+[RequireUserPermission(GuildPermission.ManageGuild)]
 [RequireContext(ContextType.Guild)]
 public sealed class ConfigModerationModule(IGuildConfigService config, IModerationService moderation)
     : SonarrModuleBase<SocketInteractionContext>

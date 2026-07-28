@@ -12,6 +12,8 @@ namespace Sonarr.Bot.Modules;
 /// </summary>
 [Group("feature", "Turn my modules on or off for this server.")]
 [DefaultMemberPermissions(GuildPermission.ManageGuild)]
+// DefaultMemberPermissions is a default a server admin can override; this is the enforcement.
+[RequireUserPermission(GuildPermission.ManageGuild)]
 public sealed class FeatureModule(IFeatureGate gate)
     : InteractionModuleBase<SocketInteractionContext>
 {

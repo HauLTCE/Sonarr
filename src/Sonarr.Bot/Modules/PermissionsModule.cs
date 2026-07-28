@@ -11,6 +11,8 @@ namespace Sonarr.Bot.Modules;
 /// (docs/checklist.md — "Kill switches &amp; health").
 /// </summary>
 [DefaultMemberPermissions(GuildPermission.ManageGuild)]
+// DefaultMemberPermissions is a default a server admin can override; this is the enforcement.
+[RequireUserPermission(GuildPermission.ManageGuild)]
 public sealed class PermissionsModule : SonarrModuleBase<SocketInteractionContext>
 {
     [SlashCommand("checkperms", "Check what I'm allowed to do here, feature by feature.")]
