@@ -52,6 +52,7 @@ public static class ChatServiceCollectionExtensions
         // Fills TurnInput.Callback from episodic memory when something relevant exists, and from
         // the guild's quote board when it does not.
         services.AddScoped<CallbackRetriever>();
+        // Also the board /quote save fills — one registration, two readers.
         services.AddScoped<IQuoteRepository, QuoteRepository>();
         services.AddScoped<QuoteBoardRecall>();
 

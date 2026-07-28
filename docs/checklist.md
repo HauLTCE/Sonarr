@@ -303,7 +303,7 @@ J2900 · nothing durable lost on restart.
 ### Community features
 
 - [/] Migration — `social`: quote_board, capsule, event, event_rsvp, ticket — landed in Migration 1
-- [ ] `/quote save` (+ context menu) / `/quote random`
+- [/] `/quote save` (+ context menu) / `/quote random` — `QuoteModule`: `Save quote` context menu on the outer class (a context command has no subcommand path, so it cannot sit inside the `[Group]`), `save`/`random`/`delete` in the nested `[Group("quote")]`. The board is one of docs/06's explicit-consent storage paths, so saving is always a command and never automatic. Confirmations are public, not ephemeral — an ephemeral reply would hide from the quoted person that their line was stored. `AllowedMentions.None` + `Format.Sanitize` everywhere, so being on the board is not a notification. `/quote delete` goes past the two commands asked for because docs/06 gives the quoted person the right to take their own words down; ownership (`SavedBy` or `AuthorId`) lives in the `WHERE` clause, so a guessed id matches nothing instead of removing somebody else's row. `random` uses `ORDER BY random()` — cheap on a board of tens of rows behind the `(guild_id, author_id)` index; ponytail marker records the `TABLESAMPLE` upgrade past a few thousand.
 - [ ] `/capsule write when message` — delivery via `core.job`
 - [ ] `/event create|list|cancel` — native Discord events + opt-in role pings
 - [ ] `/ticket` — private thread with mods; close button saves a transcript

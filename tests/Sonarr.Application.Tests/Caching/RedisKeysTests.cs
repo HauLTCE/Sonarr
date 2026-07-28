@@ -189,7 +189,7 @@ public class RedisKeysTests
             .Select(d => (string)d.GetData(null!).First().First()!)
             .ToHashSet(StringComparer.Ordinal);
 
-        Assert.Empty(KeyFamilies().Where(f => !declared.Contains(f)));
+        Assert.All(KeyFamilies(), family => Assert.Contains(family, declared));
     }
 
     private const string Reset = "conversations feel reset";

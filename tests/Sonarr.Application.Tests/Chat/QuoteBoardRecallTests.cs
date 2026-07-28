@@ -165,4 +165,25 @@ internal sealed class FakeQuoteRepository : IQuoteRepository
                 .OrderByDescending(q => q.QuoteId)
                 .Take(limit)]);
     }
+
+    /// <summary>Mirrors the identity column: the id lands on the instance the caller passed in.</summary>
+    public Task<long> SaveAsync(QuoteBoard quote, CancellationToken ct = default)
+    {
+        quote.QuoteId = _quotes.Count + 1;
+        _quotes.Add(quote);
+        return Task.FromResult(quote.QuoteId);
+    }
+
+    /// <summary>Deterministic where the real one is random — a test cannot assert on a coin.</summary>
+    public Task<QuoteBoard?> RandomAsync(
+        long guildId, long? authorId = null, CancellationToken ct = default)
+        => Task.FromResult(_quotes
+            .Find(q => q.GuildId == guildId && (authorId is null || q.AuthorId == authorId)));
+
+    /// <summary>Same ownership rule the repository puts in its WHERE clause.</summary>
+    public Task<bool> DeleteAsync(
+        long guildId, long quoteId, long requestedBy, CancellationToken ct = default)
+        => Task.FromResult(_quotes.RemoveAll(q => q.QuoteId == quoteId
+            && q.GuildId == guildId
+            && (q.SavedBy == requestedBy || q.AuthorId == requestedBy)) > 0);
 }
