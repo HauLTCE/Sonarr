@@ -116,8 +116,12 @@ services:
       # Ceiling: recreates depend on GitHub being reachable. If that ever bites, bind-mount
       # ./lavalink/plugins and chown it 322:322 in deploy.sh so the fix stays in the repo.
     healthcheck:
-      # /version is unauthenticated; every other endpoint needs the password.
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:2333/version || exit 1"]
+      # Every endpoint needs the password, /version included — an unauthenticated probe gets
+      # a 401, which wget reports as failure, so the node sat "unhealthy" while happily
+      # serving. The password comes from the container's own environment rather than being
+      # written here, so it never reaches a compose file or `docker inspect` output beyond
+      # where it already is. CMD-SHELL because this needs $VAR expansion.
+      test: ["CMD-SHELL", "wget -qO- --header=\"Authorization: $$LAVALINK_SERVER_PASSWORD\" http://127.0.0.1:2333/version || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
