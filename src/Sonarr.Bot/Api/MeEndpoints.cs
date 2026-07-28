@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
 using Sonarr.Domain.Abstractions;
 
 namespace Sonarr.Bot.Api;
@@ -93,8 +94,14 @@ public static class MeEndpoints
             $"sonarr-data-{Id(me.UserId)}-{DateTime.UtcNow:yyyyMMdd}.json");
     }
 
+    // [FromBody] is load-bearing on both of these, and nullable is what makes it legal. Minimal
+    // APIs will not *infer* a body for DELETE, and an inferred complex parameter here threw
+    // "Body was inferred but the method does not allow inferred body parameters" while building
+    // the endpoint table — which is lazy and global, so it 500'd every route in the app including
+    // /health. Being explicit opts the body in; nullable marks it optional, so a missing body
+    // reaches the ConfirmWord check below and gets our own 400 rather than a framework one.
     private static Task<IResult> DeleteChatMemoryAsync(
-        DeleteConfirmation body,
+        [FromBody] DeleteConfirmation? body,
         HttpContext http,
         IWebAuthService auth,
         IUserDataRepository data,
@@ -102,7 +109,7 @@ public static class MeEndpoints
         DeleteAsync(body, http, auth, "me.delete_chat_memory", data.DeleteChatMemoryAsync, ct);
 
     private static Task<IResult> DeleteEverythingAsync(
-        DeleteConfirmation body,
+        [FromBody] DeleteConfirmation? body,
         HttpContext http,
         IWebAuthService auth,
         IUserDataRepository data,
