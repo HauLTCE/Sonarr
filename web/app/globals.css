@@ -194,25 +194,17 @@ a {
  * Borrowed from the slides deck; the difference is that each page here keeps its own URL, so this
  * animates a navigation rather than replacing one.
  */
+/* One direction, always forward. A back-slide would have to know which way the visitor moved, and
+   the only thing that knows that is browser history — a client wrapper tracking the previous path,
+   for a decoration. Not worth the component. */
 .slide {
   animation: slide-in var(--slide) var(--ease) both;
-}
-
-.slide[data-dir="back"] {
-  animation-name: slide-in-back;
 }
 
 @keyframes slide-in {
   from {
     opacity: 0;
     transform: translateX(24px);
-  }
-}
-
-@keyframes slide-in-back {
-  from {
-    opacity: 0;
-    transform: translateX(-24px);
   }
 }
 

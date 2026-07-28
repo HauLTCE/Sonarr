@@ -32,9 +32,11 @@ export function GuildPicker({
   return (
     <label className="picker">
       <span className="picker-label">{label}</span>
+      {/* The hint goes in `title`, not `aria-label`: an aria-label replaces the accessible name, so
+          it would silence the visible "Server" label above and announce only the explanation. */}
       <select
         value={current ?? ""}
-        aria-label={hint}
+        title={hint}
         onChange={(event) => router.push(`/${page}${guildQuery(event.target.value)}`)}
       >
         {guilds.map((g) => (

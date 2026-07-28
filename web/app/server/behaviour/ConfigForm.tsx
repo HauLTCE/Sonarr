@@ -87,6 +87,7 @@ function ConfigRow({
   }
 
   const id = `cfg-${field.key}`;
+  const noteId = `${id}-note`;
 
   return (
     <div className="field">
@@ -98,6 +99,7 @@ function ConfigRow({
             id={id}
             value={draft}
             disabled={busy}
+            aria-describedby={noteId}
             onChange={(event) => setDraft(event.target.value)}
           >
             <option value="">{labels.reset}</option>
@@ -112,6 +114,7 @@ function ConfigRow({
             disabled={busy}
             autoComplete="off"
             spellCheck={false}
+            aria-describedby={noteId}
             onChange={(event) => setDraft(event.target.value)}
           />
         )}
@@ -133,7 +136,16 @@ function ConfigRow({
         )}
       </div>
 
-      <p className={note?.bad ? "hint hint-bad" : "hint"}>{note?.text ?? field.hint}</p>
+      {/* One line doing two jobs: the field's hint, and after a save the API's own answer. It is a
+          live region only while it carries that answer — a hint that speaks on render is noise. */}
+      <p
+        id={noteId}
+        className={note?.bad ? "hint hint-bad" : "hint"}
+        role={note?.bad ? "alert" : undefined}
+        aria-live={note && !note.bad ? "polite" : undefined}
+      >
+        {note?.text ?? field.hint}
+      </p>
     </div>
   );
 }

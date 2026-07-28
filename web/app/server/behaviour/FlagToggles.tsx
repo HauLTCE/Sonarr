@@ -95,18 +95,33 @@ function FlagRow({
         ? labels.sourceGlobal
         : labels.sourceDefault;
 
+  const hintId = `flag-${flag.feature}-hint`;
+
   return (
     <div className="row">
       <div className="row-main">
         <div className="row-title">{flag.label}</div>
-        <div className="row-sub">{error ?? flag.hint}</div>
+        {/* role=alert only when it is an error: a hint that announces itself on every render is noise. */}
+        <div className="row-sub" id={hintId} role={error ? "alert" : undefined}>
+          {error ?? flag.hint}
+        </div>
       </div>
 
       <div className="row-action">
         {/* A real checkbox behind the switch, so it is reachable by keyboard and announced as a
-            checkbox rather than as a div someone styled. */}
+            checkbox rather than as a div someone styled.
+
+            The feature name is in the row title, outside this label, so the checkbox needs it
+            spelled out — otherwise a screen reader announces "checkbox, On" with no idea what of. */}
         <label className="switch">
-          <input type="checkbox" checked={flag.enabled} disabled={busy} onChange={toggle} />
+          <input
+            type="checkbox"
+            checked={flag.enabled}
+            disabled={busy}
+            onChange={toggle}
+            aria-label={flag.label}
+            aria-describedby={hintId}
+          />
           <span className="switch-track" aria-hidden="true" />
           <span className="switch-text">
             {busy ? labels.working : flag.enabled ? labels.on : labels.off}
