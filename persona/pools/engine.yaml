@@ -81,6 +81,21 @@ pools:
     - "people have tried. people have failed."
     - "no. and asking again won't help."
 
+  # v1 took prefixed commands ("!playlist save loopy"); the rewrite is slash-only, so those
+  # messages are now plain text and reached the chatter. "!playlist save loopy" drew "beats? i
+  # beat you at everything." -- a pun at the exact moment someone was being most precise, so the
+  # reader concludes the command silently failed and she is talking past it.
+  #
+  # Every line names the fix, because that is the only useful thing to say here: the reader did
+  # nothing wrong except use last year's syntax. Rude about it is fine; unclear is not.
+  stale_prefix_command:
+    - "the ! commands are gone. it's / now."
+    - "wrong prefix. slash commands only these days."
+    - "that's not a command anymore. try / and read the list."
+    - "! died with the old version. use /."
+    - "no ! commands here. type / and discord will show you."
+    - "i stopped answering to ! a while ago. / works."
+
   meta_complaint:
     - "i answered. you just didn't like it."
     - "i'll repeat myself as often as i please."

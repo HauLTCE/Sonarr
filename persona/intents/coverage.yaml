@@ -20,6 +20,22 @@ intents:
     affect:
       amusement: -1.0
 
+  # v1 took prefixed commands; the rewrite is slash-only, so "!playlist save loopy" is now plain
+  # text and reached the chatter, drawing "beats? i beat you at everything." -- a pun at the moment
+  # the reader was being most precise, which reads as the command silently failing.
+  #
+  # Highest specificity in this file on purpose: a message that opens with a command prefix is not
+  # chat, so nothing else here should get a look at it. Requires a letter after the prefix, so "!!"
+  # and "!?" stay with the punctuation routes, and requires the prefix to open the message, so
+  # "wow!!! amazing" and "10 != 11" are untouched.
+  - id: STALE_PREFIX_COMMAND
+    match:
+      regex:
+        - "^[!$](?:[a-z]{2,})\\b"
+    pool: stale_prefix_command
+    affect:
+      amusement: -1.0
+
   # "you're gay", "define gay", "you're gay as fuck man" -- 6 in the corpus. Deliberately separate
   # from HATE_SPEECH: this is playground insult, not a slur, and the authored pool answers it as
   # such ("wow, a gay joke. groundbreaking comedy."). Routing it to the refusal pool would be a

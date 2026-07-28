@@ -345,6 +345,12 @@ public class SeedPersonaTests
     [InlineData("peace out", "BYE")]
     [InlineData("later", "BYE")]
     [InlineData("see you later", "BYE")]
+    // v1 took prefixed commands and the rewrite is slash-only, so these are plain text now.
+    // "!playlist save loopy" drew "beats? i beat you at everything." — a pun at the moment the
+    // reader was being most precise, which reads as the command having silently failed.
+    [InlineData("!playlist save loopy", "STALE_PREFIX_COMMAND")]
+    [InlineData("!playlist savequeue loopy", "STALE_PREFIX_COMMAND")]
+    [InlineData("!skip", "STALE_PREFIX_COMMAND")]
     // A challenge has to be aimed at her, because every line in user_challenge squares up to the
     // reader. These still are.
     [InlineData("prove it", "USER_CHALLENGE")]
