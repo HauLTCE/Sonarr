@@ -15,4 +15,10 @@
     <ProjectReference Include="..\..\src\Sonarr.Elaine\Sonarr.Elaine.csproj" />
   </ItemGroup>
 
+  <!-- The committed slice of real messages. Copied to the output so the guard runs from the test
+       binary alone, with no repo checkout and no private training-data/ directory. -->
+  <ItemGroup>
+    <Content Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

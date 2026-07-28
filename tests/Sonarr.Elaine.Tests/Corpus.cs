@@ -47,6 +47,15 @@ public sealed record CorpusTurn(
     [property: JsonPropertyName("in")] string In,
     [property: JsonPropertyName("ts")] string? Ts);
 
+/// <param name="In">A real message, kept verbatim.</param>
+/// <param name="Note">Why this one is in the fixture. Read by a human, not by a test.</param>
+public sealed record FixtureRow(
+    [property: JsonPropertyName("in")] string In,
+    [property: JsonPropertyName("note")] string? Note)
+{
+    public string Label => In.Length == 0 ? "(empty)" : In.Length <= 60 ? In : In[..57] + "...";
+}
+
 /// <summary>
 /// The private corpus of real messages, read off disk if it is there.
 /// </summary>
@@ -65,17 +74,37 @@ internal static class Corpus
     /// <summary>The multi-turn companion, written by the <c>sessions</c> verb.</summary>
     private const string SessionsPath = "training-data/sessions.jsonl";
 
+    /// <summary>
+    /// The committed slice: real messages that identify nobody, so the guard runs on a clean
+    /// checkout and in CI where the private corpus does not exist.
+    /// </summary>
+    /// <remarks>
+    /// Hand-picked rather than sampled. Every row is a message someone actually sent, chosen
+    /// because it is generic (a greeting, a poke, punctuation) or because getting it wrong would
+    /// be serious (a prompt injection, a slur, a demand that she do damage). Nothing here carries
+    /// a name, a nickname, a link, or anything that reads as one person's business.
+    /// </remarks>
+    private const string FixturePath = "Fixtures/real-messages.jsonl";
+
     private static readonly Lazy<IReadOnlyList<CorpusRow>> LazyRows =
         new(() => Load<CorpusRow>(RelativePath));
 
     private static readonly Lazy<IReadOnlyList<CorpusSession>> LazySessions =
         new(() => Load<CorpusSession>(SessionsPath));
 
+    private static readonly Lazy<IReadOnlyList<FixtureRow>> LazyFixture = new(LoadFixture);
+
     /// <summary>The corpus, or empty when it is not on this machine.</summary>
     public static IReadOnlyList<CorpusRow> Rows => LazyRows.Value;
 
     /// <summary>The rebuilt conversations, or empty when they are not on this machine.</summary>
     public static IReadOnlyList<CorpusSession> Sessions => LazySessions.Value;
+
+    /// <summary>
+    /// The committed fixture. Always present — it ships with the test project, so a failure to read
+    /// it is a broken build rather than a missing optional file, and it throws accordingly.
+    /// </summary>
+    public static IReadOnlyList<FixtureRow> Fixture => LazyFixture.Value;
 
     public static bool Available => Rows.Count > 0;
 
@@ -116,6 +145,37 @@ internal static class Corpus
         }
 
         return rows;
+    }
+
+    /// <summary>
+    /// Reads the committed fixture from beside the test binary, and refuses to be empty.
+    /// </summary>
+    /// <remarks>
+    /// Read from <see cref="AppContext.BaseDirectory"/> rather than from the repo root, because the
+    /// csproj copies it to the output: that is what makes it work in CI, in a published test
+    /// bundle, and from a checkout with no <c>training-data/</c> at all.
+    /// </remarks>
+    private static IReadOnlyList<FixtureRow> LoadFixture()
+    {
+        string path = Path.Combine(AppContext.BaseDirectory, FixturePath);
+        List<FixtureRow> rows = [];
+
+        foreach (string line in File.ReadLines(path))
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
+            rows.Add(JsonSerializer.Deserialize<FixtureRow>(line)
+                ?? throw new InvalidDataException($"null fixture row in {path}: {line}"));
+        }
+
+        // An empty fixture would make every test that reads it pass while checking nothing, which
+        // is the one failure mode a committed guard exists to rule out.
+        return rows.Count > 0
+            ? rows
+            : throw new InvalidDataException($"{path} is empty — the guard would check nothing");
     }
 
     /// <summary>

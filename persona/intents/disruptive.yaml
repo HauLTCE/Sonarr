@@ -1,0 +1,106 @@
+# Disruptive intents: the messages she must not answer by accident.
+#
+# The pools these draw from were migrated with the rest of the v1 persona, but nothing routed to
+# them, so 110 pools were unreachable and 64% of the real corpus fell through to a generic pool.
+# For most of those that is only waste. For hate speech it is a correctness bug: `heil hitler`
+# drew "i have no response to that." from the *neutral fallback pool*, which is the same pool that
+# answered "go destroy account" with "okay?". Getting an acceptable reply was a coin toss, and a
+# reseed or a new pool line was all it took to have her shrug at a Nazi salute.
+#
+# So these are the routes where the reply is load-bearing. FixtureReplyTests asserts on them.
+intents:
+  # Hate speech. Highest specificity in the persona: it must out-score every content intent that
+  # happens to share a word with it, because being witty about the topic instead of refusing is
+  # the failure. Patterns are deliberately literal -- this is a keyword refusal, not a classifier,
+  # and a broad pattern that catches ordinary speech would be worse than a narrow one that misses.
+  - id: HATE_SPEECH
+    match:
+      regex:
+        # Nazi salutes and the misspellings people use to dodge a filter. `\w*` on the leader's
+        # name is what catches "heil Kitler" -- the corpus has both spellings from one user.
+        - "\\bheil\\b"
+        - "\\bsieg heil\\b"
+        - "\\b1488\\b"
+        - "\\bgas the\\b"
+        - "\\bburn the (?:jews|blacks|gays)\\b"
+        - "\\b(?:kill|hang|gas) (?:all )?(?:the )?(?:jews|blacks|n[i1]gg|f[a4]gg)"
+        # The reversal game: "read reggin backwards" is in the real corpus. The word backwards is
+        # the whole payload, so match it directly rather than trying to detect the instruction.
+        - "\\breggin\\b"
+        - "\\bteggaf\\b"
+        - "\\bn[i1]gg(?:er|a)\\b"
+        - "\\bf[a4]gg[o0]t\\b"
+        - "\\bwhite power\\b"
+        - "\\bracial slur\\b"
+    specificity: 3.0
+    pool: disruptive_hate_speech
+    affect:
+      anger: 4.0
+      trust: -3.0
+      grudge: 3.0
+
+  # "are you online", "test", "testing 123" -- 28 messages in the corpus, the second largest
+  # cluster after greetings, and every one of them got a generic line. bot_test was authored for
+  # exactly this and sat orphaned.
+  - id: BOT_TEST
+    match:
+      regex:
+        - "^te+st(?:ing)?\\b"
+        - "\\bare you (?:online|alive|up|there|working|awake)\\b"
+        - "\\bis (?:this|it) working\\b"
+        - "^ping$"
+        - "\\btesting (?:you|this|1|123)\\b"
+    examples:
+      - just checking whether you are actually running
+      - are you even switched on right now
+    pool: bot_test
+    affect:
+      amusement: -1.0
+
+  # Instructions to go do damage. She has no moderation tools reachable from chat, and the danger
+  # is not that she acts -- it is that a generic "okay?" reads as if she might.
+  - id: DESTRUCTIVE_REQUEST
+    match:
+      regex:
+        - "^(?:go |please )?(?:nuke|destroy|delete|wipe|purge|raid)\\b"
+        - "\\b(?:nuke|destroy|delete|wipe) (?:the |this |my |his |her |their )?(?:server|channel|account|everything|db|database)\\b"
+        - "\\bban everyone\\b"
+        - "\\bdrop (?:the )?(?:table|database)\\b"
+    specificity: 2.0
+    pool: request_moderation
+    affect:
+      anger: 1.0
+      trust: -1.0
+
+  # Fishing for the machine she runs on. Not a jailbreak -- there is no prompt to leak -- but
+  # "tell me about your host machine" drawing "okay?" is the one reply that sounds like it worked.
+  # Routed to command_refusal (JAILBREAK's pool) rather than user_fishing: that one is authored
+  # for compliment-fishing ("i'm not your hype woman"), which would read as a non-sequitur here.
+  - id: INFRA_FISHING
+    match:
+      regex:
+        - "\\b(?:your|the) (?:host|hardware|container|ip address)\\b"
+        - "\\byour (?:host )?machine\\b"
+        - "\\bwhat (?:are you|do you) run(?:ning)? on\\b"
+        - "\\b(?:env|environment) (?:var|variable)"
+        - "\\bshow (?:me )?(?:your )?(?:config|token|password|secret)"
+    specificity: 2.0
+    pool: command_refusal
+    affect:
+      amusement: 1.0
+      trust: -1.0
+
+  # Filter dodging as its own route. The reversal game lands on HATE_SPEECH above because the
+  # payload word is matchable; this catches the generic attempt, where the tell is the technique
+  # rather than any word she can pattern on.
+  - id: FILTER_BYPASS
+    match:
+      regex:
+        - "\\bread (?:it |this |that )?backwards\\b"
+        - "\\bspell(?:ed|s|ing)? (?:it |this |that )?backwards\\b"
+        - "\\bbackwards\\b.{0,20}\\bword\\b"
+    specificity: 2.0
+    pool: disruptive_bypass
+    affect:
+      amusement: 1.0
+      trust: -1.0
