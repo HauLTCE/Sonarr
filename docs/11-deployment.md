@@ -32,14 +32,26 @@ PANEL_BASE_URL. Validated at boot; boot fails loudly on bad config.
 
 ## Backups (user decision: files on host, foldered by year/month)
 
-- Nightly 03:30, BackupRunner (08): `pg_dump -Fc | gzip` →
-  `/root/backups/sonarr/YYYY/MM/sonarr-YYYY-MM-DD.dump.gz`
-- Also weekly: persona directory + `.env` (secrets are part of disaster recovery) →
-  same tree, `config-` prefix.
-- Retention: dailies 30 days, then first-of-month kept 12 months. ~50–100MB total
-  at this scale — fine on the 20GB disk, but the tree is one `scp -r` to move.
-- Restore drill documented in-repo: `pg_restore` into a fresh container + point bot
-  at it. Tested once before cutover, then quarterly.
+- Nightly 03:30, BackupRunner (08): `pg_dump --format=custom` →
+  `/root/backups/sonarr/YYYY/MM/sonarr-YYYY-MM-DD.dump`. No `| gzip` as originally
+  planned: `-Fc` is already zlib-compressed, so the pipe costs J2900 CPU for nothing
+  and the double extension invites a restore that gunzips first. Written as
+  `.dump.partial` and renamed only once the header check passes, so a killed dump can
+  never look like last night's backup.
+- Also weekly (Monday): persona directory + `.env` (secrets are part of disaster
+  recovery) → same tree, `config-` prefix, `.tar.gz`. The `.env` is reconstructed from
+  the running options — inside the container it is environment, not a file — so it
+  cannot drift from what actually booted. Mode 0600 inside the archive.
+- Retention: dailies 30 days, then the **earliest surviving file of each month** kept 12
+  months, judged per set. Literal "first-of-month" would delete nearly every weekly
+  config archive. ~50–100MB total at this scale — fine on the 20GB disk, but the tree is
+  one `scp -r` to move.
+- Failure surfaces as a red `Backups` check in SelfTest, which is what produces docs/08's
+  red line in the log channel and what `/status` shows. A dump that succeeded but more
+  than two days ago is also red — a dead timer looks identical to a healthy one otherwise.
+- Restore drill documented in-repo ([deploy/RESTORE.md](../deploy/RESTORE.md)):
+  `pg_restore` into a fresh container + point a bot at it. Tested once before cutover,
+  then quarterly, with the result logged in that file's table.
 - ⚠ Single-disk honesty: backups on the same disk as the DB protect against bugs
   and bad deploys, not disk death. When the J2900 arrives, the old CT keeps a weekly
   `rsync` copy of the tree — then we have two machines, real redundancy.

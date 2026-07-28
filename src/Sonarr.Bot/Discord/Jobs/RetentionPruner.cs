@@ -1,4 +1,5 @@
 using Sonarr.Domain.Abstractions;
+using Sonarr.Domain.Jobs;
 
 namespace Sonarr.Bot.Discord.Jobs;
 
@@ -51,15 +52,8 @@ public sealed class RetentionPruner(IServiceScopeFactory scopes, ILogger<Retenti
         }
     }
 
-    /// <summary>
-    /// How long until the next <see cref="RunAt"/>. Always positive: at exactly 04:00 the answer is
-    /// tomorrow, so a sweep that finishes inside the same minute cannot immediately run again.
-    /// </summary>
-    public static TimeSpan UntilNextRun(DateTimeOffset now)
-    {
-        DateTimeOffset today = new(DateOnly.FromDateTime(now.Date), RunAt, now.Offset);
-        return today > now ? today - now : today.AddDays(1) - now;
-    }
+    /// <summary>How long until the next <see cref="RunAt"/>. See <see cref="DailySchedule"/>.</summary>
+    public static TimeSpan UntilNextRun(DateTimeOffset now) => DailySchedule.UntilNextRun(now, RunAt);
 
     /// <summary>
     /// One sweep. Public so a test can drive it without waiting for 04:00, same as

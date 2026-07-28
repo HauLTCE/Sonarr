@@ -22,7 +22,7 @@ heartbeat at debug level.
 |---|---|---|
 | **DailyTick** | per-guild midnight (config timezone) | streak evaluation, first-message-bonus reset, birthday + anniversary announcements, chat engine "mood of the day" reseed, seasonal persona overlay check (Oct/Dec…). |
 | **RetentionPruner** | 04:00 | chat.episode caps, dead login tokens/sessions, expired Redis orphans, stats older than 400 d. |
-| **BackupRunner** | 03:30 | `pg_dump` → `/root/backups/sonarr/YYYY/MM/sonarr-YYYY-MM-DD.dump.gz`; prune per retention (11). Verifies the dump is restorable-shaped (non-zero, header check); failure = red line in log channel. |
+| **BackupRunner** | 03:30 | `pg_dump --format=custom` → `/root/backups/sonarr/YYYY/MM/sonarr-YYYY-MM-DD.dump` (no `.gz` — see 11); weekly config archive on Monday; prunes both sets per retention (11). Verifies the dump is restorable-shaped (non-zero, `PGDMP` header) before the `.partial` file earns its real name; failure reports through the `Backups` self-test check, which is what emits the red line and feeds `/status`. |
 | **SeasonRoller** | month boundary | closes levels season, writes results, announces "top chatter of the month", opens next. |
 
 ## Event-driven (gateway handlers, not timers)
