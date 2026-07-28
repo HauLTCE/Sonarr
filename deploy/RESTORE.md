@@ -27,7 +27,11 @@ echo "$DUMP"
 ls -lh "$DUMP"                                 # must be non-zero; ~50-100MB at this scale
 head -c 5 "$DUMP" | grep -q PGDMP && echo "pg_dump header ok"
 # The strongest check short of restoring: pg_restore reads the whole table of contents.
-pg_restore --list "$DUMP" >/dev/null && echo "table of contents ok"
+# Run it in the bot image — there is no Postgres client on the host, by design (the only
+# one that has to exist is the client 17 inside that image, which is what writes these).
+docker run --rm -v /root/backups/sonarr:/backups:ro --entrypoint pg_restore \
+  sonarr-bot:local --list "/backups/${DUMP#/root/backups/sonarr/}" >/dev/null \
+  && echo "table of contents ok"
 ```
 
 If any check fails, stop and use the previous night's dump — then find out why
