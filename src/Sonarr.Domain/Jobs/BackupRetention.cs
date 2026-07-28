@@ -64,7 +64,11 @@ public static class BackupRetention
     {
         ArgumentNullException.ThrowIfNull(path);
 
-        string name = Path.GetFileName(path);
+        // Not Path.GetFileName: on Linux `\` is a legal filename character, so a Windows-shaped
+        // path comes back whole and the prefix ends up "C:\backups\2026\07\sonarr". Splitting on
+        // both separators parses either shape on either OS, which is what a name written on one
+        // box and pruned on another needs.
+        string name = path[(path.LastIndexOfAny(['/', '\\']) + 1)..];
 
         // Matching the extension rather than "everything before the first dot" is what keeps a
         // `.partial` invisible: the prune must never delete the dump still being written.
