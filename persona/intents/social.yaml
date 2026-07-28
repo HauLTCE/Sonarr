@@ -165,6 +165,24 @@ intents:
   pool: social_thanks
   affect:
     fondness: 1.0
+# joke_dad had 20 authored lines and nothing that could fire them, so the dad_jokes stance in
+# stances.yaml was an opinion she could never be caught holding. Regexes only: a bare "pun"
+# keyword would eat half the JOKE traffic below, and a regex outranks a keyword on specificity
+# so declaration order does not matter here.
+- id: DADJOKE
+  match:
+    regex:
+    - dad ?joke
+    - (?:that'?s|thats|what) a pun
+    - knock knock
+    - (?:hi|hello) (?:hungry|thirsty|tired),? i'?m dad
+  examples:
+  - i've got a pun for you
+  - here comes a groaner
+  pool: joke_dad
+  affect:
+    amusement: 1.0
+    boredom: 0.5
 - id: JOKE
   match:
     keyword:

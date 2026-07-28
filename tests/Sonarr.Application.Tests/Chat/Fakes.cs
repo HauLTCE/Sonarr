@@ -91,6 +91,24 @@ internal sealed class FakePersonRepository : IPersonRepository
         _people[(write.Person.GuildId, write.Person.UserId)] = write.Person;
         Episodes.AddRange(write.Episodes);
         Events.AddRange(write.Events);
+
+        if (write.Stance is { } stance)
+        {
+            // Same last-word-wins upsert as PersonRepository: one row per topic, replaced when
+            // you change your mind.
+            _stances.RemoveAll(a => a.GuildId == write.Person.GuildId
+                && a.UserId == write.Person.UserId
+                && a.Topic == stance.Topic);
+            _stances.Add(new StanceAgreement
+            {
+                GuildId = write.Person.GuildId,
+                UserId = write.Person.UserId,
+                Topic = stance.Topic,
+                Agreed = stance.Agreed,
+                UpdatedAt = Build.Now,
+            });
+        }
+
         foreach (FactWrite fact in write.Facts)
         {
             Fact? existing = _facts.Find(f =>
@@ -157,6 +175,16 @@ internal sealed class FakePersonRepository : IPersonRepository
 
     /// <summary>How many times the ordering was queried — a neutral person must not cost one.</summary>
     public int TrustRankReads { get; private set; }
+
+    /// <remarks>Last word wins per topic, like the real upsert — one row, not a history.</remarks>
+    public Task<IReadOnlyList<StanceAgreement>> GetStanceAgreementsAsync(
+        long guildId, long userId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<StanceAgreement>>(
+            [.. _stances
+                .Where(a => a.GuildId == guildId && a.UserId == userId)
+                .OrderByDescending(a => a.UpdatedAt)]);
+
+    private readonly List<StanceAgreement> _stances = [];
 
     public Task<IReadOnlyList<RelationshipEvent>> GetRecentEventsAsync(
         long guildId, long userId, DateTimeOffset since, int limit, CancellationToken ct = default)
