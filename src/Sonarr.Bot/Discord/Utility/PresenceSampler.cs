@@ -52,6 +52,7 @@ public sealed class PresenceSampler(
         using IServiceScope scope = scopes.CreateScope();
         var stats = scope.ServiceProvider.GetRequiredService<IStatsRepository>();
         var presence = scope.ServiceProvider.GetRequiredService<IPresenceCache>();
+        var guildState = scope.ServiceProvider.GetRequiredService<IGuildStateRepository>();
 
         foreach (SocketGuild guild in client.Guilds)
         {
@@ -84,6 +85,16 @@ public sealed class PresenceSampler(
 
                 // Levels' voice accrual reads this to decide whether a channel counts as busy.
                 await presence.SetOnlineSampleAsync(guild.Id, online, ct).ConfigureAwait(false);
+
+                // Server-event memory (docs/10): only a new high writes, so this is one read on a
+                // quiet server and the log stays a few rows for the guild's whole life.
+                if (await guildState
+                        .RecordOnlineRecordAsync((long)guild.Id, online, now, ct)
+                        .ConfigureAwait(false))
+                {
+                    log.LogInformation(
+                        "New online record for guild {GuildId}: {Online}", guild.Id, online);
+                }
             }
             catch (Exception ex)
             {
