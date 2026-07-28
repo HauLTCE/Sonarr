@@ -121,6 +121,30 @@ intents:
   - does any of this actually matter in the long run
   - do you think we choose anything or is it all decided
   pool: question_philosophy
+# question_hypothetical had 19 authored lines and nothing that could fire them -- the same defect
+# as joke_dad (see the note above DADJOKE in social.yaml). "if you have $1mil what would you do"
+# drew "my advice? leave me alone." because ADVICE owned "what would you do", so she refused to
+# give advice nobody had asked for, while "my imagination doesn't work for free." sat unreachable.
+- id: Q_HYPO
+  match:
+    regex:
+    # The conditional opener is what makes it hypothetical rather than a real ask. Requiring a
+    # subject and a modal keeps ordinary conditionals out: "if you want, tell me" is not a question.
+    - ^if (?:you|i|we|they) (?:have|had|has|were|was|are|could|can|would|get|got|win|won)\b
+    - what if\b
+    - (?:imagine|suppose|pretend) (?:if |that |you |i )
+    # "would you ever ..." is the same shape without an if. Not bare "would you", which is REQUEST's
+    # ("would you stop"), and not "would you rather", which WOULD_RATHER owns with its own pool.
+    - would you ever\b
+    # Moved off ADVICE, which still owns every phrasing about the reader's own situation ("what
+    # should i do", "any advice", "help me decide"). The subject pronoun is the whole difference:
+    # "what should i do" wants advice, "what would you do" asks her to imagine. Left on ADVICE it
+    # also out-scored this intent on literal length, so the pin below would never have moved.
+    - what would you do
+  examples:
+  - say you woke up tomorrow with a body, then what
+  - in a world where none of this existed, what would change
+  pool: question_hypothetical
 - id: Q_CAP
   match:
     regex:
@@ -149,7 +173,9 @@ intents:
     - 'should i '
     - any advice
     - help me decide
-    - what would you do
+    # "what would you do" moved to Q_HYPO: it asks her to imagine, not the reader for direction.
+    # The rest of this list is about the reader's own situation, which is what request_advice
+    # answers.
     - give me advice
   examples:
   - i am stuck between two options and cannot commit to either

@@ -327,6 +327,18 @@ public class SeedPersonaTests
     // never the winner when a specific intent also matches.
     [InlineData("play some music please", "PLAY_MUSIC")]
     [InlineData("please recommend something", "RECOMMEND")]
+    // question_hypothetical had 19 authored lines and no intent that could fire them. "if you have
+    // $1mil what would you do" drew "my advice? leave me alone." — she refused to give advice
+    // nobody asked for, because ADVICE owned "what would you do".
+    [InlineData("if you have $1mil what would you do", "Q_HYPO")]
+    [InlineData("what if i deleted you", "Q_HYPO")]
+    [InlineData("would you ever leave", "Q_HYPO")]
+    // ADVICE keeps every phrasing about the reader's own situation. The subject pronoun is the
+    // whole difference: "what should i do" wants direction, "what would you do" wants imagination.
+    [InlineData("what should i do", "ADVICE")]
+    [InlineData("any advice for me", "ADVICE")]
+    // And the neighbours a conditional opener could have eaten.
+    [InlineData("would you rather fight a bear", "WOULD_RATHER")]
     public void ShippedPersona_RecognizesPinnedBehaviors(string input, string expected)
     {
         IntentRecognizer recognizer = new(SeedPersona.Graph);
