@@ -21,6 +21,8 @@ type Labels = {
   working: string;
   failed: string;
   backupNote: string;
+  /** Takes the two counts — "23 of 23 rows removed" rather than a bare "23 / 23". */
+  deleted: (n: number, total: number) => string;
 };
 
 type Done = { deleted: number; total: number; note: string };
@@ -130,8 +132,8 @@ export function DangerButtons({ labels }: { labels: Labels }) {
         {error ? <p className="notice notice-danger">{error}</p> : null}
 
         {done ? (
-          <p className="notice">
-            {done.deleted} / {done.total} — {done.note || labels.backupNote}
+          <p className="notice" role="status">
+            {labels.deleted(done.deleted, done.total)} {done.note || labels.backupNote}
           </p>
         ) : null}
       </section>

@@ -19,7 +19,6 @@ export type LoginLabels = {
   sent: string;
   needHandle: string;
   badCode: string;
-  expired: string;
   tooMany: string;
   rateLimited: string;
   failed: string;

@@ -17,12 +17,15 @@ export function GuildPicker({
   current,
   page,
   label,
+  hint,
 }: {
   guilds: readonly GuildOption[];
   current: string | undefined;
   /** The page's `path`, so switching server keeps you on the page you were reading. */
   page: string;
   label: string;
+  /** Why there is a choice here at all, for a screen reader and for anyone who missed the label. */
+  hint: string;
 }) {
   const router = useRouter();
 
@@ -31,6 +34,7 @@ export function GuildPicker({
       <span className="picker-label">{label}</span>
       <select
         value={current ?? ""}
+        aria-label={hint}
         onChange={(event) => router.push(`/${page}${guildQuery(event.target.value)}`)}
       >
         {guilds.map((g) => (

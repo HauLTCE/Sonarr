@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { type GuildOption, type Session } from "../../lib/pages";
+import { PAGES, type GuildOption, type Session } from "../../lib/pages";
 import type { StringKey, Translate } from "../../lib/strings";
 
 import { GuildPicker } from "./GuildPicker";
@@ -29,6 +29,11 @@ export function Frame({
 }) {
   const tierLabel: StringKey = `tier.${session.tier}`;
 
+  // On a guild page the picker may only offer servers the visitor manages: `panel()` refuses the
+  // others and lands them on a different server instead, which reads as the picker ignoring them.
+  const scoped = PAGES.find((p) => p.path === current)?.tier === "guild";
+  const options = scoped ? session.guilds.filter((g) => g.canManage) : session.guilds;
+
   return (
     <div className="frame">
       <a className="skip" href="#content">
@@ -42,12 +47,13 @@ export function Frame({
         </div>
 
         <div className="header-end">
-          {session.guilds.length > 1 ? (
+          {options.length > 1 ? (
             <GuildPicker
-              guilds={session.guilds}
+              guilds={options}
               current={guild?.guildId}
               page={current}
               label={t("server.pick")}
+              hint={t("server.pickHint")}
             />
           ) : null}
           <Link className="btn" href="/logout" prefetch={false}>

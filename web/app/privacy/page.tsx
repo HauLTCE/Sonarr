@@ -40,6 +40,9 @@ export default async function PrivacyPage({ searchParams }: { searchParams: Quer
           working: t("privacy.working"),
           failed: t("privacy.failed"),
           backupNote: t("privacy.backupNote"),
+          // A function rather than a string: the counts are only known after the delete returns,
+          // and the client component has no dictionary to interpolate with.
+          deleted: (n, total) => t("privacy.deleted", { n, total }),
         }}
       />
     </Frame>

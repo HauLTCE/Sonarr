@@ -144,6 +144,13 @@ export default async function HealthPage({ searchParams }: { searchParams: Query
             )}
           </section>
         </>
+      ) : status.failure === "error" ? (
+        // The generic "try again" is wrong here. This page rendering at all proves the panel is up,
+        // so a failed read means the bot is the part that is down — which is the answer the page
+        // exists to give, not an error to retry past.
+        <p className="notice notice-danger" role="alert">
+          {t("health.failed")}
+        </p>
       ) : (
         <Fail failure={status.failure} t={t} />
       )}

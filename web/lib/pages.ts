@@ -59,11 +59,6 @@ export function pagesFor(tier: Tier): readonly Page[] {
   return PAGES.filter((p) => reaches(tier, p.tier));
 }
 
-/** Where a path sits in one visitor's own list, or -1. Drives the counter and the slide direction. */
-export function indexOf(tier: Tier, path: string): number {
-  return pagesFor(tier).findIndex((p) => p.path === path);
-}
-
 export type GuildOption = {
   readonly guildId: string;
   readonly name: string;

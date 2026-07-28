@@ -45,7 +45,6 @@ export default async function LoginPage() {
               sent: t("login.sent"),
               needHandle: t("login.needHandle"),
               badCode: t("login.badCode"),
-              expired: t("login.expired"),
               tooMany: t("login.tooMany"),
               rateLimited: t("login.rateLimited"),
               failed: t("login.failed"),

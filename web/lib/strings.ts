@@ -64,8 +64,10 @@ const en = {
   "login.noDm":
     "Sonarr can only DM you if you share a server with her and that server allows direct messages from members. In Discord, open the server menu, then Privacy Settings, and turn on direct messages. Then ask for another code.",
   "login.needHandle": "Type your Discord handle first.",
-  "login.badCode": "That code is not right. Check the DM and try again.",
-  "login.expired": "That code has expired or was already used. Ask for a new one.",
+  // One message for every 401, because the API deliberately returns one status for a wrong code, an
+  // expired one and an unknown handle — so this says what to check rather than guessing which it was.
+  "login.badCode":
+    "That did not match. Check the code in the DM, and ask for a new one if it is more than ten minutes old.",
   "login.tooMany": "Too many wrong codes. Ask for a new one.",
   "login.rateLimited": "Too many attempts just now. Wait a few minutes.",
   "login.failed": "That did not work. Try again in a moment.",
@@ -84,7 +86,6 @@ const en = {
   "you.lead":
     "What Sonarr knows about you, and what you can change about it. Nobody else can open this page.",
   "you.who": "Who you are to her",
-  "you.relationship": "Relationship",
   "you.nickname": "Nickname she uses",
   "you.mood": "Her mood with you",
   "you.talked": "Turns talked",
@@ -107,11 +108,6 @@ const en = {
   "memory.forgetHint": "Removes this one fact now. She can learn it again if you tell her again.",
   "memory.forgetting": "Forgetting…",
   "memory.failed": "Could not forget that. Try again.",
-  "memory.quotes": "Quotes of yours she saved",
-  "memory.quotesEmpty": "Nothing saved. Quotes get added when someone quotes you.",
-  "memory.sessions": "Where you are logged in",
-  "memory.sessionsEmpty": "Only this browser.",
-  "memory.thisDevice": "This device",
 
   // ---------------------------------------------------------------- music
   "music.title": "Music",
@@ -160,7 +156,7 @@ const en = {
   "privacy.logoutAll": "Log out everywhere",
   "privacy.logoutAllHint":
     "Ends every login including this one. You will need a new code to get back in.",
-  "privacy.deleted": "Done — {n} rows removed.",
+  "privacy.deleted": "Done — {n} of {total} rows removed.",
   "privacy.backupNote":
     "Backups are kept for a while, so a copy can survive in one until it rotates out.",
   "privacy.working": "Working…",
@@ -172,7 +168,6 @@ const en = {
     "How Sonarr behaves in {guild}, in plain words. You see this because you have Manage Server here.",
   "server.pick": "Server",
   "server.pickHint": "You manage more than one. Pick which one these pages are about.",
-  "server.switch": "Switch",
   "server.summary": "Right now",
   "server.chatOn": "She talks here",
   "server.chatOff": "She stays quiet",
@@ -194,7 +189,6 @@ const en = {
   "behaviour.saving": "Saving…",
   "behaviour.saved": "Saved.",
   "behaviour.reset": "Use the default",
-  "behaviour.resetHint": "Clears your value and goes back to how Sonarr ships.",
   "behaviour.features": "Features",
   "behaviour.featuresLead": "Turn a whole area on or off in this server.",
   "behaviour.on": "On",
@@ -263,7 +257,6 @@ const en = {
   "moderation.case": "Case {id}",
   "moderation.target": "Member",
   "moderation.by": "By",
-  "moderation.reason": "Reason",
   "moderation.noReason": "No reason recorded",
   "moderation.expires": "Ends {when}",
   "moderation.permanent": "No end date",
@@ -294,7 +287,6 @@ const en = {
   "health.lead": "Is she up, what is she connected to, and what is playing. Bot-wide.",
   "health.status": "Status",
   "health.up": "Up",
-  "health.down": "Down",
   "health.degraded": "Struggling",
   "health.unknown": "Not sure yet",
   "health.unchecked": "Not checked yet",
@@ -304,7 +296,6 @@ const en = {
   "health.hm": "{h}h {m}m",
   "health.m": "{m}m",
   "health.guilds": "Servers",
-  "health.version": "Version",
   "health.mood": "Mood",
   "health.quiet": "Even",
   "health.checks": "Checks",
@@ -323,8 +314,6 @@ const en = {
   "errors.reset":
     "This list is kept in memory, so it starts empty again whenever Sonarr restarts.",
   "errors.case": "Reference {id}",
-  "errors.when": "At",
-  "errors.where": "Command",
 
   "audit.title": "Audit",
   "audit.lead":
@@ -334,24 +323,18 @@ const en = {
   "audit.from": "From entry {n}",
   "audit.botWide": "Every server",
   "audit.who": "By",
-  "audit.what": "Action",
-  "audit.target": "Target",
   "audit.server": "Server",
   "audit.more": "Show more",
 
   // ---------------------------------------------------------------- shared states
-  "state.loading": "Loading…",
-  "state.unauthorized": "Your login has expired. Log in again to carry on.",
+  // No "unauthorized" message: an expired session is a login, not a notice, so `Fail` redirects.
   "state.forbidden":
     "You do not have access to that. If you think you should, check you still have Manage Server in that server.",
   "state.error": "Could not load that. It is usually temporary — try again.",
-  "state.retry": "Try again",
   "state.noGuilds":
     "You do not share a server with Sonarr yet, so there is nothing to show. Join a server she is in and this fills up.",
   "state.notFound": "There is no page here.",
   "state.goHome": "Back to your panel",
-  "state.copy": "Copy",
-  "state.copied": "Copied",
 } as const;
 
 export type StringKey = keyof typeof en;
