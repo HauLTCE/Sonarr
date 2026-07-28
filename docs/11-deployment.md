@@ -75,8 +75,15 @@ Deploy is then `BOT_IMAGE`/`WEB_IMAGE` in the server `.env` pointing at those ta
 `--build` remains the default in `deploy/deploy.sh`: it needs no registry auth and still
 works when GitHub is having a day.
 
-⚠ Server SSH currently root/password `12345` — switch to key-only auth as part of the
-first deploy. `deploy.sh` uses `BatchMode=yes` so it fails loudly rather than prompting.
+Server SSH is key-only as of 2026-07-28 (`/etc/ssh/sshd_config.d/10-key-only.conf`:
+`PasswordAuthentication no`, `KbdInteractiveAuthentication no`, `PermitRootLogin
+prohibit-password`). It replaced root/password `12345`, which was the worst thing about
+this deployment — that password is now dead, but treat it as burned rather than secret.
+`deploy.sh` uses `BatchMode=yes`, so it fails loudly rather than prompting.
+
+Reverting is deleting that one file and `systemctl reload ssh`; a mistake there is not a
+lockout, since the Proxmox host always has console access (`pct enter 103`). Add a key
+with `ssh-copy-id` from a box that already has one, not by re-enabling passwords.
 
 ## Migration & cutover (end of phase 2)
 

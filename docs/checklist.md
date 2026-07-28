@@ -176,7 +176,13 @@ J2900 · nothing durable lost on restart.
 - [ ] `systemctl disable sonarr`; new stack `restart: unless-stopped`
 - [ ] 2-week rollback window: old venv + DB untouched
 - [ ] After the window: archive `/root/sonarr`, delete `sonarr-docker*`, `sonarr-data`, backups-of-backups
-- [ ] Switch server SSH to key-only auth (currently root/password `12345`) — do this on the first deploy
+- [/] Switch server SSH to key-only auth (currently root/password `12345`) — do this on the first deploy
+      — done 2026-07-28 via `/etc/ssh/sshd_config.d/10-key-only.conf` (a drop-in, so reverting is
+      deleting one file). Order mattered: an ed25519 key was installed and key auth proven first,
+      `sshd -t` validated the config, and `reload` was used rather than `restart`. Verified both
+      directions — `BatchMode=yes` connects, and forcing `PreferredAuthentications=password` now
+      gets `Permission denied (publickey)`. Proxmox console (`pct enter 103`) is the escape hatch,
+      so this could not lock the box out. Treat `12345` as burned, not secret.
 
 ---
 
