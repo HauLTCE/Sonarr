@@ -87,11 +87,26 @@ with `ssh-copy-id` from a box that already has one, not by re-enabling passwords
 
 ## Migration & cutover (end of phase 2)
 
+Prep that needs no freeze (done on the CT 2026-07-28): `/root/sonarr-net/` holds the
+compose file, a 0600 `.env` generated on the box, `persona/`, `models/minilm-l6-v2` and a
+`repo/` tree synced from `/root/sonarr-rewrite` (a clone of the branch, so git is the
+record of what is deployed). Both images build there. The stack has never been started.
+
 1. Freeze: stop old bot (`systemctl stop sonarr`), WAL-checkpoint SQLite.
 2. Copy data **from `/root/sonarr/`** (the live systemd deployment — NOT
    `/root/sonarr-data/`, which is stale; verified 2026-07-26).
-3. Run Sonarr.Migrator against the copies → Postgres (map in 04). Idempotent,
-   re-runnable, prints a row-count reconciliation table.
+3. Create the schema, then import. The Migrator ships inside the bot image at
+   `/app/migrator` (there is no .NET SDK on the server, and nothing migrates at boot on
+   purpose), and inherits the bot's `.env`, so neither needs a connection string:
+
+   ```sh
+   cd /root/sonarr-net
+   docker compose run --rm --entrypoint dotnet bot /app/migrator/Sonarr.Migrator.dll migrate
+   docker compose run --rm --entrypoint dotnet bot /app/migrator/Sonarr.Migrator.dll import --source /root/sonarr-cutover
+   ```
+
+   `import` is idempotent and re-runnable, and prints a row-count reconciliation table.
+   Point `--source` at the frozen copy from step 2, not at `/root/sonarr` itself.
 4. Backfill episode embeddings (batch job, minutes).
 5. Register slash commands, run SelfTest + `/checkperms`, smoke-test music
    (including the VC-drag case) on the test guild, then the real one.

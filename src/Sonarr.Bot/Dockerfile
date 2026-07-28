@@ -35,12 +35,22 @@ WORKDIR /app
 COPY --from=build /app ./
 
 # BackupRunner shells out to pg_dump (docs/08) — nothing in .NET writes a pg_restore-compatible
-# archive, and a restore drill that needs a custom tool is a drill that fails. Debian 13 ships
-# postgresql-client 17, matching the postgres:17 in the compose file; a client older than the
-# server refuses to dump at all. `BackupProbe` goes red at boot if this ever disappears.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
+# archive, and a restore drill that needs a custom tool is a drill that fails.
+#
+# It has to be client 17+, because pg_dump refuses outright against a newer server and the
+# compose file pins pgvector/pgvector:pg17. This base is Ubuntu 24.04 (noble), whose
+# `postgresql-client` is 16 — verified by installing it and getting 16.14 — so the version
+# comes from PGDG, pinned explicitly rather than taken from whatever the base happens to
+# ship. ADD fetches the signing key so this needs no curl/gnupg in the final image.
+# `BackupProbe` goes red at boot if pg_dump ever disappears from PATH.
+ADD --chmod=644 https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+    /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+RUN echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" \
+        > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends postgresql-client-17 \
+    && rm -rf /var/lib/apt/lists/* \
+    && pg_dump --version | grep -qE ' 1[7-9]| [2-9][0-9]'
 
 # `app` (uid 1654) ships with the aspnet image. Mounted dirs must be writable by it:
 # /backups (pg_dump output) is created here so a fresh host bind mount has sane ownership.
