@@ -107,6 +107,25 @@ record of what is deployed). Both images build there. The stack has never been s
 
    `import` is idempotent and re-runnable, and prints a row-count reconciliation table.
    Point `--source` at the frozen copy from step 2, not at `/root/sonarr` itself.
+
+   Two things about the snapshot, both learned by rehearsing this on 2026-07-28:
+
+   - **`bot_data.db` is in WAL mode**, and SQLite cannot open a WAL database read-only
+     without creating a `-shm` file beside it — impossible on a `:ro` mount, and it fails
+     as `SQLite Error 14: unable to open database file`. Run `pragma journal_mode=delete`
+     on the **snapshot only**, never the live file. Lossless, because the online backup
+     API has already folded in every committed WAL frame.
+   - **The container runs as `uid=1654(app)`**, so `chown -R 1654:1654` the snapshot or
+     the importer reports "nothing to import" — it reports absence, not the permission
+     error underneath. Keep mode 0600; this is live user data.
+
+   `core.member` stays empty after the import, which is correct. It is a runtime identity
+   cache, nothing FKs to it, and it fills in as people speak — the 60 s activity flush
+   upserts the row. `first_seen_at` takes Discord's own join date rather than the time of
+   that first message, so `/anniversary` is right from the start and does not reset to
+   cutover day. The legacy DB has no join date worth importing: `economy.created_at` is
+   the only per-user timestamp, covers 7 of 13 known users, carries no guild id, and is
+   two months old. Discord has the real one for free.
 4. Backfill episode embeddings (batch job, minutes).
 5. Register slash commands, run SelfTest + `/checkperms`, smoke-test music
    (including the VC-drag case) on the test guild, then the real one.
