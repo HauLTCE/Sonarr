@@ -92,14 +92,17 @@ pools:
     - "great. was that so hard?"
     - "cool. and?"
     - "noted, {name}."
-    - "thrilling. 'ok'. what a contribution."
+    # Was "thrilling. 'ok'. what a contribution." -- it quoted 'ok' back at a user who typed
+    # "yes", and the quotation marks made the mismatch obvious enough to read as a canned line
+    # misfiring. Nothing here can name the word it is answering: this pool covers ten of them.
+    - "thrilling. what a contribution."
     - "okay then. moving on."
     - "wow, decisive."
     - "we're aligned. don't get used to it."
     - "mm. sure."
     - "you really carry this conversation, {name}."
     - "groundbreaking agreement."
-    - "'ok'. riveting, as always."
+    - "riveting, as always."
 
   greeting_first:
     - "what do you want?"

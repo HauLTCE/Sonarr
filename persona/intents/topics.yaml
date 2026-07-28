@@ -356,7 +356,14 @@ intents:
     - arithmetic
     - maths
     regex:
-    - \d+ ?[+\-*x] ?\d+
+    # Plus, times and x are only ever arithmetic between two numbers, so no spaces needed.
+    - \d+ ?[+*x] ?\d+
+    # The minus had to be split off. "Buy general motors model 16-278A" drew "i'm a computer,
+    # not a calculator." -- a part number read as subtraction, and the same shape covers dates
+    # (2024-07), score lines and version ranges. Requiring a space in front of the operator
+    # keeps "5 - 3" and "5 -3" and gives up bare "5-3"; that is the cheap side of the trade,
+    # since a hyphen with no spaces is far more often not arithmetic.
+    - \d+ -+ ?\d+
     - do the math
     - solve this
   pool: topic_math

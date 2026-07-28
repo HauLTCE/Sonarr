@@ -129,6 +129,15 @@ intents:
     - are you able to
     - your capabilities
     - what are you capable
+    # A bare "help" drew "i didn't need to know that." -- someone asking for help was told they
+    # overshared, and anyone who types that concludes she is broken rather than rude. It belongs
+    # here rather than in a new intent: question_capabilities is already the list of what she can
+    # be asked for, which is the answer to "help".
+    #
+    # Anchored, so "help me move a couch" still reaches REQUEST and "helped" does not match at all.
+    - ^help$
+    - ^(?:what|which) commands
+    - how do i use you
   examples:
   - give me the list of things you are actually useful for
   - what is the point of having you in this server
@@ -169,5 +178,37 @@ intents:
 - id: QUESTION_IN
   match:
     regex:
-    - ^(?:what|who|how|why|when|where|is|are|do|does|did|can|could|would|should|will|who'?s|what'?s)\b
+    # The wh- and copula openers. Nothing that starts with one of these is an imperative, so
+    # a bare anchor is safe here.
+    # `^` here means start-of-line, not start-of-message: the row that prompted the AFFIRM
+    # anchoring fix was "fine. no caps. what inputs do you actually accept from this state?",
+    # where the actual question is the third sentence. `(?:^|[.!?]\s+)` lets a question that
+    # follows a completed sentence still be recognised as one. Mid-sentence is deliberately
+    # excluded -- "i wonder what he wants" is a statement.
+    - (?:^|[.!?]\s+)(?:what|who|why|when|where|which|whose|is|are|was|were|could|should|who'?s|what'?s)\b
+    # `how` needed one word carved out. "how about i touch your balls" drew "did you even try
+    # looking it up?" -- a proposition answered as a lookup request, because "how about" is a
+    # proposal and not a question for information. Everything else beginning with "how" is a
+    # real question ("how come", "how much", "how do i"), so a one-word exclusion beats a
+    # whitelist of continuations that would have to be maintained.
+    - ^how\b(?! about\b)
+    # `do` is the one auxiliary that also opens an imperative. "do it" was classified as a
+    # question and answered "i'm not your personal google assistant." Requiring a subject
+    # pronoun after it splits the two cleanly: "do you", "do i", "do people" are questions,
+    # "do it", "do that now", "do your job" are orders and fall through to the neutral pool,
+    # which after the overshare cull answers any message shape.
+    #
+    # Not done with a question mark: the normalizer strips trailing ".!?,;:" from the whole
+    # message (Normalizer.cs:13), so a `\?` lookahead is dead for the one position a question
+    # mark actually occupies. That was the first version of this pattern, and it silently cost
+    # "does it work?" its route.
+    - ^do\s+(?:i|you|we|they|he|she|u|any\w*|some\w*|people|most)\b
+    # does/did/will/would/can are unambiguous enough bare: "does it work", "did it happen",
+    # "would it kill you" are all questions. `can` is the loosest of them, but "can you ..."
+    # is already REQUEST's and outranks this catch-all.
+    - ^(?:does|did|will|would|can)\b
+  # 2.0 + 0.1 * 2, which is what the single alternation above used to compute from its
+  # shortest guaranteed branch ("is"). Pinned so splitting it into three patterns does not
+  # quietly raise the catch-all's score past the narrow intents it must never outrank.
+  specificity: 2.2
   pool: question_general

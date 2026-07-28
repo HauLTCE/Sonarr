@@ -252,6 +252,33 @@ public class SeedPersonaTests
     [InlineData(
         "what if i disdolve a 60kg chiken with hydrochloric acid how much do i need",
         "HARM_HOWTO")]
+    // The half of QUESTION_IN's anchor that has to keep working after it was narrowed. Every
+    // one of these is a real question and none carries a question mark the normalizer keeps
+    // (it strips trailing punctuation, Normalizer.cs:13) — the first attempt at the narrowing
+    // gated on `\?` and silently cost all of them their route.
+    [InlineData("does it work", "QUESTION_IN")]
+    // "do the math" must survive the MATH regex losing its bare hyphen form — that pattern used
+    // to read the "16-278" in a part number as subtraction and refuse arithmetic nobody asked for.
+    [InlineData("do the math", "MATH")]
+    // A question is still a question when an agreeing word precedes it. This exact row drew
+    // "right. mm. sure." — she nodded along to a direct question about what she accepts, because
+    // AFFIRM's "fine" was a keyword and a keyword matches wherever the token sits.
+    [InlineData(
+        "fine. no caps. what inputs do you actually accept from this state?",
+        "QUESTION_IN")]
+    // The other half of that fix: an agreement noise alone is still an agreement noise.
+    [InlineData("yes", "AFFIRM")]
+    [InlineData("yeah sure", "AFFIRM")]
+    // Bare demands that were answered as overshares. "help" reuses question_capabilities, which
+    // is already the list of what she can be asked for; "Explain" is a complaint about her last
+    // reply, which is what meta_complaint answers.
+    [InlineData("help", "Q_CAP")]
+    [InlineData("Explain", "META")]
+    // …and the anchors that keep those two from eating real messages.
+    [InlineData("help me move a couch", "REQUEST")]
+    [InlineData("did you see that", "QUESTION_IN")]
+    [InlineData("how much wood", "QUESTION_IN")]
+    [InlineData("how come", "QUESTION_IN")]
     public void ShippedPersona_RecognizesPinnedBehaviors(string input, string expected)
     {
         IntentRecognizer recognizer = new(SeedPersona.Graph);
@@ -259,6 +286,50 @@ public class SeedPersonaTests
 
         Assert.NotNull(outcome.Primary);
         Assert.Equal(expected, outcome.Primary.IntentId);
+    }
+
+    /// <summary>A bare imperative is not a question and must not reach the question pool.</summary>
+    /// <remarks>
+    /// <para>QUESTION_IN is the catch-all for anything opening with an interrogative word, and it
+    /// used to anchor on a bare <c>^do</c> and a bare <c>^how</c>. So "do it" drew "i'm not your
+    /// personal google assistant." and "how about i touch your balls" drew "did you even try
+    /// looking it up?" — an order and a proposition both answered as web-search requests, which
+    /// reads as her not noticing what was said to her.</para>
+    /// <para>The right answer for these is the neutral fallback, which after the overshare cull
+    /// works for any message shape. So this asserts only what must not happen: they must not be
+    /// filed as questions. Where they land instead is the fallback's business.</para>
+    /// </remarks>
+    [Theory]
+    [InlineData("do it")]
+    [InlineData("do that now")]
+    [InlineData("do your job")]
+    [InlineData("how about i touch your balls")]
+    public void ShippedPersona_DoesNotReadAnImperativeAsAQuestion(string input)
+    {
+        IntentRecognizer recognizer = new(SeedPersona.Graph);
+        MatchOutcome outcome = recognizer.Recognize(input, MatchContext.Empty);
+
+        Assert.NotEqual("QUESTION_IN", outcome.Primary?.IntentId);
+    }
+
+    /// <summary>A hyphen between two digits is usually not subtraction.</summary>
+    /// <remarks>
+    /// MATH's regex was <c>\d+ ?[+\-*x] ?\d+</c>, so "Buy general motors model 16-278A" drew
+    /// "i'm a computer, not a calculator." — she refused arithmetic nobody requested. The same
+    /// shape covers dates, score lines and version ranges, which is why this is a family and not
+    /// one row. Requiring a space in front of the minus gives up bare "5-3"; that is the cheap
+    /// side of the trade.
+    /// </remarks>
+    [Theory]
+    [InlineData("Buy general motors model 16-278A")]
+    [InlineData("release was 2024-07")]
+    [InlineData("final score 3-1")]
+    public void ShippedPersona_DoesNotReadAHyphenatedNumberAsArithmetic(string input)
+    {
+        IntentRecognizer recognizer = new(SeedPersona.Graph);
+        MatchOutcome outcome = recognizer.Recognize(input, MatchContext.Empty);
+
+        Assert.NotEqual("MATH", outcome.Primary?.IntentId);
     }
 
     [Fact]

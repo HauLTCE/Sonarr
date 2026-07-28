@@ -42,6 +42,12 @@ intents:
         - "that'?s not (?:an answer|helpful)"
         - "you'?re (?:dodging|avoiding)"
         - "you contradicted"
+        # A bare "Explain" drew "i didn't need to know that." -- a demand for an explanation
+        # answered as though the user had volunteered something, so she replied to a message
+        # nobody sent. It is a complaint about her last reply, which is what this pool answers
+        # ("that WAS the answer. reading is hard, i know."). Anchored: "explain the rules" is a
+        # real question and must not land here.
+        - "^(?:explain|elaborate|clarify|expand)$"
     pool: meta_complaint
 
   # "i feel you" / "i am you" are empathy idioms, not moods — deflect flatly rather than

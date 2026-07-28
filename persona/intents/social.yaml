@@ -70,17 +70,20 @@ intents:
   pool: howru
 - id: AFFIRM
   match:
-    keyword:
-    - yes
-    - yeah
-    - sure
-    - ok
-    - okay
-    - yep
-    - yup
-    - fine
-    - alright
-    - kk
+    # Anchored, because these were keywords and a keyword matches the token wherever it sits.
+    # "fine. no caps. what inputs do you actually accept from this state?" opened with "fine."
+    # and drew an agreement noise -- she nodded along to a direct question, which reads as a
+    # malfunction rather than a snub. An agreement noise is only an agreement noise when it is
+    # the entire message; the moment a sentence follows, the sentence is the message.
+    #
+    # The normalizer strips trailing ".!?,;:" from the whole message (Normalizer.cs:13), so
+    # "yes." arrives as "yes" and needs no punctuation in the pattern. Interior periods survive,
+    # which is exactly what makes the anchor work on the row above.
+    regex:
+    - ^(?:yes|yeah|yea|ye|sure|ok|okay|k|kk|yep|yup|fine|alright|aight|right|true|indeed)$
+    # Doubled or stretched, still just noise: "yes yes", "ok ok ok", "yeah sure".
+    # Quoted because a plain YAML scalar cannot contain ": " and `(?: ` has one.
+    - '^(?:yes|yeah|sure|ok|okay|yep|yup|fine|alright)(?: (?:yes|yeah|sure|ok|okay|yep|yup|fine|alright))+$'
   pool: affirm_react
   affect:
     fondness: 1.0
