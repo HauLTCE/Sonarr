@@ -24,6 +24,24 @@ public sealed record PersonaGraph
     /// <summary>Intent by id (case-sensitive, as authored).</summary>
     public FrozenDictionary<string, IntentDef> IntentsById =>
         _intentIndex ??= Intents.ToFrozenDictionary(i => i.Id, StringComparer.Ordinal);
+
+    private FrozenDictionary<string, StanceDef>? _stanceIndex;
+
+    /// <summary>
+    /// Stance by the pool it argues from — which opinion an intent voices when it fires.
+    /// </summary>
+    /// <remarks>
+    /// The pool is the join: <c>stances.yaml</c> says pineapple_pizza is argued from
+    /// <c>social_food</c>, and the FOOD intent draws from <c>social_food</c>, so a turn that drew
+    /// that pool put that opinion on the table. Nothing else has to be authored twice.
+    /// <para>First stance wins a shared pool. Two opinions from one pool is an authoring mistake,
+    /// but throwing here would take her down on a hot reload, which is the one thing the graph is
+    /// built not to do.</para>
+    /// </remarks>
+    public FrozenDictionary<string, StanceDef> StancesByPool =>
+        _stanceIndex ??= Stances
+            .GroupBy(s => s.Pool, StringComparer.Ordinal)
+            .ToFrozenDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
 }
 
 /// <summary>Contents of <c>sonarr.yaml</c>: the skeleton every other file hangs off.</summary>

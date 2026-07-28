@@ -11,11 +11,16 @@ namespace Sonarr.Application.Chat;
 /// <param name="TurnsSinceLastApology">
 /// Logical turns since her last apology from this person, or null if she has none on record.
 /// </param>
+/// <param name="StanceAgreed">
+/// True when this turn took her side on one of her opinions, false when it took the other side,
+/// null when no opinion was on the table — which is nearly every turn.
+/// </param>
 public sealed record AffectSignals(
     string? IntentId,
     TextStyle Style,
     bool RepeatPing,
-    long? TurnsSinceLastApology);
+    long? TurnsSinceLastApology,
+    bool? StanceAgreed = null);
 
 /// <summary>
 /// The adapter-side half of the affect engine: register movement that depends on
@@ -72,6 +77,17 @@ public static class ChatAffect
         if ((signals.Style & TextStyle.WallOfText) != 0)
         {
             deltas.Add(new AffectDelta(Registers.Names.Boredom, 1.0));
+        }
+
+        // Taking her side on an opinion is worth more than agreeing with a statement, which the
+        // AGREE intent's own affect block already covers. Fondness rather than trust: siding with
+        // her is charming, not evidence about you. Disagreeing costs a little and is not a grudge —
+        // she would rather you had an opinion than none.
+        if (signals.StanceAgreed is { } agreed)
+        {
+            deltas.Add(agreed
+                ? new AffectDelta(Registers.Names.Fondness, 1.0)
+                : new AffectDelta(Registers.Names.Fondness, -0.5));
         }
 
         return [.. deltas.Where(d => root.Personality.Baselines.ContainsKey(d.Register))];

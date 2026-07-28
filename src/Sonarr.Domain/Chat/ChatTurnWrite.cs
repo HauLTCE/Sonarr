@@ -24,7 +24,25 @@ public sealed record ChatTurnWrite
 
     /// <summary>Register movement, with the intent that caused it.</summary>
     public IReadOnlyList<RelationshipEvent> Events { get; init; } = [];
+
+    /// <summary>The side they took on one of her opinions this turn, when they took one.</summary>
+    public StanceWrite? Stance { get; init; }
 }
+
+/// <summary>
+/// Whose side you took, as one turn produced it.
+/// </summary>
+/// <remarks>
+/// Carries the opinion itself, not just the topic: <c>chat.stance</c> is a projection of the
+/// authored registry in <c>persona/stances.yaml</c>, so the row is upserted from this on the way
+/// past rather than synced by a startup service. One less moving part, and an opinion reworded in
+/// YAML corrects the table the next time it comes up.
+/// </remarks>
+/// <param name="Topic">Registry key: <c>pineapple_pizza</c>, <c>crypto</c>, …</param>
+/// <param name="Position">The position she holds, verbatim from the persona.</param>
+/// <param name="PoolRef">Pool she argues it from.</param>
+/// <param name="Agreed">True when they took her side.</param>
+public sealed record StanceWrite(string Topic, string Position, string PoolRef, bool Agreed);
 
 /// <summary>
 /// A fact to remember. Not a <see cref="Fact"/> because the repository decides whether this

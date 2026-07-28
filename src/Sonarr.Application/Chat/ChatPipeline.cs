@@ -112,13 +112,18 @@ public sealed class ChatPipeline(
             ShakySlots = await ShakySlotsAsync(guildId, userId, state, ct).ConfigureAwait(false),
         });
 
+        // Read from the pre-turn state: its fired log still holds what she said last, which is the
+        // opinion an "agreed" this turn is agreeing with.
+        StanceTaken? stance = ChatStances.Taken(graph, state, result.IntentId);
+
         IReadOnlyList<AffectDelta> adapterAffect = ChatAffect.Deltas(
             graph.Root,
             new AffectSignals(
                 result.IntentId,
                 normalized.Style,
                 repeatPing,
-                TurnsSinceLastApology(state, result.State.Turn)));
+                TurnsSinceLastApology(state, result.State.Turn),
+                stance?.Agreed));
 
         ConversationState next = result.State with
         {
@@ -142,6 +147,13 @@ public sealed class ChatPipeline(
                 Facts = [.. result.LearnedSlots.Select(s => new FactWrite(s.Key, s.Value, next.Turn))],
                 Episodes = Episodes(result, next, now),
                 Events = Events(state, next, result, now),
+                Stance = stance is null
+                    ? null
+                    : new StanceWrite(
+                        stance.Stance.Topic,
+                        stance.Stance.Stance,
+                        stance.Stance.Pool,
+                        stance.Agreed),
             },
             ct).ConfigureAwait(false);
 

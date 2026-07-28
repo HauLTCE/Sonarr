@@ -41,6 +41,16 @@ public interface IPersonRepository
         bool lowestFirst = false,
         CancellationToken ct = default);
 
+    /// <summary>
+    /// Sides this person has taken on her opinions, most recently changed first.
+    /// </summary>
+    /// <remarks>
+    /// One row per topic — the current side, not a history. Changing your mind replaces the row
+    /// (docs/04: "she remembers whose side you took", singular).
+    /// </remarks>
+    Task<IReadOnlyList<StanceAgreement>> GetStanceAgreementsAsync(
+        long guildId, long userId, CancellationToken ct = default);
+
     /// <summary>Register movement over a window, oldest first — feeds trend lines and tier moments.</summary>
     Task<IReadOnlyList<RelationshipEvent>> GetRecentEventsAsync(
         long guildId,

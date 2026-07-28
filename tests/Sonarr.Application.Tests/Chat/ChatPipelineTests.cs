@@ -272,6 +272,60 @@ public sealed class ChatPipelineTests
         Assert.Equal(ChatPipeline.MaxTypingDelay, ChatPipeline.TypingDelayFor(new string('x', 10_000)));
     }
 
+    [Fact]
+    public async Task Taking_her_side_is_recorded_against_the_opinion_and_paid_for_in_fondness()
+    {
+        FakePersonRepository people = new();
+        ChatPipeline pipeline = Build.Pipeline(people, new FakeSessionCache());
+
+        // FOOD draws social_food, which stances.yaml argues pineapple_pizza from.
+        await pipeline.HandleAsync(Build.Request("what should i eat"));
+        double before = Fondness(people.Writes[^1].Person);
+
+        await pipeline.HandleAsync(Build.Request("you're right", message: Build.Message + 1));
+
+        StanceAgreement row = Assert.Single(
+            await people.GetStanceAgreementsAsync((long)Build.Guild, (long)Build.User));
+        Assert.Equal("pineapple_pizza", row.Topic);
+        Assert.True(row.Agreed);
+        Assert.True(
+            Fondness(people.Writes[^1].Person) > before,
+            $"siding with her should be charming: {before} → {Fondness(people.Writes[^1].Person)}");
+    }
+
+    [Fact]
+    public async Task Changing_your_mind_replaces_the_side_rather_than_appending_one()
+    {
+        FakePersonRepository people = new();
+        ChatPipeline pipeline = Build.Pipeline(people, new FakeSessionCache());
+
+        await pipeline.HandleAsync(Build.Request("what should i eat"));
+        await pipeline.HandleAsync(Build.Request("you're right", message: Build.Message + 1));
+
+        // Same opinion back on the table, other side taken this time.
+        await pipeline.HandleAsync(Build.Request("i'm starving", message: Build.Message + 2));
+        await pipeline.HandleAsync(Build.Request("you're wrong", message: Build.Message + 3));
+
+        StanceAgreement row = Assert.Single(
+            await people.GetStanceAgreementsAsync((long)Build.Guild, (long)Build.User));
+        Assert.False(row.Agreed);
+    }
+
+    [Fact]
+    public async Task Agreeing_when_she_had_no_opinion_on_the_table_writes_nothing()
+    {
+        FakePersonRepository people = new();
+        ChatPipeline pipeline = Build.Pipeline(people, new FakeSessionCache());
+
+        await pipeline.HandleAsync(Build.Request("hello"));
+        await pipeline.HandleAsync(Build.Request("you're right", message: Build.Message + 1));
+
+        Assert.Empty(await people.GetStanceAgreementsAsync((long)Build.Guild, (long)Build.User));
+    }
+
     private static double Boredom(Person person)
         => person.Registers.ToDictionary()[Sonarr.Elaine.Conversation.Registers.Names.Boredom];
+
+    private static double Fondness(Person person)
+        => person.Registers.ToDictionary()[Sonarr.Elaine.Conversation.Registers.Names.Fondness];
 }

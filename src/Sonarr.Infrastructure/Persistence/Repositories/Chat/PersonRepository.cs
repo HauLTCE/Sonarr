@@ -63,9 +63,75 @@ public sealed class PersonRepository(SonarrDbContext db) : IPersonRepository
             db.RelationshipEvents.Add(relationshipEvent);
         }
 
+        if (write.Stance is { } stance)
+        {
+            await UpsertStanceAsync(write.Person.GuildId, write.Person.UserId, stance, ct);
+        }
+
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
     }
+
+    /// <summary>
+    /// Records whose side they took, creating the opinion row first if this is the first time it
+    /// has come up.
+    /// </summary>
+    /// <remarks>
+    /// The opinion itself is authored in <c>persona/stances.yaml</c>; this table exists so the
+    /// agreement has a foreign key and so the panels can read the registry. Upserting it here
+    /// rather than syncing it at startup means a reworded opinion corrects itself the next time it
+    /// comes up, and there is no service to forget to run.
+    /// <para>Inside the caller's transaction — the agreement and the opinion it points at commit
+    /// together or not at all, since half of that pair is a FK violation.</para>
+    /// </remarks>
+    private async Task UpsertStanceAsync(
+        long guildId, long userId, StanceWrite write, CancellationToken ct)
+    {
+        Stance? opinion = await db.Stances.FirstOrDefaultAsync(s => s.Topic == write.Topic, ct);
+        if (opinion is null)
+        {
+            db.Stances.Add(new Stance
+            {
+                Topic = write.Topic,
+                StanceText = write.Position,
+                PoolRef = write.PoolRef,
+            });
+        }
+        else if (opinion.StanceText != write.Position || opinion.PoolRef != write.PoolRef)
+        {
+            opinion.StanceText = write.Position;
+            opinion.PoolRef = write.PoolRef;
+            opinion.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+
+        StanceAgreement? existing = await db.StanceAgreements.FirstOrDefaultAsync(
+            a => a.GuildId == guildId && a.UserId == userId && a.Topic == write.Topic, ct);
+        if (existing is null)
+        {
+            db.StanceAgreements.Add(new StanceAgreement
+            {
+                GuildId = guildId,
+                UserId = userId,
+                Topic = write.Topic,
+                Agreed = write.Agreed,
+            });
+            return;
+        }
+
+        // Last word wins: changing your mind is allowed, and what she holds against you is the
+        // side you are on now, not every side you have ever been on.
+        existing.Agreed = write.Agreed;
+        existing.UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    /// <inheritdoc/>
+    public async Task<IReadOnlyList<StanceAgreement>> GetStanceAgreementsAsync(
+        long guildId, long userId, CancellationToken ct = default)
+        => await db.StanceAgreements
+            .AsNoTracking()
+            .Where(a => a.GuildId == guildId && a.UserId == userId)
+            .OrderByDescending(a => a.UpdatedAt)
+            .ToListAsync(ct);
 
     public async Task<IReadOnlyList<Fact>> GetFactsAsync(
         long guildId,
