@@ -24,9 +24,19 @@ old bot's version of the `fired=` field the newer format has.
 Everything else in the journal is dropped: Lavalink reconnect spam, cache sweeps,
 extension loading, tracebacks.
 
-Usage: python scripts/extract-chat-turns.py IN.log OUT.jsonl
+Two verbs:
 
-The output holds real user messages. training-data/ is gitignored; keep it there.
+    python scripts/extract-chat-turns.py extract IN.log OUT.jsonl
+    python scripts/extract-chat-turns.py corpus OUT.jsonl IN.jsonl [IN.jsonl ...]
+
+`corpus` folds the extracted files into one row per distinct user message — the input, how
+often it was seen, the legacy routing when known, and the legacy reply for reference. That
+is what the reply-quality suite reads: it tests the *new* engine's answer to each real
+input, and the legacy reply is evidence of what was asked rather than a target to match.
+The persona was migrated but the engine was rewritten, so asserting against the old output
+would pin the old bot's behaviour.
+
+Both outputs hold real user messages. training-data/ is gitignored; keep them there.
 """
 
 from __future__ import annotations
@@ -69,12 +79,105 @@ CLASSIFY_STEP = re.compile(
 )
 
 
-def main(argv: list[str]) -> int:
-    if len(argv) != 3:
-        print(__doc__, file=sys.stderr)
-        return 2
+# The mention prefix the context rows carry: '<@1452290540769906688> test' was typed as '@Sonarr
+# test', and the id is noise to a reply engine that already knows it was addressed.
+MENTION = re.compile(r"<@!?\d+>")
 
-    src, dst = Path(argv[1]), Path(argv[2])
+# A bare link is not a message the engine can answer, and it is the one field most likely to carry
+# something personal. Same for a message that is only an emoji-and-punctuation husk after stripping.
+URL_ONLY = re.compile(r"^\s*<?https?://\S+>?\s*$")
+
+# Belt and braces: none of this is in the current dump, but the corpus is regenerated from future
+# journals too, and a leaked invite or token in a gitignored file is still a leaked secret the
+# moment someone pastes a review sheet somewhere.
+SECRETS = (
+    re.compile(r"(?:https?://)?(?:discord\.gg|discord(?:app)?\.com/invite)/\S+", re.I),
+    re.compile(r"\b[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27,}\b"),
+)
+
+
+def normalise(text: str) -> str:
+    """The dedupe key: mentions gone, whitespace collapsed, case folded.
+
+    Only the key is folded — the row keeps the original casing of the first occurrence, because
+    the engine's SET_NAME intent reads the name out of the message verbatim.
+    """
+    return " ".join(MENTION.sub(" ", text).split()).casefold()
+
+
+def clean(text: str) -> str | None:
+    """The message as the engine should see it, or None if it is not a message at all."""
+    for pattern in SECRETS:
+        text = pattern.sub("[redacted]", text)
+
+    text = " ".join(MENTION.sub(" ", text).split())
+
+    if not text or URL_ONLY.match(text):
+        return None
+
+    return text
+
+
+def corpus(argv: list[str]) -> int:
+    """One row per distinct user message, merged across every extracted file given."""
+    dst, srcs = Path(argv[0]), [Path(p) for p in argv[1:]]
+
+    # Insertion-ordered, so the corpus reads in the order the messages were actually said. First
+    # occurrence wins for casing and for the legacy reply; later ones only bump the count.
+    rows: dict[str, dict[str, object]] = {}
+    read = skipped = 0
+
+    for src in srcs:
+        with src.open(encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+
+                read += 1
+                rec = json.loads(line)
+
+                # context rows are raw channel messages, so half of them are hers.
+                if rec.get("is_bot"):
+                    skipped += 1
+                    continue
+
+                text = clean(rec.get("in") or rec.get("content") or "")
+                if text is None:
+                    skipped += 1
+                    continue
+
+                key = normalise(text)
+                row = rows.get(key)
+
+                if row is None:
+                    rows[key] = row = {
+                        "in": text,
+                        "seen": 0,
+                        # Both are absent on input-only context rows, and `fired` is absent on the
+                        # older format. A consumer must treat either as "unknown", never as "none".
+                        **({"legacy_category": rec["category"]} if rec.get("category") else {}),
+                        **({"legacy_fired": rec["fired"]} if rec.get("fired") else {}),
+                        **({"legacy_out": rec["out"]} if rec.get("out") else {}),
+                        "first_seen": rec.get("ts"),
+                    }
+
+                row["seen"] = int(row["seen"]) + 1  # type: ignore[arg-type]
+
+    with dst.open("w", encoding="utf-8", newline="\n") as out:
+        for row in rows.values():
+            out.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+    paired = sum(1 for r in rows.values() if "legacy_out" in r)
+    print(
+        f"read {read} rows from {len(srcs)} file(s), wrote {len(rows)} distinct inputs "
+        f"({paired} with a legacy reply, {len(rows) - paired} input-only), skipped {skipped}"
+    )
+    return 0
+
+
+def extract(argv: list[str]) -> int:
+    src, dst = Path(argv[0]), Path(argv[1])
     total = turns = replies = 0
     # The classifier state carried from the [Classify] lines onto the next [BotReply].
     pending_input: str | None = None
@@ -142,6 +245,19 @@ def main(argv: list[str]) -> int:
         f"({turns} turn / {replies} reply), dropped {total - kept}"
     )
     return 0
+
+
+VERBS = {"extract": (extract, 2), "corpus": (corpus, 2)}
+
+
+def main(argv: list[str]) -> int:
+    verb = VERBS.get(argv[1]) if len(argv) > 1 else None
+
+    if verb is None or len(argv) - 2 < verb[1]:
+        print(__doc__, file=sys.stderr)
+        return 2
+
+    return verb[0](argv[2:])
 
 
 if __name__ == "__main__":
