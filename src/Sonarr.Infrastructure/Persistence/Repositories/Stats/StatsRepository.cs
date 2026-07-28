@@ -73,13 +73,17 @@ public sealed class StatsRepository(SonarrDbContext db) : IStatsRepository
         DateTimeOffset since = DateTimeOffset.UtcNow.AddDays(-window);
         DateOnly sinceDay = DateOnly.FromDateTime(since.UtcDateTime);
 
+        // The aggregate is projected into an anonymous type and only then into the record: calling
+        // a record's constructor inside the GroupBy select makes EF read g.Sum() as a correlated
+        // subquery over the group instead of an aggregate, which compiles and then throws.
         List<CommandUsageCount> commands = await db.CommandUsage
             .AsNoTracking()
             .Where(c => c.GuildId == guildId && c.Day >= sinceDay)
             .GroupBy(c => c.Command)
-            .Select(g => new CommandUsageCount(g.Key, g.Sum(c => c.Count)))
+            .Select(g => new { Command = g.Key, Count = g.Sum(c => c.Count) })
             .OrderByDescending(c => c.Count)
             .Take(TopCommands)
+            .Select(x => new CommandUsageCount(x.Command, x.Count))
             .ToListAsync(ct);
 
         List<ActivityPoint> activity = await db.ActivitySamples

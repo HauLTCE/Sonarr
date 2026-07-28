@@ -44,9 +44,10 @@ public sealed class MusicStatsRepository(SonarrDbContext db) : IMusicStatsReposi
 
         List<TrackPlayCount> mostPlayed = await plays
             .GroupBy(h => new { h.Uri, h.Title })
-            .Select(g => new TrackPlayCount(g.Key.Title, g.Key.Uri, g.Count()))
+            .Select(g => new { g.Key.Title, g.Key.Uri, Plays = g.Count() })
             .OrderByDescending(t => t.Plays)
             .Take(limit)
+            .Select(x => new TrackPlayCount(x.Title, x.Uri, x.Plays))
             .ToListAsync(ct);
 
         List<RequesterPlayCount> topRequesters = await plays
