@@ -30,6 +30,9 @@ public static class UtilityServiceCollectionExtensions
         // social.capsule, for /capsule write and the job that opens it.
         services.AddScoped<ICapsuleRepository, CapsuleRepository>();
 
+        // social.event + social.event_rsvp, for /event and the RSVP buttons.
+        services.AddScoped<IEventRepository, EventRepository>();
+
         services.AddSingleton<WelcomeFlow>();
         services.AddHostedService(sp => sp.GetRequiredService<WelcomeFlow>());
 
