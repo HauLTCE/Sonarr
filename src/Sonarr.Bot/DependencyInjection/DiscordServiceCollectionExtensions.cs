@@ -2,6 +2,7 @@ using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using Sonarr.Bot.Discord;
+using Sonarr.Bot.Observability;
 using Sonarr.Domain.Abstractions;
 
 namespace Sonarr.Bot.DependencyInjection;
@@ -38,6 +39,10 @@ public static class DiscordServiceCollectionExtensions
         services.AddSingleton(sp => new InteractionService(
             sp.GetRequiredService<DiscordSocketClient>(),
             sp.GetRequiredService<InteractionServiceConfig>()));
+
+        // The error pipeline's panel half: the same friendly line the user saw, kept per user so
+        // "My errors" has something to show (docs/09).
+        services.AddSingleton<UserErrorLog>();
 
         services.AddHostedService<InteractionHandler>();
         services.AddHostedService<DiscordGatewayService>();

@@ -12,6 +12,15 @@ public sealed record RatedTrack(string Title, string Uri, int Likes, int Dislike
     public int Score => Likes - Dislikes;
 }
 
+/// <summary>
+/// One of the user's own votes, with the guild's tally beside it — the panel's "my ratings".
+/// </summary>
+/// <param name="Vote">+1 or -1: what this user said.</param>
+public sealed record MyRating(string Title, string Uri, short Vote, int Likes, int Dislikes, DateTimeOffset At)
+{
+    public int Score => Likes - Dislikes;
+}
+
 /// <summary>The <c>/musicstats</c> answer for one guild.</summary>
 public sealed record MusicStats(
     int TotalPlays,

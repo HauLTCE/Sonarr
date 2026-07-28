@@ -155,6 +155,57 @@ public sealed class MusicStatsRepository(SonarrDbContext db) : IMusicStatsReposi
         return new RatedTrack(string.Empty, key, tally.Likes, tally.Dislikes);
     }
 
+    public async Task<IReadOnlyList<MyRating>> GetUserRatingsAsync(
+        ulong guildId, ulong userId, int limit, CancellationToken ct = default)
+    {
+        var guild = (long)guildId;
+        var user = (long)userId;
+        var take = Math.Clamp(limit, 1, 50);
+
+        // The user's own rows first, then the guild tally for exactly those uris — the alternative
+        // is a correlated subquery per row, and this list is at most fifty long.
+        var mine = await db.TrackRatings
+            .AsNoTracking()
+            .Where(r => r.GuildId == guild && r.UserId == user)
+            .OrderByDescending(r => r.UpdatedAt)
+            .Take(take)
+            .Select(r => new { r.Uri, r.Vote, r.UpdatedAt })
+            .ToListAsync(ct);
+
+        if (mine.Count == 0)
+        {
+            return [];
+        }
+
+        var uris = mine.ConvertAll(x => x.Uri);
+
+        Dictionary<string, (int Likes, int Dislikes)> tallies = await db.TrackRatings
+            .AsNoTracking()
+            .Where(r => r.GuildId == guild && uris.Contains(r.Uri))
+            .GroupBy(r => r.Uri)
+            .Select(g => new
+            {
+                Uri = g.Key,
+                Likes = g.Count(r => r.Vote > 0),
+                Dislikes = g.Count(r => r.Vote < 0),
+            })
+            .ToDictionaryAsync(x => x.Uri, x => (x.Likes, x.Dislikes), ct);
+
+        Dictionary<string, string> titles = await db.PlayHistory
+            .AsNoTracking()
+            .Where(h => h.GuildId == guild && uris.Contains(h.Uri))
+            .GroupBy(h => h.Uri)
+            .Select(g => new { Uri = g.Key, Title = g.Max(h => h.Title) })
+            .ToDictionaryAsync(x => x.Uri, x => x.Title ?? string.Empty, ct);
+
+        return mine.ConvertAll(x =>
+        {
+            (int likes, int dislikes) = tallies.GetValueOrDefault(x.Uri, (0, 0));
+            return new MyRating(
+                titles.GetValueOrDefault(x.Uri, x.Uri), x.Uri, x.Vote, likes, dislikes, x.UpdatedAt);
+        });
+    }
+
     public async Task<IReadOnlyList<RatedTrack>> GetTopRatedAsync(
         ulong guildId, int limit, CancellationToken ct = default)
     {
