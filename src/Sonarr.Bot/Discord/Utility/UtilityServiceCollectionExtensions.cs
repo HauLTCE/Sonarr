@@ -33,6 +33,9 @@ public static class UtilityServiceCollectionExtensions
         // social.event + social.event_rsvp, for /event and the RSVP buttons.
         services.AddScoped<IEventRepository, EventRepository>();
 
+        // social.ticket, for /ticket and its close button.
+        services.AddScoped<ITicketRepository, TicketRepository>();
+
         services.AddSingleton<WelcomeFlow>();
         services.AddHostedService(sp => sp.GetRequiredService<WelcomeFlow>());
 
