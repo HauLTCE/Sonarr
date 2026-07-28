@@ -59,7 +59,7 @@ if [ "$MODE" = remote ]; then
     [ -f deploy/docker-compose.yml ] || { echo "run this from the repo root" >&2; exit 1; }
 
     echo "==> ${TARGET}:${DEPLOY_REMOTE_DIR}"
-    ssh -o BatchMode=yes "$TARGET" "mkdir -p '${DEPLOY_REMOTE_DIR}' '${DEPLOY_REMOTE_DIR}/persona' /root/backups/sonarr"
+    ssh -o BatchMode=yes "$TARGET" "mkdir -p '${DEPLOY_REMOTE_DIR}' '${DEPLOY_REMOTE_DIR}/persona'"
 
     # Compose file + deploy script. The remote .env is NOT overwritten — it holds the
     # only copy of the prod secrets.
@@ -96,6 +96,16 @@ fi
 COMPOSE_FILE=docker-compose.yml
 [ -f "$COMPOSE_FILE" ] || { echo "no $COMPOSE_FILE here (expected /root/sonarr-net)" >&2; exit 1; }
 [ -f .env ] || { echo ".env missing — copy .env.example and fill it in" >&2; exit 1; }
+
+# The bot image runs as uid 1654, and a bind mount carries host ownership straight through.
+# Left root-owned, every nightly pg_dump fails with EACCES at 03:30 while the container
+# itself looks perfectly healthy — the only way to catch it is to probe the mount as that
+# user. 0700: a dump holds every user's data, and the weekly config archive holds the token.
+# Done here rather than in the remote branch so `deploy.sh --local` gets it too.
+echo "==> backup dir ownership"
+mkdir -p /root/backups/sonarr
+chown 1654:1654 /root/backups/sonarr
+chmod 700 /root/backups/sonarr
 
 echo "==> validating compose file"
 docker compose -f "$COMPOSE_FILE" config -q
