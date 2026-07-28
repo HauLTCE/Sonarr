@@ -46,6 +46,8 @@ src/Sonarr.Application     service implementations, one folder per module
 src/Sonarr.Infrastructure  repositories, SonarrDbContext, Redis, ONNX, Lavalink wiring
 src/Sonarr.Bot             host: gateway, interaction modules, API controllers
 src/Sonarr.Migrator        one-shot: old SQLite/JSON -> Postgres
+persona/                   authored YAML the engine loads; LIMITS.md is what it deliberately
+                           does not check, and why
 tests/                     xUnit — engine behavior catalog + service tests
 deploy/                    prod compose stack, deploy script, restore drill
 web/                       the Next.js panel (user + admin)
