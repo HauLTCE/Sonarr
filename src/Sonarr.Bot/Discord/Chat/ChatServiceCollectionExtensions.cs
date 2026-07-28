@@ -32,6 +32,9 @@ public static class ChatServiceCollectionExtensions
         // Read-only view for /relationship and /memories — no turn, no writes.
         services.AddScoped<ChatIntrospection>();
 
+        // /opinion: topic centroid of the last few messages against the stance registry.
+        services.AddScoped<ChatOpinions>();
+
         // Stateless, and the engine may not read the clock itself.
         services.AddSingleton<IClock, SystemClock>();
 
