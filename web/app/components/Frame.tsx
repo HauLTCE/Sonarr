@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { PAGES, type GuildOption, type Session } from "../../lib/pages";
+import { PAGES, pagesFor, type GuildOption, type Session } from "../../lib/pages";
 import type { StringKey, Translate } from "../../lib/strings";
 
 import { GuildPicker } from "./GuildPicker";
@@ -34,6 +34,8 @@ export function Frame({
   const scoped = PAGES.find((p) => p.path === current)?.tier === "guild";
   const options = scoped ? session.guilds.filter((g) => g.canManage) : session.guilds;
 
+  const railPages = pagesFor(session.tier);
+
   return (
     <div className="frame">
       <a className="skip" href="#content">
@@ -66,7 +68,20 @@ export function Frame({
         <div className="sheet slide">{children}</div>
       </main>
 
-      <Rail tier={session.tier} current={current} guildId={guild?.guildId} t={t} />
+      {/* Resolved here, not inside the rail: the rail is a client component and `t` is a function,
+          which cannot cross that boundary. Only this tier's pages are resolved, which is also the
+          set the rail renders. */}
+      <Rail
+        tier={session.tier}
+        current={current}
+        guildId={guild?.guildId}
+        labels={Object.fromEntries(railPages.map((p) => [p.path, t(p.label)]))}
+        pagesLabel={t("nav.pages")}
+        goTo={Object.fromEntries(railPages.map((p) => [p.path, t("nav.goTo", { page: t(p.label) })]))}
+        position={Object.fromEntries(
+          railPages.map((p, i) => [p.path, t("nav.of", { n: i + 1, total: railPages.length })]),
+        )}
+      />
     </div>
   );
 }

@@ -5,7 +5,6 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 import { href, pagesFor, type Page, type Tier } from "../../lib/pages";
-import type { Translate } from "../../lib/strings";
 
 /**
  * The rail: position indicator and navigation in one strip, a segment per page the visitor can
@@ -19,13 +18,26 @@ export function Rail({
   tier,
   current,
   guildId,
-  t,
+  labels,
+  pagesLabel,
+  goTo,
+  position,
 }: {
   tier: Tier;
   /** The `path` of the page being shown, e.g. `"memory"` or `""` for the root. */
   current: string;
   guildId: string | undefined;
-  t: Translate;
+  /**
+   * Resolved strings rather than a `Translate`. This is a client component, so a function prop is a
+   * render-time crash ("Functions cannot be passed directly to Client Components") — the translator
+   * has to be called on the server and its answers passed as data.
+   */
+  labels: Record<string, string>;
+  pagesLabel: string;
+  /** `path` → "Go to <page>". */
+  goTo: Record<string, string>;
+  /** `path` → "3 of 12". */
+  position: Record<string, string>;
 }) {
   const pages = pagesFor(tier);
   const at = pages.findIndex((p) => p.path === current);
@@ -62,9 +74,9 @@ export function Rail({
   }, [router, prev, next, guildId]);
 
   return (
-    <nav className="rail" aria-label={t("nav.pages")}>
+    <nav className="rail" aria-label={pagesLabel}>
       <div className="rail-inner">
-        <span className="seg-label">{at >= 0 ? t(pages[at].label) : ""}</span>
+        <span className="seg-label">{at >= 0 ? labels[current] : ""}</span>
 
         <div className="segs">
           {pages.map((page) => (
@@ -73,15 +85,13 @@ export function Rail({
               href={href(page, guildId)}
               className="seg"
               aria-current={page.path === current ? "page" : undefined}
-              aria-label={t("nav.goTo", { page: t(page.label) })}
-              title={t(page.label)}
+              aria-label={goTo[page.path]}
+              title={labels[page.path]}
             />
           ))}
         </div>
 
-        <span className="counter mono">
-          {at >= 0 ? t("nav.of", { n: at + 1, total: pages.length }) : ""}
-        </span>
+        <span className="counter mono">{at >= 0 ? position[current] : ""}</span>
       </div>
     </nav>
   );
