@@ -1,6 +1,11 @@
 #!/bin/sh
-# Interim manual deploy (docs/11-deployment.md "CI"): until GitHub Actions exists, this
-# does by hand what CI will do — sync the compose dir, build/pull, up -d, wait for health.
+# Manual deploy (docs/11-deployment.md "CI"): sync the compose dir, build or pull, up -d,
+# wait for health.
+#
+# CI (.github/workflows/ci.yml) now publishes both images to GHCR on every push, so the
+# short path is: set BOT_IMAGE/WEB_IMAGE in the server's .env to the ghcr.io tags and run
+# with --pull. --build stays the default because it needs no registry auth and still works
+# when GitHub is having a day.
 #
 # Run FROM THE REPO ROOT on your dev box:
 #     DEPLOY_HOST=192.168.1.101 DEPLOY_USER=root sh deploy/deploy.sh
@@ -20,8 +25,8 @@ usage() {
 Usage: deploy.sh [--local] [--build|--pull] [--prune] [--no-wait]
 
   --local     run against the compose file in the current directory (you are on the server)
-  --build     build the bot image from source on the target (default)
-  --pull      pull images instead of building (use once CI publishes to GHCR)
+  --build     build the bot + web images from source on the target (default)
+  --pull      pull the images CI published to GHCR (needs BOT_IMAGE/WEB_IMAGE in .env)
   --prune     ALSO remove dangling images afterwards (destructive, opt-in)
   --no-wait   do not block waiting for healthchecks
 EOF
@@ -99,6 +104,16 @@ if [ "$ACTION" = build ]; then
     echo "==> building bot + web images"
     docker compose -f "$COMPOSE_FILE" build bot web
 else
+    # Without these the compose defaults are `sonarr-bot:local`, and `pull` would go ask
+    # Docker Hub for an image that only ever existed on this box. Fail with the reason
+    # instead of with a 404.
+    if ! grep -qE '^BOT_IMAGE=.+' .env || ! grep -qE '^WEB_IMAGE=.+' .env; then
+        echo "!! --pull needs BOT_IMAGE and WEB_IMAGE set in .env (see .env.example)" >&2
+        echo "   or use --build to build from source on this box." >&2
+        exit 1
+    fi
+    # All four services, not just bot+web: postgres and redis are pinned tags, so this is
+    # a no-op for them unless the pin moved, and then it should move here too.
     echo "==> pulling images"
     docker compose -f "$COMPOSE_FILE" pull
 fi

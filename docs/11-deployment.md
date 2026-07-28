@@ -56,12 +56,27 @@ PANEL_BASE_URL. Validated at boot; boot fails loudly on bad config.
   and bad deploys, not disk death. When the J2900 arrives, the old CT keeps a weekly
   `rsync` copy of the tree — then we have two machines, real redundancy.
 
-## CI (nice-to-have, phase 5)
+## CI
 
-GitHub Actions: build + test (engine behavior catalog + persona lint are the gate),
-publish images to GHCR, deploy = `ssh compose pull && up -d`. Until then: deploy
-script in repo (`deploy/`) doing the same by hand. ⚠ Server SSH currently
-root/password `12345` — switch to key-only auth as part of the first deploy.
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml), three jobs:
+
+- **dotnet** — restore, build, `dotnet test Sonarr.slnx`. The engine behavior catalog and
+  the persona lint are the gate and both live inside that one command: the catalog is
+  `BehaviorCatalogTests`, and `SeedPersonaTests` runs the full `PersonaValidator` against
+  the real `persona/` directory off disk, so a persona edit that breaks an intent fails CI
+  with the validator's own report.
+- **web** — `npm ci`, `tsc --noEmit` (Turbopack does not typecheck, so a type error would
+  otherwise ship), lint, build.
+- **images** — both Dockerfiles → GHCR, tagged with the branch, the full SHA, and `latest`
+  on the default branch. Skipped on pull requests so a fork cannot write to the registry.
+
+Deploy is then `BOT_IMAGE`/`WEB_IMAGE` in the server `.env` pointing at those tags plus
+`sh deploy.sh --local --pull`. Rolling back is repointing to a `sha-…` tag and re-running.
+`--build` remains the default in `deploy/deploy.sh`: it needs no registry auth and still
+works when GitHub is having a day.
+
+⚠ Server SSH currently root/password `12345` — switch to key-only auth as part of the
+first deploy. `deploy.sh` uses `BatchMode=yes` so it fails loudly rather than prompting.
 
 ## Migration & cutover (end of phase 2)
 
