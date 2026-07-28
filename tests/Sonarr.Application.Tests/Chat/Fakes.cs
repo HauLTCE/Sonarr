@@ -186,6 +186,17 @@ internal sealed class FakePersonRepository : IPersonRepository
 
     private readonly List<StanceAgreement> _stances = [];
 
+    /// <summary>A side already taken, for the read half (/opinion) without replaying a turn.</summary>
+    public void SeedStance(long guildId, long userId, string topic, bool agreed)
+        => _stances.Add(new StanceAgreement
+        {
+            GuildId = guildId,
+            UserId = userId,
+            Topic = topic,
+            Agreed = agreed,
+            UpdatedAt = Build.Now,
+        });
+
     public Task<IReadOnlyList<RelationshipEvent>> GetRecentEventsAsync(
         long guildId, long userId, DateTimeOffset since, int limit, CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<RelationshipEvent>>(

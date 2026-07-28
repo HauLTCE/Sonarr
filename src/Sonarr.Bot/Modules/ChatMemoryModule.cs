@@ -19,10 +19,46 @@ namespace Sonarr.Bot.Modules;
 /// </remarks>
 [RequireContext(ContextType.Guild)]
 [RequireFeature(FeatureNames.Chat)]
-public sealed class ChatMemoryModule(ChatIntrospection chat) : SonarrModuleBase<SocketInteractionContext>
+public sealed class ChatMemoryModule(ChatIntrospection chat, ChatOpinions opinions)
+    : SonarrModuleBase<SocketInteractionContext>
 {
     /// <summary>Discord's own cap on how many facts we can offer in one autocomplete.</summary>
     public const int MaxSuggestions = 25;
+
+    /// <summary>
+    /// <c>/opinion</c> — she reads what the channel is talking about and drops an authored take.
+    /// </summary>
+    /// <remarks>
+    /// Public, unlike everything else here: a take on the room's topic is about the room, not
+    /// about you. The only personal part is the "you already agreed with me" tail, which is your
+    /// own row and nobody else's (docs/06).
+    /// <para>The channel history is read here rather than from the ring buffer because that
+    /// buffer is metadata-only by design (docs/05) — and it is passed straight through to the
+    /// embedder and dropped. Nothing about these messages is stored.</para>
+    /// </remarks>
+    [SlashCommand("opinion", "Her take on whatever this channel is on about.")]
+    public async Task OpinionAsync()
+    {
+        ArgumentNullException.ThrowIfNull(opinions);
+
+        // Embedding a dozen messages is a few milliseconds on the dev box and several times that
+        // on the J2900, which is close enough to Discord's 3 s window to not gamble on it.
+        await DeferAsync();
+
+        IReadOnlyList<string> recent = Context.Channel is null
+            ? []
+            : [.. (await Context.Channel
+                    .GetMessagesAsync(ChatOpinions.RecentMessages)
+                    .FlattenAsync())
+                .Where(m => !m.Author.IsBot)
+                .Select(m => m.Content)
+                .Where(c => !string.IsNullOrWhiteSpace(c))];
+
+        string line = await opinions.OpinionAsync(
+            (long)Context.Guild.Id, (long)Context.User.Id, recent);
+
+        await FollowupAsync(line);
+    }
 
     [SlashCommand("relationship", "How she feels about you.")]
     public async Task RelationshipAsync([Summary("user", "Whose standing to ask about")] IUser? user = null)

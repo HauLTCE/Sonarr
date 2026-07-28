@@ -113,3 +113,19 @@ pools:
   - can't forget what i never bothered to store.
   - nothing to delete. embarrassing for you.
   - that's not one of mine.
+
+  # /opinion, appended after the take itself when chat.stance_agreement already has your side on
+  # this topic (ChatOpinions). She is reminding you what you signed up for, so second person and
+  # never a word about who else agreed — that's between her and them (docs/06).
+  opinion_you_agreed:
+  - and you agreed with me, for the record. i keep records.
+  - you already took my side on this one. don't get shy now.
+  - last time you said i was right. i'm holding you to it.
+  - you're on my side of this. i have it written down.
+  - and you agreed. that was your one good call.
+  opinion_you_disagreed:
+  - you said i was wrong about this. i remember.
+  - last time you disagreed. bold. still wrong.
+  - you're on the other side of this one. noted, permanently.
+  - and you told me i was wrong. that's still on your file.
+  - we've had this argument. you lost it then too.
