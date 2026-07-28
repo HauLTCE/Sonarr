@@ -14,9 +14,21 @@ type Audit = {
   guildId: string | null;
   action: string;
   target: string | null;
-  detail: string | null;
+  /**
+   * A jsonb column, so an object and never a string — the writers put `{value}`, `{enabled}` and a
+   * per-area count map in here, and an empty `{}` when they pass no detail at all. Typing it as a
+   * string made React throw "Objects are not valid as a React child" on every flag write.
+   */
+  detail: Record<string, unknown> | null;
   at: string;
 }[];
+
+/** `enabled: true` — the keys are already the field names an admin recognises. */
+function describe(detail: Record<string, unknown> | null): string {
+  return Object.entries(detail ?? {})
+    .map(([key, value]) => `${key}: ${value === null ? "—" : String(value)}`)
+    .join(" · ");
+}
 
 /** What the API returns per request when `take` is not given, and what this page asks for. */
 const TAKE = 50;
@@ -68,7 +80,9 @@ export default async function AuditPage({ searchParams }: { searchParams: Query 
                     {row.action}
                     {row.target ? ` · ${row.target}` : ""}
                   </div>
-                  {row.detail ? <div className="row-sub">{row.detail}</div> : null}
+                  {describe(row.detail) ? (
+                    <div className="row-sub">{describe(row.detail)}</div>
+                  ) : null}
                   <div className="row-sub mono">
                     {t("audit.who")} {row.userId} · {t("audit.server")} {serverName(row.guildId)} ·{" "}
                     {when(locale, row.at)}

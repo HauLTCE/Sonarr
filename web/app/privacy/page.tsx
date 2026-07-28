@@ -96,9 +96,10 @@ export default async function PrivacyPage({ searchParams }: { searchParams: Quer
           working: t("privacy.working"),
           failed: t("privacy.failed"),
           backupNote: t("privacy.backupNote"),
-          // A function rather than a string: the counts are only known after the delete returns,
-          // and the client component has no dictionary to interpolate with.
-          deleted: (n, total) => t("privacy.deleted", { n, total }),
+          // The template, not a function that fills it in: the counts are only known after the
+          // delete returns, and a function prop cannot cross into a client component — React
+          // refuses to serialise it and the page 500s. The client substitutes the two placeholders.
+          deleted: t("privacy.deleted", { n: "{n}", total: "{total}" }),
         }}
       />
     </Frame>
