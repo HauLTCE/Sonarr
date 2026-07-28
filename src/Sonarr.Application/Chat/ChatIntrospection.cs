@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Sonarr.Domain.Abstractions;
 using Sonarr.Domain.Entities.Chat;
 using Sonarr.Elaine.Conversation;
@@ -17,12 +19,38 @@ namespace Sonarr.Application.Chat;
 /// <para>Lines are drawn with the person's own logical clock as the seed, so the answer is stable
 /// while her state is — asking twice in a row does not shuffle her opinion.</para>
 /// </remarks>
-public sealed class ChatIntrospection(PersonaHolder persona, IPersonRepository people)
+/// <param name="clock">
+/// Only the trend window needs the time — "this week" is wall-clock, and the engine may not read
+/// a clock, so it is read here. Optional: without one she still answers, just without trajectory.
+/// </param>
+public sealed class ChatIntrospection(
+    PersonaHolder persona, IPersonRepository people, IClock? clock = null)
 {
     /// <summary>Pool id prefix; the suffix is the tier id from <c>sonarr.yaml</c>.</summary>
     public const string TierPoolPrefix = "relationship_";
 
     public const string ThirdPartyPool = "relationship_third_party";
+
+    /// <summary>Trajectory pools appended to the tier line: which way the last week went.</summary>
+    public const string TrendUpPool = "trend_up";
+
+    public const string TrendDownPool = "trend_down";
+
+    /// <summary>How far back a trend looks. "This week" is the phrasing the pools use.</summary>
+    public static readonly TimeSpan TrendWindow = TimeSpan.FromDays(7);
+
+    /// <summary>
+    /// Events scanned for a trend. A week of one person's turns is far below this; the cap only
+    /// stops a pathological row count from turning one slash command into a table scan.
+    /// </summary>
+    public const int TrendEventLimit = 500;
+
+    /// <summary>
+    /// Net trust movement below this is flat, and flat gets no line. Roughly one earned moment:
+    /// a week that netted a single "good bot" is not a trajectory.
+    /// </summary>
+    public const double TrendThreshold = 1.0;
+
     public const string MemoriesPool = "memory_retrieve";
     public const string NoMemoriesPool = "recall_empty";
     public const string ForgotPool = "memory_forget";
@@ -58,11 +86,62 @@ public sealed class ChatIntrospection(PersonaHolder persona, IPersonRepository p
         // for SQL, and a stale value would let her describe a tier her trust has left.
         string tier = ModeSelector.SelectTier(graph.Root, trust)?.Id ?? string.Empty;
 
-        return Draw(graph, TierPoolPrefix + tier, userId, person?.LogicalClock ?? 0)
+        long turn = person?.LogicalClock ?? 0;
+        string level = Draw(graph, TierPoolPrefix + tier, userId, turn)
             // A tier with no authored pool is an unfinished persona, not a broken command.
-            ?? Draw(graph, TierPoolPrefix + graph.Root.Tiers[0].Id, userId, person?.LogicalClock ?? 0)
+            ?? Draw(graph, TierPoolPrefix + graph.Root.Tiers[0].Id, userId, turn)
             ?? "no comment.";
+
+        string? trend = person is null
+            ? null
+            : await TrendAsync(graph, guildId, userId, turn, ct).ConfigureAwait(false);
+
+        return trend is null ? level : $"{level} {trend}";
     }
+
+    /// <summary>
+    /// The trajectory line for the last week, or null when the week was flat.
+    /// </summary>
+    /// <remarks>
+    /// docs/04: <c>chat.relationship_event</c> exists so she can answer about direction, not just
+    /// level — "you're a regular" and "and it's getting worse" are both true at once. Trust is the
+    /// register the tiers are built on, so it is the one a trend is about; summing the stored
+    /// deltas is exactly the movement she caused, with decay excluded because decay is not
+    /// something you did.
+    /// <para>Flat weeks say nothing. A line about no movement is worse than no line.</para>
+    /// </remarks>
+    private async Task<string?> TrendAsync(
+        PersonaGraph graph, long guildId, long userId, long turn, CancellationToken ct)
+    {
+        if (clock is null)
+        {
+            return null;
+        }
+
+        IReadOnlyList<RelationshipEvent> events = await people.GetRecentEventsAsync(
+            guildId, userId, clock.UtcNow - TrendWindow, TrendEventLimit, ct).ConfigureAwait(false);
+
+        double moved = events.Sum(e => Trust(e.Delta));
+        if (Math.Abs(moved) < TrendThreshold)
+        {
+            return null;
+        }
+
+        return Draw(graph, moved > 0 ? TrendUpPool : TrendDownPool, userId, turn);
+    }
+
+    /// <summary>
+    /// The trust component of one stored delta. A payload without one contributes nothing — the
+    /// delta is jsonb, so a row written by an older shape must not break the command.
+    /// </summary>
+    private static double Trust(JsonObject delta) =>
+        delta.TryGetPropertyValue(Registers.Names.Trust, out JsonNode? node)
+            && node is JsonValue value
+            && value.GetValueKind() == JsonValueKind.Number
+            && double.TryParse(
+                value.ToJsonString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double moved)
+            ? moved
+            : 0;
 
     /// <summary>Her opener plus the facts she is holding, newest first.</summary>
     public async Task<MemoryReport> ListMemoriesAsync(

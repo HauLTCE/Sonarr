@@ -52,6 +52,25 @@ pools:
   - poorly. things are going poorly between us.
   - i'd say we're even, but i keep score and we aren't.
 
+  # The trajectory line /relationship appends to the tier line: level says where you stand,
+  # trend says which way you're going. Drawn from chat.relationship_event over the last week, so
+  # "you're a regular" and "and it's getting worse" can be true at the same time.
+  #
+  # Code-referenced (ChatIntrospection.TrendPools). A week with no movement gets nothing appended
+  # rather than a line about nothing — silence is the flat case.
+  trend_up:
+  - you've been almost tolerable this week, too.
+  - and you're trending up, which i'm choosing not to examine.
+  - lately you've been better about it. keep going.
+  - this week you've actually been alright. don't peak.
+  - whatever you've been doing this week, it's working.
+  trend_down:
+  - and this week you've been actively worse.
+  - you're trending down, in case that wasn't obvious.
+  - lately? lately has not been your best work.
+  - this week specifically has not helped your case.
+  - and it's been getting worse, if you were wondering.
+
   # /relationship on somebody else: she has an opinion and she is not sharing it. Her state
   # about another user is theirs, not yours (docs/06 — the panel sees counts, not other
   # people's facts, and neither does this command).
