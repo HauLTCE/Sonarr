@@ -132,6 +132,61 @@ public class SeedPersonaTests
                 + string.Join(Environment.NewLine, bad));
     }
 
+    /// <summary>
+    /// An intent's template may not repeat a slot that every line of its pool already renders.
+    /// </summary>
+    /// <remarks>
+    /// <para>A template is <em>appended</em> to the pool line, not substituted for it
+    /// (<c>ReplyComposer.Compose</c>) — that is the design, and it is how a generic "sure." carries
+    /// the specific bit. But SET_NAME pointed at <c>name_ack</c>, all six of whose lines already
+    /// contain <c>{name}</c>, so "my name is Hau" answered "Hau, huh. i'll allow it. Hau. noted."
+    /// The corpus review caught it twice and read it as the same message sent twice.</para>
+    /// <para>Only a slot every line renders counts. A pool where some lines mention the slot and
+    /// others do not is a legitimate reason to append — the template covers the ones that would
+    /// otherwise say nothing specific.</para>
+    /// </remarks>
+    [Fact]
+    public void ShippedPersona_HasNoTemplateThatRepeatsItsPool()
+    {
+        List<string> bad = [];
+
+        foreach (IntentDef intent in SeedPersona.Graph.Intents)
+        {
+            if (intent.Template is not { } template || intent.Pool is not { } poolId)
+            {
+                continue;
+            }
+
+            if (!SeedPersona.Graph.Pools.TryGetValue(poolId, out PoolDef? pool))
+            {
+                continue;
+            }
+
+            List<string> lines =
+                [.. pool.Lines.Concat(pool.ByMode.Values.SelectMany(v => v))];
+            if (lines.Count == 0)
+            {
+                continue;
+            }
+
+            // "{name}" in the template, "{name}" in every line. Captures ("{$nm}") are a different
+            // namespace and a pool line cannot reference one, so only slots can collide.
+            foreach (string slot in Regex
+                .Matches(template, @"\{(?<s>[a-z_]+)\}")
+                .Select(m => m.Groups["s"].Value)
+                .Distinct(StringComparer.Ordinal))
+            {
+                if (lines.All(l => l.Contains($"{{{slot}}}", StringComparison.Ordinal)))
+                {
+                    bad.Add($"{intent.Id}: template \"{template}\" repeats {{{slot}}}, which every "
+                        + $"line of {poolId} already renders");
+                }
+            }
+        }
+
+        Assert.True(bad.Count == 0, string.Join(Environment.NewLine, bad));
+    }
+
     [Fact]
     public void ShippedPersona_ExercisesEveryMatchKind()
     {

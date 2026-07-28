@@ -219,7 +219,7 @@ public sealed class ReplyComposer(
             && rng.Next("compose:fragment", FragmentOdds) == 0)
         {
             string? fragment = _picker.Pick(MoodFragmentPool, modeId, rng, slots);
-            if (fragment is not null)
+            if (fragment is not null && !Echoes(fragment, core))
             {
                 reply.Append(fragment);
             }
@@ -248,6 +248,33 @@ public sealed class ReplyComposer(
         }
 
         return reply.ToString();
+    }
+
+    /// <summary>
+    /// Whether a mood fragment would repeat the first word of the line it is about to sit in front
+    /// of — "sure." in front of "sure, whatever you say." reads as two messages glued together.
+    /// </summary>
+    /// <remarks>
+    /// Four of the corpus review's BROKEN-OUTPUT findings were this, all of them the four-word
+    /// default fragment pool ("sure.", "ok.", "right.", "mm.") landing on a pool line that opens
+    /// the same way. Only the first word is compared: the fragment is one word by construction,
+    /// and looking deeper would suppress fragments that read fine.
+    /// </remarks>
+    private static bool Echoes(string fragment, string core) =>
+        FirstWord(fragment).Equals(FirstWord(core), StringComparison.OrdinalIgnoreCase)
+        && FirstWord(fragment).Length > 0;
+
+    /// <summary>Leading run of letters, so "sure." and "sure," both give "sure".</summary>
+    private static string FirstWord(string text)
+    {
+        ReadOnlySpan<char> span = text.AsSpan().TrimStart();
+        int end = 0;
+        while (end < span.Length && char.IsLetter(span[end]))
+        {
+            end++;
+        }
+
+        return new string(span[..end]);
     }
 
     private static void Append(StringBuilder reply, string part)

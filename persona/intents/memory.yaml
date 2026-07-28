@@ -16,7 +16,10 @@ intents:
         - "i go by (?<nm>[a-z][\\w'\\-]*)"
         - "the name'?s (?<nm>[a-z][\\w'\\-]*)"
     pool: name_ack
-    template: "{$nm}. noted."
+    # No template. All six name_ack lines already contain {name} (engine.yaml:128), and a template
+    # is *appended* to the pool line (ReplyComposer.cs:115) rather than replacing it -- so
+    # "my name is Hau" answered "Hau, huh. i'll allow it. Hau. noted." The slot is written by
+    # `learns:` below and resolves on this same turn, which is why the pool alone is enough.
     learns:
       name: nm
     affect:

@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Sonarr.Elaine.Conversation;
 using Sonarr.Elaine.Persona;
 
@@ -246,5 +247,46 @@ public class ChatEngineTests
     {
         TurnResult result = Engine.Turn(Fresh(), Say("what do you think about music"));
         Assert.NotNull(result.State.Topics);
+    }
+
+    [Fact]
+    public void Turn_NeverOpensWithTheSameWordTwice()
+    {
+        // A mood fragment is prepended to the pool line one turn in three, and the default
+        // fragment pool is four one-word lines ("sure.", "ok.", "right.", "mm.") -- so it can
+        // land in front of a pool line that opens the same way: "sure. sure, whatever you say."
+        // Four of the corpus review's broken-output findings were exactly this, and a reader
+        // concludes two messages got glued together.
+        //
+        // The guard lives in ReplyComposer.Echoes. This pins it, because a sweep over today's
+        // rendering is evidence and not a guard: the fragment pool is persona data, so tomorrow's
+        // edit can add a word that collides with a line nobody thought to check.
+        List<string> stutters = [];
+
+        foreach (string text in new[]
+        {
+            "testicular torsion", "sure whatever", "ok then", "right so anyway", "mm hm",
+            "hello", "what are you", "i hate you", "tell me a joke", "play something",
+        })
+        {
+            // Enough salts that the one-in-three fragment fires on every input.
+            for (ulong salt = 1; salt <= 40; salt++)
+            {
+                if (Engine.Turn(Fresh(salt), Say(text)).Text is not { } reply)
+                {
+                    continue;
+                }
+
+                Match m = Regex.Match(reply, @"^\s*([a-z]+)[.,!?]\s+([a-z]+)",
+                    RegexOptions.IgnoreCase);
+                if (m.Success && m.Groups[1].Value.Equals(
+                        m.Groups[2].Value, StringComparison.OrdinalIgnoreCase))
+                {
+                    stutters.Add($"\"{text}\" (salt {salt}) -> {reply}");
+                }
+            }
+        }
+
+        Assert.True(stutters.Count == 0, string.Join(Environment.NewLine, stutters));
     }
 }
