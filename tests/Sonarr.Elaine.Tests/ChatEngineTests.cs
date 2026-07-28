@@ -155,6 +155,52 @@ public class ChatEngineTests
     }
 
     [Fact]
+    public void Turn_AGrudgeSurvivesANightAwayAndCoolsOverDays()
+    {
+        ConversationState mad = Fresh();
+        for (int i = 0; i < 8; i++)
+        {
+            mad = Engine.Turn(mad, Say("you're an idiot")).State;
+        }
+
+        double held = mad.Registers[Registers.Names.Grudge];
+        Assert.True(held > 4, $"eight insults should build a grudge, got {held}");
+
+        // Same turn replayed at four different return times: the only thing that changes is the
+        // step count ClockSignals derived from how long they were gone.
+        DateTimeOffset left = new(2026, 7, 1, 12, 0, 0, TimeSpan.Zero);
+        double Grudge(TimeSpan away) => Engine.Turn(mad, new TurnInput
+        {
+            Text = "hey",
+            ExtraDecaySteps = ClockSignals.From(Graph, left + away, left).ExtraDecaySteps,
+        }).State.Registers[Registers.Names.Grudge];
+
+        double night = Grudge(TimeSpan.FromHours(8));
+        double week = Grudge(TimeSpan.FromDays(7));
+        double month = Grudge(TimeSpan.FromDays(30));
+
+        // Sleeping on it is not an apology: 0.02/turn over 8 hours is noise. A week is not.
+        Assert.True(night > held - 0.5, $"a night away should not clear a grudge: {held} → {night}");
+        Assert.True(week < night - 1, $"a week away should cool it: {night} → {week}");
+        Assert.True(month < week, $"a month away should cool it further: {week} → {month}");
+    }
+
+    [Fact]
+    public void ClockSignals_CatchUpDecayIsCappedSoAYearAwayIsNotAWipe()
+    {
+        DateTimeOffset left = new(2026, 7, 1, 12, 0, 0, TimeSpan.Zero);
+
+        // Uncapped, a year away is 8760 steps — enough to snap every register to baseline, which
+        // is just "forget anyone who takes a holiday". The cap is what keeps a nemesis a nemesis.
+        Assert.Equal(
+            ClockSignals.MaxExtraDecaySteps,
+            ClockSignals.From(Graph, left.AddYears(1), left).ExtraDecaySteps);
+
+        // First contact is not an absence, so it gets no catch-up decay at all.
+        Assert.Equal(0, ClockSignals.From(Graph, left, null).ExtraDecaySteps);
+    }
+
+    [Fact]
     public void Turn_RecordsTheWinnerInTheFiredLogSoOnceAndCooldownCanHold()
     {
         TurnResult result = Engine.Turn(Fresh(), Say("my name is Sam"));
