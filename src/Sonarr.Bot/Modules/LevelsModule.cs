@@ -54,7 +54,9 @@ public sealed class LevelsModule(ILevelService levels) : SonarrModuleBase<Socket
             .AddField("Level", card.Level, inline: true)
             .AddField("Rank", card.Rank > 0 ? $"#{card.Rank}" : "unranked", inline: true)
             .AddField("Total XP", Number(card.Xp), inline: true)
-            .AddField("Streak", card.StreakDays == 1 ? "1 day" : $"{card.StreakDays} days", inline: true)
+            // The card's streak is already derived against today (StreakRules.CurrentDays), so a
+            // broken one shows as none rather than yesterday's number.
+            .AddField("Streak", Streak(card.StreakDays), inline: true)
             .AddField("Voice", LevelBar.Duration(card.VoiceSeconds), inline: true)
             .AddField("To next level", $"{Number(card.XpToNextLevel)} XP", inline: true);
 
@@ -176,7 +178,17 @@ public sealed class LevelsModule(ILevelService levels) : SonarrModuleBase<Socket
     private static string Column(LevelCard card)
         => $"Level **{card.Level}**\n{Number(card.Xp)} XP\n"
            + (card.Rank > 0 ? $"Rank #{card.Rank}\n" : "Unranked\n")
-           + $"`{LevelBar.Render(card.Fraction)}`\nStreak {card.StreakDays}d";
+           + $"`{LevelBar.Render(card.Fraction)}`\nStreak {Streak(card.StreakDays)}";
+
+    /// <summary>
+    /// Zero is "none" rather than "0 days" — a broken streak reads as a state, not as a count.
+    /// </summary>
+    public static string Streak(int days) => days switch
+    {
+        <= 0 => "none",
+        1 => "1 day",
+        _ => $"{days} days",
+    };
 
     private static string Number(long value) => value.ToString("N0", CultureInfo.InvariantCulture);
 

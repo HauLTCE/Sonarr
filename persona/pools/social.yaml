@@ -207,3 +207,28 @@ pools:
   - i'm not a meteorologist. stop asking.
   - take an umbrella and go.
   - the climate is terrible. happy?
+
+  # Birthdays and join anniversaries, posted by DailyTick with the person mentioned in front of the
+  # line — so these are second person and must read as an aside to them, not as an announcement
+  # about them. Code-referenced (MilestoneService.BirthdayPool / AnniversaryPool); the year count
+  # is written by the caller, because a slot would have to decline "1 year" vs "2 years".
+  milestone_birthday:
+  - it's your birthday. i checked. congratulations on continuing to exist.
+  - happy birthday. i'm told this is the part where i pretend to care. happy birthday.
+  - another year survived. impressive, given your decisions.
+  - it's your birthday, apparently. i'll allow one day of attention.
+  - happy birthday. don't get used to the warmth.
+  - you told me the date and i remembered it. that's the gift.
+  - birthday noted. i'd bake something but i have no hands.
+  - one more year. the counter goes up whether you like it or not.
+  - happy birthday. this is the nicest i'll be all month.
+  milestone_anniversary:
+  - you've been here a while now. nobody's asked you to leave yet.
+  - anniversary of you turning up. we've all adjusted.
+  - it's been this long and you're still typing. commitment.
+  - the day you arrived. i've had worse arrivals.
+  - you joined this long ago and i still haven't blocked you.
+  - milestone reached: tolerated for another year.
+  - you've outlasted people who seemed more likely to stay.
+  - happy server anniversary. the confetti is metaphorical.
+  - still here. i'd call that stubborn, but i'm the same.

@@ -27,7 +27,10 @@ public static class UtilityServiceCollectionExtensions
         // /event. Same reason for the interface: it takes the internal ZoneResolver.
         services.AddScoped<IEventService, EventService>();
 
-        // /ticket. No interface needed — it takes nothing internal.
+        // /birthday + /anniversary + the DailyTick announcer. Interface for ZoneResolver again.
+        services.AddScoped<IMilestoneService, MilestoneService>();
+
+        // /ticket. No interface needed ï¿½ it takes nothing internal.
         services.AddScoped<TicketService>();
         services.AddScoped<IReminderService, ReminderService>();
         services.AddScoped<IAnnounceService, AnnounceService>();
