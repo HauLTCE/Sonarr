@@ -170,7 +170,18 @@ J2900 · nothing durable lost on restart.
 ### Cutover ([11-deployment.md](docs/11-deployment.md#migration--cutover-end-of-phase-2))
 
 - [ ] Freeze old bot (`systemctl stop sonarr`), WAL-checkpoint SQLite, copy data
+      — **rehearsed 2026-07-28 with no freeze**: snapshot (`cp -a` the `.db` + `-wal` + `-shm`),
+      `wal_checkpoint(TRUNCATE)` + `journal_mode=delete` on the copy, `integrity_check` ok, and
+      per-table `count(*)` equal to the live DB opened read-only across all 10 tables. The 762 KB
+      WAL against a 155 KB main file is why the sidecars must travel with it. Only the real
+      `systemctl stop` is left, and that is the user's downtime call.
 - [ ] Run migrator → Postgres; verify reconciliation
+      — **rehearsed 2026-07-28** against a throwaway `sonarr_rehearsal` DB (dropped after; prod
+      and the live bot untouched). `migrate` applied Initial; `import` wrote 28 rows matching prod
+      row-for-row; a second run wrote 24 and left every count identical, so re-runnability is
+      tested. Two traps found and documented in 11-deployment: the snapshot needs
+      `chown 1654:1654` or the import dies partway on `playlists.json` (0600 root-only), and the
+      6 skipped playlists are the pre-guild flat format the old bot already refuses to serve.
 - [ ] Register slash commands; run SelfTest + `/checkperms`
 - [ ] Smoke-test music (incl. VC-drag) on the test guild, then the real one
 - [ ] `systemctl disable sonarr`; new stack `restart: unless-stopped`
