@@ -87,10 +87,11 @@ try
         counters = m.Snapshot(),
     }));
 
-    // The panel surface (docs/09): login, the user's own data, the public status blob and the
-    // allow-listed admin routes.
+    // The panel surface (docs/09): login, the user's own data, the rest of the user pages, the
+    // public status blob and the allow-listed admin routes.
     app.MapSonarrAuth();
     app.MapSonarrMe();
+    app.MapSonarrPanel();
     app.MapSonarrStatus();
     app.MapSonarrAdmin();
 

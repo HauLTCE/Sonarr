@@ -33,6 +33,13 @@ public interface IMusicStatsRepository
     /// <summary>Current tally for one track, or <c>null</c> when nobody has voted.</summary>
     Task<RatedTrack?> GetRatingAsync(ulong guildId, string uri, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// One user's own votes, newest first — the panel's "my ratings" (docs/09). The tally is the
+    /// whole guild's, so the row reads "you liked this, the room is +3".
+    /// </summary>
+    Task<IReadOnlyList<MyRating>> GetUserRatingsAsync(
+        ulong guildId, ulong userId, int limit, CancellationToken cancellationToken = default);
+
     /// <summary>Crowd favourites, best score first (<c>/toptracks</c>).</summary>
     Task<IReadOnlyList<RatedTrack>> GetTopRatedAsync(
         ulong guildId, int limit, CancellationToken cancellationToken = default);

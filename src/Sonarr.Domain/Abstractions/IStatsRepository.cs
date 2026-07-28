@@ -29,4 +29,26 @@ public interface IStatsRepository
         int voiceUsers,
         int messageDelta = 0,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// The admin Stats page (docs/09): command usage, the activity series and member growth for one
+    /// guild over a window. One call rather than three, because the page is one screen.
+    /// </summary>
+    /// <param name="days">Window length, clamped by the implementation.</param>
+    Task<GuildStats> GetStatsAsync(long guildId, int days, CancellationToken ct = default);
 }
+
+/// <param name="Commands">Most-used first, summed over the window.</param>
+/// <param name="Activity">One point per hour bucket, oldest first.</param>
+/// <param name="Growth">Members first seen per day, oldest first — the growth chart.</param>
+public sealed record GuildStats(
+    int Days,
+    IReadOnlyList<CommandUsageCount> Commands,
+    IReadOnlyList<ActivityPoint> Activity,
+    IReadOnlyList<MemberGrowthPoint> Growth);
+
+public sealed record CommandUsageCount(string Command, long Count);
+
+public sealed record ActivityPoint(DateTimeOffset HourBucket, int Messages, int VoiceUsers, int OnlineEstimate);
+
+public sealed record MemberGrowthPoint(DateOnly Day, int Joined);

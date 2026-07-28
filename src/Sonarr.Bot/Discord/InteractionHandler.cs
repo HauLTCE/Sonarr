@@ -19,6 +19,7 @@ public sealed class InteractionHandler(
     InteractionService interactions,
     IServiceProvider services,
     SonarrMetrics metrics,
+    UserErrorLog errors,
     ILogger<InteractionHandler> log) : IHostedService
 {
     public Task StartAsync(CancellationToken cancellationToken)
@@ -81,9 +82,15 @@ public sealed class InteractionHandler(
         log.LogError(exception, "Interaction {What} failed (case {CaseId}): {Reason}",
             what, caseId, reason ?? exception?.Message ?? "unknown");
 
-        await RespondAsync(interaction,
-            $"Something broke on my end. Reference `{caseId}` if you want someone to look at it.",
-            ephemeral: true);
+        var friendly = $"Something broke on my end. Reference `{caseId}` if you want someone to look at it.";
+
+        // Same line, kept for the panel's "My errors" page — the reason a user does not need an
+        // errors channel on Discord (docs/09). The exception itself stays in the log.
+        errors.Record(
+            interaction.User?.Id ?? 0,
+            new UserError(caseId, what, friendly, DateTimeOffset.UtcNow));
+
+        await RespondAsync(interaction, friendly, ephemeral: true);
     }
 
     /// <summary>Errors are always ephemeral (docs/07-commands.md#design-rules).</summary>

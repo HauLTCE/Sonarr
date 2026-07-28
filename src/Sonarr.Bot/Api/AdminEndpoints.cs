@@ -29,6 +29,7 @@ public static class AdminEndpoints
         group.MapGet("/flags/{guildId}", GetFlagsAsync);
         group.MapPut("/flags/{guildId}", SetFlagAsync);
         group.MapGet("/cases/{guildId}", GetCasesAsync);
+        group.MapGet("/stats/{guildId}", GetStatsAsync);
         group.MapGet("/audit", GetAuditAsync);
 
         return routes;
@@ -161,6 +162,41 @@ public static class AdminEndpoints
                 c.ExpiresAt,
                 c.CreatedAt,
             }),
+        });
+    }
+
+    /// <summary>
+    /// Command usage, the activity series and member growth (docs/09's admin Stats page).
+    /// </summary>
+    /// <remarks>
+    /// Aggregates only. Nothing here is keyed to a person: the activity samples are counts per hour
+    /// and growth is joins per day, so the page an admin sees never becomes a way to read one
+    /// member's timeline (docs/06).
+    /// </remarks>
+    private static async Task<IResult> GetStatsAsync(
+        ulong guildId, HttpContext http, IWebAuthService auth, IStatsRepository stats, int days,
+        CancellationToken ct)
+    {
+        if (await Gate(http, auth, write: false, ct) is null)
+        {
+            return Deny(http);
+        }
+
+        // days is clamped in the repository; 30 is the page's default window.
+        GuildStats result = await stats.GetStatsAsync((long)guildId, days <= 0 ? 30 : days, ct);
+
+        return Results.Ok(new
+        {
+            days = result.Days,
+            commands = result.Commands.Select(c => new { command = c.Command, count = c.Count }),
+            activity = result.Activity.Select(a => new
+            {
+                at = a.HourBucket,
+                messages = a.Messages,
+                voiceUsers = a.VoiceUsers,
+                online = a.OnlineEstimate,
+            }),
+            growth = result.Growth.Select(g => new { day = g.Day, joined = g.Joined }),
         });
     }
 
