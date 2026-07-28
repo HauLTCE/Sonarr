@@ -1,28 +1,24 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 
-import { currentLocale } from "@/lib/locale";
+import { currentLocale } from "../lib/locale";
 
 import "./globals.css";
 
 /**
- * Sonarr branding only (docs/09 naming rule) — no framework or vendor names in anything a visitor
- * sees.
- *
- * The three faces are fetched by `next/font/google` at build time and served from our own origin,
- * so a running container makes no request to a font CDN and the CSP stays `default-src 'self'`.
- * The build stage already needs the network for `npm ci`, so this costs no new reachability.
+ * `next/font/google` downloads these at build time and serves them from `/_next/static/media`, so
+ * they load under the panel's own CSP (`default-src 'self'`) with no Google connection at runtime.
  */
-const heading = Inter({
-  subsets: ["latin"],
+const body = Plus_Jakarta_Sans({
+  subsets: ["latin", "latin-ext"],
   display: "swap",
-  variable: "--font-heading",
+  variable: "--font-body",
 });
 
-const body = Plus_Jakarta_Sans({
-  subsets: ["latin"],
+const heading = Inter({
+  subsets: ["latin", "latin-ext"],
   display: "swap",
-  variable: "--font-sans",
+  variable: "--font-head",
 });
 
 const mono = JetBrains_Mono({
@@ -33,21 +29,22 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Sonarr",
-  description: "Your data, your settings, in one place.",
+  description: "Your data, your server's settings, and the bot's health.",
+  // The panel is behind a login and holds personal data; there is nothing here for a crawler.
   robots: { index: false, follow: false },
 };
 
-export const viewport = {
-  // Matches --bg, so the mobile browser chrome does not sit in a different colour to the page.
-  themeColor: "#f3f5f2",
+export const viewport: Viewport = {
+  // Named so a dark page does not flash a light browser chrome on load.
+  colorScheme: "dark",
+  themeColor: "#0c0e10",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // lang has to be the real locale: a screen reader picks its voice from it.
   const locale = await currentLocale();
 
   return (
-    <html lang={locale} className={`${heading.variable} ${body.variable} ${mono.variable}`}>
+    <html lang={locale} className={`${body.variable} ${heading.variable} ${mono.variable}`}>
       <body>{children}</body>
     </html>
   );

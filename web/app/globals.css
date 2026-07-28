@@ -1,693 +1,796 @@
 /*
- * Registered so the mood drift can interpolate it. An ordinary custom property is a token stream
- * as far as the animation engine is concerned, so `@keyframes` on it would jump from one shade to
- * the next at the halfway point instead of sliding; typing it as <color> makes it animatable.
- * `inherits: true` keeps every descendant reading the animated value rather than the initial one.
+ * One dark palette. Not a theme with a dark variant — there is no light mode to fall back to, so
+ * every colour here is chosen against #0c0e10 rather than inverted from a light set.
+ *
+ * Registered with @property where it needs to interpolate: a plain custom property is a string to
+ * the animation engine, so a bare `--accent` transition snaps instead of blending. And a var() with
+ * no fallback pointing at an unregistered property invalidates the whole declaration, which is why
+ * every one of these has a real initial-value.
  */
+
 @property --accent {
   syntax: "<color>";
   inherits: true;
-  initial-value: #2b6149;
+  initial-value: #7dd3a0;
 }
-
-@keyframes mood-drift {
-  from {
-    --accent: var(--accent-from);
-  }
-  to {
-    --accent: var(--accent-to);
-  }
-}
-
-/*
- * One stylesheet of plain CSS with variables: the panel is a dozen pages of tables and forms,
- * which is below the weight class where a utility framework or a component library pays for itself.
- *
- * Three faces, each with a job (docs/09): Inter for headings, Plus Jakarta Sans for body copy,
- * JetBrains Mono for ids, counts and anything a person might copy. They are self-hosted by
- * `next/font/google` in app/layout.tsx, which sets --font-heading/--font-sans/--font-mono.
- * Every stack here still ends in a system fallback, so a font that failed to build degrades to
- * a sans-serif rather than to the browser's default serif.
- *
- * Contrast: every foreground/background pair below clears WCAG AA at body size — --muted on --bg
- * is 5.0:1, --text on --bg is 15.8:1, and white on every mood accent in moods.css is at least
- * 4.9:1. Focus rings are never removed, only restyled.
- */
 
 :root {
-  color-scheme: light;
+  /* Depth by elevation, not by borders alone: three surfaces and one hairline. */
+  --bg: #0c0e10;
+  --surface: #14171a;
+  --surface-2: #1b1f23;
+  --line: #262c31;
 
-  --bg: #f3f5f2;
-  --surface: #ffffff;
-  --surface-2: #e8ebe6;
-  --border: #d7dcd6;
-  --border-strong: #c3cabf;
-  --text: #0f1612;
-  --muted: #5d6d63;
+  /* 14.8:1 on --bg. Body text is the one thing that must never be the "muted" grey. */
+  --text: #e8eaed;
+  /* 5.9:1 on --bg — above AA for body, used for secondary lines only. */
+  --muted: #9aa3ab;
+  /* 4.6:1 — labels and metadata, never a full sentence a user has to read. */
+  --faint: #757e86;
 
-  /* Overridden per mood by MoodAccent.tsx. The default is her NEUTRAL green, so the page is
-     already correct before the first mood arrives — and stays correct if the bot is down. */
-  --accent: #2b6149;
-  --accent-from: #2b6149;
-  --accent-to: #2f5d6b;
-  --accent-soft: #2b614914;
-  --accent-text: #ffffff;
-
-  --good: #1c6b46;
-  --bad: #a3231f;
-  --warn: #8a5a09;
+  --accent: #7dd3a0;
+  --accent-ink: #0c0e10;
+  --danger: #f0837a;
+  --danger-ink: #2a0f0d;
+  --warn: #e0b872;
+  /* Its own colour rather than --accent: the accent tracks her mood and can drift anywhere, and
+     "healthy" must not turn amber because she is in a mood. */
+  --ok: #7dd3a0;
 
   --radius: 10px;
   --radius-sm: 6px;
-  --gap: 1rem;
-  --page: 74rem;
 
-  /* Two shadows only: one for things resting on the page, one for things floating above it. */
-  --shadow: 0 1px 2px rgba(15, 22, 18, 0.04), 0 1px 3px rgba(15, 22, 18, 0.06);
-  --shadow-lift: 0 2px 4px rgba(15, 22, 18, 0.05), 0 8px 24px rgba(15, 22, 18, 0.08);
-
+  /* One duration for the whole app, so the slide and every hover feel like one thing. */
+  --slide: 220ms;
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
-  --fast: 140ms;
-  --slow: 260ms;
+
+  /* Tells the browser to draw native scrollbars, form controls and focus rings dark. Without it
+     a <select> renders white-on-white in an otherwise dark page. */
+  color-scheme: dark;
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+html,
+body {
   margin: 0;
   padding: 0;
 }
 
-html {
-  height: 100%;
-  /* Anchored headings on the long pages clear the sticky topbar. */
-  scroll-padding-top: 5rem;
-}
-
 body {
-  min-height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-sans), "Plus Jakarta Sans", system-ui, sans-serif;
-  font-size: 16px;
-  line-height: 1.55;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  /* Kills the 300ms tap delay without disabling zoom. */
-  touch-action: manipulation;
-}
-
-a {
-  color: var(--accent);
-  text-decoration: none;
-  transition: color var(--fast) var(--ease);
-}
-
-a:hover,
-a:focus-visible {
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
-}
-
-/* Visible on every interactive element, including ones with a custom background. */
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
 }
 
 h1,
 h2,
 h3 {
-  font-family: var(--font-heading), Inter, system-ui, sans-serif;
+  font-family: var(--font-head), system-ui, sans-serif;
   font-weight: 650;
-  letter-spacing: -0.018em;
-  /* Two-line headings break where the sentence does, not wherever the box ends. */
-  text-wrap: balance;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  margin: 0;
 }
 
 h1 {
-  font-size: clamp(1.55rem, 1.2rem + 1.2vw, 2rem);
-  line-height: 1.18;
+  font-size: 1.75rem;
 }
 
 h2 {
   font-size: 1.15rem;
-  line-height: 1.3;
 }
 
 h3 {
-  font-size: 0.98rem;
+  font-size: 0.95rem;
 }
 
-code,
-.mono {
-  font-family: var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
-  font-size: 0.88em;
-  font-variant-ligatures: none;
+p {
+  margin: 0;
 }
 
-code {
-  background: var(--surface-2);
+a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+/* Visible on every interactive element, and on the accent it has to be light rather than accent —
+   an accent ring on an accent button is invisible. */
+:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
   border-radius: var(--radius-sm);
-  padding: 0.1em 0.35em;
 }
 
-/* Reachable by keyboard, out of the way until focused — the first tab stop on every page. */
-.skip {
-  position: absolute;
-  left: -9999px;
-  top: 0;
-  background: var(--accent);
-  color: var(--accent-text);
-  padding: 0.55rem 0.85rem;
-  border-radius: 0 0 var(--radius) 0;
-  z-index: 40;
+/* The mono face carries ids, counts and section labels — anything a person might compare
+   character by character. */
+.mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
 }
 
-.skip:focus {
-  left: 0;
-}
+/* ------------------------------------------------------------------ layout */
 
-.shell {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
+/*
+ * The frame is a fixed three-row grid: header, the sliding stage, the rail. The stage is the only
+ * scrolling region, so the rail never leaves the screen — it is the navigation, and navigation you
+ * have to scroll to reach is a menu you have hidden.
+ */
+.frame {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 100dvh;
 }
 
-/* ---- topbar ------------------------------------------------------------------------------ */
-
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 30;
+.header {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
-  flex-wrap: wrap;
-  padding: 0.6rem max(1.25rem, env(safe-area-inset-left)) 0;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--border);
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
 }
 
 .brand {
-  font-family: var(--font-heading), Inter, system-ui, sans-serif;
-  font-weight: 700;
-  font-size: 1.05rem;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--font-head), sans-serif;
+  font-weight: 650;
   letter-spacing: -0.02em;
-  color: var(--text);
-  padding-bottom: 0.6rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
 }
 
-.brand:hover {
-  text-decoration: none;
+/* The tier badge. A visitor should be able to tell at a glance which of the three panels they are
+   looking at, without opening a page to find out. */
+.tier {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--accent);
+  border: 1px solid color-mix(in oklab, var(--accent) 40%, transparent);
+  border-radius: 999px;
+  padding: 2px 9px;
 }
 
-/* The live mood dot: the accent has a shape as well as a colour, so the mood is legible to
-   someone who cannot tell #a3365e from #2b6149. Its title attribute names the mood in words. */
-.brand .dot {
-  width: 0.6rem;
-  height: 0.6rem;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-  transition: background var(--slow) var(--ease);
-}
-
-.topbar .spacer {
-  flex: 1;
-}
-
-.topbar nav {
-  display: flex;
-  align-items: stretch;
-  gap: 0.15rem;
-  flex-wrap: wrap;
-}
-
-/* ---- tabs: the sliding underline ---------------------------------------------------------- */
-
-/*
- * The bar under the open tab is a pseudo-element that scales along X rather than a measured,
- * absolutely-positioned element that JS has to keep in sync with the layout. Transform-only, so
- * it composites, and it stays correct when the nav wraps to two rows on a phone.
- */
-.tab {
+.stage {
   position: relative;
-  padding: 0.4rem 0.7rem 0.75rem;
-  color: var(--muted);
-  font-size: 0.92rem;
-  font-weight: 500;
-  white-space: nowrap;
-  transition: color var(--fast) var(--ease);
+  overflow-y: auto;
+  padding: 32px 24px 40px;
 }
 
-.tab::after {
-  content: "";
-  position: absolute;
-  left: 0.35rem;
-  right: 0.35rem;
-  bottom: -1px;
-  height: 2px;
-  border-radius: 2px 2px 0 0;
-  background: var(--accent);
-  transform: scaleX(0);
-  transform-origin: left center;
-  transition: transform var(--slow) var(--ease), background var(--slow) var(--ease);
-}
-
-.tab:hover,
-.tab:focus-visible {
-  color: var(--text);
-  text-decoration: none;
-}
-
-.tab:hover::after {
-  transform: scaleX(0.45);
-}
-
-.tab[aria-current="page"] {
-  color: var(--text);
-  font-weight: 600;
-}
-
-.tab[aria-current="page"]::after {
-  transform: scaleX(1);
-}
-
-/* ---- main / page transition -------------------------------------------------------------- */
-
-main {
-  flex: 1;
-  width: 100%;
-  max-width: var(--page);
+.sheet {
+  max-width: 900px;
   margin: 0 auto;
-  padding: 2rem max(1.25rem, env(safe-area-inset-left)) 4rem
-    max(1.25rem, env(safe-area-inset-right));
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
 }
+
+/* Login, logout and the 404: pages that exist outside the frame because there is no session to
+   build a rail from. Narrower than .sheet — one form, centred, nothing to navigate to. */
+.solo {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+}
+
+.solo .sheet {
+  max-width: 480px;
+  width: 100%;
+}
+
+/* ------------------------------------------------------------------ the slide */
 
 /*
- * Route changes slide in from the side the visitor moved toward — forward through the nav comes
- * in from the right, back comes in from the left. Opacity and transform only.
+ * Opacity plus a 24px shift, the direction taken from whether the target page is ahead or behind.
+ * Borrowed from the slides deck; the difference is that each page here keeps its own URL, so this
+ * animates a navigation rather than replacing one.
  */
-.page {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  animation: slide-in var(--slow) var(--ease) both;
+.slide {
+  animation: slide-in var(--slide) var(--ease) both;
 }
 
-.page[data-dir="back"] {
+.slide[data-dir="back"] {
   animation-name: slide-in-back;
 }
 
 @keyframes slide-in {
   from {
     opacity: 0;
-    transform: translate3d(1.25rem, 0, 0);
+    transform: translateX(24px);
   }
 }
 
 @keyframes slide-in-back {
   from {
     opacity: 0;
-    transform: translate3d(-1.25rem, 0, 0);
+    transform: translateX(-24px);
   }
 }
 
-/* Inherits main's column flow so a page's own cards keep their spacing inside the animated box. */
-.page-inner {
+/* Motion is decoration here — the page arrives either way. */
+@media (prefers-reduced-motion: reduce) {
+  .slide {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------ the rail */
+
+/*
+ * Position indicator and navigation in one strip: a segment per page, the current one wide and
+ * accent-filled. Real <a> elements, so it works with a keyboard, a screen reader and a middle
+ * click, and so a page is still reachable with JavaScript off.
+ */
+.rail {
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+  padding: 12px 24px 14px;
+}
+
+.rail-inner {
+  max-width: 900px;
+  margin: 0 auto;
   display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  align-items: center;
+  gap: 14px;
+}
+
+.segs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
   min-width: 0;
 }
 
-/* Login is two short cards; at full page width they read as banners rather than a form. */
-main.narrow {
-  max-width: 32rem;
-  padding-top: 3.5rem;
+.seg {
+  display: block;
+  height: 6px;
+  flex: 1 1 0;
+  min-width: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  transition: background var(--slide) var(--ease), flex-grow var(--slide) var(--ease);
 }
 
-.lead {
+.seg:hover {
+  background: var(--faint);
+}
+
+.seg[aria-current="page"] {
+  background: var(--accent);
+  flex-grow: 3;
+}
+
+.seg-label {
+  font-size: 0.75rem;
   color: var(--muted);
-  max-width: 62ch;
-  font-size: 1.02rem;
+  white-space: nowrap;
 }
 
-/* ---- cards, stats, charts ---------------------------------------------------------------- */
+.counter {
+  font-size: 0.6875rem;
+  color: var(--faint);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ header end */
+
+.header-end {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* The server picker: label beside the control, not above, because it sits in a one-line header. */
+.picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.picker-label {
+  font-size: 0.75rem;
+  color: var(--faint);
+  white-space: nowrap;
+}
+
+.picker select {
+  width: auto;
+  min-width: 10ch;
+  max-width: 24ch;
+  padding: 5px 8px;
+  font-size: 0.8125rem;
+  background: var(--surface);
+}
+
+/* ------------------------------------------------------------------ page head */
+
+.page-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  color: var(--faint);
+  margin-bottom: 8px;
+}
+
+/* Every page opens with a title and one sentence saying what it is for. That sentence is the
+   answer to "how does the user know what to do here" and is not optional. */
+.page-lead {
+  color: var(--muted);
+  margin-top: 8px;
+  max-width: 62ch;
+}
+
+.page-head {
+  margin-bottom: 28px;
+}
+
+.page-head h1::after {
+  content: "";
+  display: block;
+  width: 38px;
+  height: 3px;
+  margin-top: 12px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+/* ------------------------------------------------------------------ cards */
 
 .card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 1.15rem 1.25rem;
-  box-shadow: var(--shadow);
+  padding: 18px 20px;
+}
+
+.card + .card {
+  margin-top: 14px;
+}
+
+.card-head {
   display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-  /* A card holding a wide table must be allowed to shrink, or .scroll never scrolls. */
-  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.card-note {
+  color: var(--muted);
+  font-size: 0.875rem;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-  gap: 0.75rem;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
+/* A number and what it means. The label is above the value because a bare figure is not
+   information. */
 .stat {
-  background: var(--surface-2);
-  border-radius: var(--radius-sm);
-  padding: 0.75rem 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.stat-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--faint);
+}
+
+.stat-value {
+  font-family: var(--font-head), sans-serif;
+  font-size: 1.5rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin-top: 4px;
+}
+
+/* For a value that is a timestamp rather than a number — same slot, less shouting. */
+.stat-value-sm {
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.stat-sub {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* Health verdicts. Colour is the second signal, never the only one — every place these are used also
+   spells the state out in words, so a red/green confusion loses nothing. */
+.stat-ok {
+  color: var(--ok);
+}
+
+.stat-bad {
+  color: var(--danger);
+}
+
+/* ------------------------------------------------------------------ rows */
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row-main {
   min-width: 0;
 }
 
-.stat dt {
-  font-family: var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
-  color: var(--muted);
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-}
-
-.stat dd {
-  font-family: var(--font-heading), Inter, system-ui, sans-serif;
-  font-size: 1.4rem;
-  font-weight: 620;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  margin-top: 0.15rem;
-  /* A long value (a track title, a timezone) wraps instead of widening the grid column. */
+.row-title {
   overflow-wrap: anywhere;
 }
 
-.bar {
-  height: 0.45rem;
+/* The number or state at the end of a row. Never a full sentence — those go in .row-sub. */
+.row-value {
+  flex: 0 0 auto;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.row-sub {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin-top: 1px;
+}
+
+/* ------------------------------------------------------------------ controls */
+
+.btn {
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 550;
+  color: var(--text);
   background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: background 120ms var(--ease), border-color 120ms var(--ease);
+}
+
+.btn:hover:not(:disabled) {
+  background: #22272c;
+  border-color: var(--faint);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-accent {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn-accent:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--accent) 88%, white);
+  border-color: color-mix(in oklab, var(--accent) 88%, white);
+}
+
+/* Destructive actions are outlined rather than filled: a solid red button invites the click it
+   should be discouraging. */
+.btn-danger {
+  color: var(--danger);
+  border-color: color-mix(in oklab, var(--danger) 45%, transparent);
+  background: transparent;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--danger) 12%, transparent);
+  border-color: var(--danger);
+}
+
+label {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+input[type="text"],
+input[type="password"],
+select {
+  font: inherit;
+  font-size: 0.9375rem;
+  width: 100%;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--accent);
+}
+
+/* ------------------------------------------------------------------ fields */
+
+.field + .field {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.field:first-of-type {
+  margin-top: 20px;
+}
+
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.field-row input,
+.field-row select {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.field-row .btn {
+  flex: 0 0 auto;
+}
+
+/* A validation reason rather than an explanation. Same slot, so the hint is replaced by the reason
+   it failed instead of the two stacking up. */
+.hint-bad {
+  color: var(--danger);
+}
+
+/* The login code, which is read off a DM one character at a time. Spaced out and larger so an 8 and
+   a B are told apart before the fifth wrong try, not after. */
+.code-input {
+  font-size: 1.25rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+/* ------------------------------------------------------------------ switch */
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  cursor: pointer;
+}
+
+/* The checkbox stays in the layout and stays focusable — only its own painting is replaced, so it
+   is still announced as a checkbox and still reachable with the keyboard. */
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 40px;
+  height: 22px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.switch-track {
+  position: relative;
+  display: block;
+  width: 40px;
+  height: 22px;
+  flex: 0 0 auto;
   border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  transition: background var(--slide) var(--ease);
+}
+
+.switch-track::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--faint);
+  transition: transform var(--slide) var(--ease), background var(--slide) var(--ease);
+}
+
+.switch input:checked + .switch-track {
+  background: color-mix(in oklab, var(--accent) 30%, transparent);
+  border-color: var(--accent);
+}
+
+.switch input:checked + .switch-track::after {
+  transform: translateX(18px);
+  background: var(--accent);
+}
+
+.switch input:focus-visible + .switch-track {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.switch input:disabled + .switch-track {
+  opacity: 0.5;
+}
+
+.switch-text {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  min-width: 4ch;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch-track,
+  .switch-track::after {
+    transition: none;
+  }
+}
+
+/* A button plus the sentence explaining it, right-aligned in a row. */
+.row-action {
+  flex: 0 0 auto;
+  max-width: 30ch;
+  text-align: right;
+}
+
+.row-action .hint {
+  margin-left: auto;
+}
+
+/* The sentence under a control saying what it will do. Present tense, before the click. */
+.hint {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin-top: 6px;
+  max-width: 62ch;
+}
+
+/* ------------------------------------------------------------------ states */
+
+.notice {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 12px 14px;
+  color: var(--muted);
+}
+
+.notice-danger {
+  border-left-color: var(--danger);
+}
+
+.notice-warn {
+  border-left-color: var(--warn);
+}
+
+/* An empty list says why it is empty and what would fill it — never just "no data". */
+.empty {
+  color: var(--muted);
+  font-size: 0.875rem;
+  padding: 8px 0;
+}
+
+.progress {
+  margin-top: 18px;
+}
+
+/* Previous/next for a paged list. Only the directions that exist are rendered, so there is no
+   disabled button at either end of the list. */
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+/* Messages per hour, as bars. An <ol> because it is an ordered series and every bar carries its own
+   hour and count in a title — the shape is the summary, the numbers are still readable. */
+.spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 90px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.spark li {
+  flex: 1 1 0;
+  min-width: 2px;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.spark li > span {
+  display: block;
+  width: 100%;
+  /* So an hour with no messages is still a visible tick rather than a gap in the series. */
+  min-height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: color-mix(in oklab, var(--accent) 65%, transparent);
+}
+
+/* Two or more buttons that each need their own explanation, so they stack rather than sit in a row
+   with the hints crammed underneath. */
+.actions {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.action .hint {
+  margin-top: 8px;
+}
+
+.bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
   overflow: hidden;
 }
 
 .bar > span {
   display: block;
   height: 100%;
-  background: var(--accent);
   border-radius: 999px;
-  transition: background var(--slow) var(--ease);
-}
-
-/* Charts are CSS bars, not a charting library: the J2900 ships HTML and a bar is a div. */
-.chart {
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  height: 8rem;
-  padding-top: 0.5rem;
-}
-
-.chart > div {
-  flex: 1;
-  min-width: 2px;
   background: var(--accent);
-  border-radius: 3px 3px 0 0;
-  transition: background var(--slow) var(--ease);
 }
 
-/* ---- tables ------------------------------------------------------------------------------ */
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.93rem;
-}
-
-caption {
-  text-align: left;
-  color: var(--muted);
-  padding-bottom: 0.6rem;
-}
-
-th,
-td {
-  text-align: left;
-  padding: 0.6rem;
-  border-bottom: 1px solid var(--border);
-  vertical-align: top;
-}
-
-th {
-  font-family: var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
-  color: var(--muted);
-  font-size: 0.7rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  white-space: nowrap;
-}
-
-tbody tr:last-child td {
-  border-bottom: none;
-}
-
-tbody tr {
-  transition: background var(--fast) var(--ease);
-}
-
-tbody tr:hover {
-  background: var(--surface-2);
-}
-
-.num {
-  font-family: var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.scroll {
-  overflow-x: auto;
-  /* A swipe that runs out of table must not turn into a page-back gesture. */
-  overscroll-behavior-x: contain;
-}
-
-/* ---- forms ------------------------------------------------------------------------------- */
-
-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-}
-
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--muted);
-  min-width: 0;
-}
-
-.row {
-  display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-  align-items: flex-end;
-}
-
-.check {
-  flex-direction: row;
-  align-items: center;
-  gap: 0.55rem;
-  /* Checkbox and its words are one hit target, not two. */
-  cursor: pointer;
-  color: var(--text);
-}
-
-input[type="text"],
-input[type="number"],
-select {
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  padding: 0.55rem 0.65rem;
-  font: inherit;
-  min-width: 0;
-  transition: border-color var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
-}
-
-input[type="text"]:hover,
-input[type="number"]:hover,
-select:hover {
-  border-color: var(--muted);
-}
-
-input[type="text"]:focus,
-input[type="number"]:focus,
-select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-
-input::placeholder {
-  color: var(--muted);
-  opacity: 0.75;
-}
-
-.hint {
-  color: var(--muted);
-  font-size: 0.82rem;
-}
-
-/* ---- buttons ----------------------------------------------------------------------------- */
-
-button {
-  font: inherit;
-  font-weight: 560;
-  background: var(--accent);
-  color: var(--accent-text);
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  padding: 0.55rem 1rem;
-  cursor: pointer;
-  transition: background var(--slow) var(--ease), transform var(--fast) var(--ease),
-    box-shadow var(--fast) var(--ease), opacity var(--fast) var(--ease);
-}
-
-button:hover:not(:disabled) {
-  box-shadow: var(--shadow-lift);
-  filter: brightness(1.08);
-}
-
-button:active:not(:disabled) {
-  transform: translateY(1px);
-  box-shadow: none;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-button.quiet {
-  background: var(--surface);
-  color: var(--text);
-  border-color: var(--border-strong);
-}
-
-button.quiet:hover:not(:disabled) {
-  background: var(--surface-2);
-  filter: none;
-}
-
-button.danger {
-  background: var(--bad);
-  color: #ffffff;
-}
-
-/* ---- notices, pills ---------------------------------------------------------------------- */
-
-/* Colour is never the only signal: each of these carries its own text or an icon character. */
-.notice {
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--accent);
-  background: var(--surface);
-  border-radius: var(--radius-sm);
-  padding: 0.75rem 0.9rem;
-  color: var(--text);
-  font-size: 0.93rem;
-}
-
-.notice.bad {
-  border-left-color: var(--bad);
-}
-
-.notice.good {
-  border-left-color: var(--good);
-}
-
-.notice.warn {
-  border-left-color: var(--warn);
-}
-
-.pill {
-  display: inline-block;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  padding: 0.1rem 0.6rem;
-  font-family: var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
-  font-size: 0.72rem;
-  color: var(--muted);
-  background: var(--surface-2);
-  white-space: nowrap;
-}
-
-.muted {
-  color: var(--muted);
-}
-
-.empty {
-  color: var(--muted);
-  font-style: italic;
-}
-
-/* ---- footer ------------------------------------------------------------------------------ */
-
-.footer {
-  padding: 1.25rem max(1.25rem, env(safe-area-inset-left))
-    max(1.25rem, env(safe-area-inset-bottom));
-  border-top: 1px solid var(--border);
-  color: var(--muted);
-  font-size: 0.82rem;
-  text-align: center;
-}
-
-/* ---- motion ------------------------------------------------------------------------------ */
-
-/*
- * Reduced motion means no motion, not less: the sliding page, the underline and the mood
- * crossfade all become instant. The mood colour still changes — it carries information — it just
- * stops animating between shades (moods.css turns the keyframe animation off too).
- */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-
-  /* Cancelled outright rather than run instantly: a 0.01ms alternate animation would leave the
-     accent parked on --accent-to, which is the shade nobody chose as the mood's primary. */
-  :root {
-    animation: none !important;
-    --accent: var(--accent-from);
-  }
-}
-
-/* ---- utility ----------------------------------------------------------------------------- */
-
-/* Present to assistive tech, absent to the eye — the standard clip pattern, not display:none,
-   which would take it out of the accessibility tree as well. */
-.sr-only {
+.skip {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
+  left: -9999px;
+}
+
+.skip:focus {
+  left: 12px;
+  top: 12px;
+  z-index: 10;
+  background: var(--surface-2);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}
+
+@media (max-width: 640px) {
+  .header,
+  .stage,
+  .rail {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .seg-label {
+    display: none;
+  }
 }

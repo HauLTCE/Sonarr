@@ -1,57 +1,68 @@
 import { redirect } from "next/navigation";
 
-import { hasSession } from "@/lib/api";
-import { currentLocale } from "@/lib/locale";
-import { moodNames } from "@/lib/mood";
-import { translator } from "@/lib/strings";
+import { apiGet } from "../../lib/api";
+import { serverTranslator } from "../../lib/locale";
 
-import { MoodAccent } from "../components/MoodAccent";
 import { LoginForm } from "./LoginForm";
 
+type Me = { userId: string };
+
 /**
- * The only page outside the shell — there is no nav to show someone who is not logged in yet.
+ * The only page outside the frame — there is no rail here, because there is nowhere to go yet.
+ *
+ * A live session skips straight through: arriving at /login while logged in is almost always a stale
+ * tab or a bookmark, and showing a login form to someone already logged in is a dead end.
  */
 export default async function LoginPage() {
-  const locale = await currentLocale();
-  const t = translator(locale);
+  const t = await serverTranslator();
 
-  // Already carrying a cookie: the panel decides whether it is still valid, not this page.
-  if (await hasSession()) {
+  const me = await apiGet<Me>("/api/me");
+  if (me.ok) {
     redirect("/");
   }
 
   return (
-    <div className="shell">
-      <a className="skip" href="#main">
-        {t("nav.skipToContent")}
-      </a>
-
-      <header className="topbar">
-        <span className="brand">
-          {/* The accent works here too: /api/status is public, so the login page is tinted by her
-              mood before anyone has logged in. */}
-          <MoodAccent names={moodNames(t)} label={t("mood.label")} />
-          {t("app.name")}
-        </span>
-      </header>
-
-      <main id="main" className="narrow">
-        <div className="card">
+    <div className="solo">
+      <div className="sheet slide">
+        <div className="page-head">
+          <div className="page-label mono">{t("app.name")}</div>
           <h1>{t("login.title")}</h1>
-          <p className="lead">{t("login.lead")}</p>
-
-          <LoginForm locale={locale} />
+          <p className="page-lead">{t("login.lead")}</p>
         </div>
 
-        {/* docs/09 asks for this explicitly: the commonest failure is closed DMs, and the flow
-            cannot report it without leaking who has an account. */}
-        <div className="card">
-          <h2>{t("login.dmsClosedTitle")}</h2>
-          <p className="lead">{t("login.dmsClosed")}</p>
-        </div>
-      </main>
+        <section className="card">
+          <LoginForm
+            labels={{
+              handle: t("login.handle"),
+              handleHint: t("login.handleHint"),
+              send: t("login.send"),
+              sending: t("login.sending"),
+              code: t("login.code"),
+              codeHint: t("login.codeHint"),
+              verify: t("login.verify"),
+              verifying: t("login.verifying"),
+              remember: t("login.remember"),
+              sent: t("login.sent"),
+              needHandle: t("login.needHandle"),
+              badCode: t("login.badCode"),
+              expired: t("login.expired"),
+              tooMany: t("login.tooMany"),
+              rateLimited: t("login.rateLimited"),
+              failed: t("login.failed"),
+              restart: t("login.restart"),
+            }}
+          />
+        </section>
 
-      <footer className="footer">{t("app.tagline")}</footer>
+        {/* The one failure this flow cannot report, because the API deliberately cannot tell us
+            whether the DM landed. So it is answered before it is asked. */}
+        <section className="card">
+          <div className="card-head">
+            <h2>{t("login.noDmTitle")}</h2>
+          </div>
+          <p className="hint">{t("login.noDm")}</p>
+        </section>
+      </div>
     </div>
   );
 }

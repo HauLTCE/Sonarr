@@ -1,50 +1,44 @@
-import type { GuildOption } from "@/lib/guilds";
-import type { Locale } from "@/lib/strings";
-import { translator } from "@/lib/strings";
+"use client";
+
+import { useRouter } from "next/navigation";
+
+import { guildQuery, type GuildOption } from "../../lib/pages";
 
 /**
- * The server picker every guild-scoped page carries.
+ * Which server the guild-scoped pages are about. Only rendered when the visitor shares more than
+ * one server with Sonarr — a picker with one option is a question with one answer.
  *
- * A plain GET form with no JavaScript: the browser submits `?guild=…` to the current page, which is
- * a server component, so switching servers is one request and works with scripting off. The submit
- * button stays rendered rather than relying on change events for the same reason.
+ * A native `<select>`, which is why `color-scheme: dark` is set on `:root`: without it the browser
+ * draws this white-on-white. It navigates on change, so the choice survives a reload and can be
+ * bookmarked, and it still works from the URL alone if the script has not loaded.
  */
 export function GuildPicker({
-  locale,
-  path,
-  options,
-  selected,
+  guilds,
+  current,
+  page,
+  label,
 }: {
-  locale: Locale;
-  path: string;
-  options: GuildOption[];
-  selected: string;
+  guilds: readonly GuildOption[];
+  current: string | undefined;
+  /** The page's `path`, so switching server keeps you on the page you were reading. */
+  page: string;
+  label: string;
 }) {
-  const t = translator(locale);
-
-  // Nothing to pick between — rendering a one-item dropdown is noise.
-  if (options.length < 2) {
-    return null;
-  }
+  const router = useRouter();
 
   return (
-    <form action={path} method="get" className="card">
-      <div className="row">
-        <label htmlFor="guild">
-          {t("guild.label")}
-          <select id="guild" name="guild" defaultValue={selected}>
-            {options.map((g) => (
-              <option key={g.guildId} value={g.guildId}>
-                {g.name}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <button type="submit" className="quiet">
-          {t("guild.switch")}
-        </button>
-      </div>
-    </form>
+    <label className="picker">
+      <span className="picker-label">{label}</span>
+      <select
+        value={current ?? ""}
+        onChange={(event) => router.push(`/${page}${guildQuery(event.target.value)}`)}
+      >
+        {guilds.map((g) => (
+          <option key={g.guildId} value={g.guildId}>
+            {g.name}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

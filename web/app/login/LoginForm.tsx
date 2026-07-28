@@ -3,196 +3,199 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { type Locale, translator } from "@/lib/strings";
+import { write } from "../../lib/client";
 
-type Stage = "handle" | "code";
+/** Every string this form can show, resolved on the server so no dictionary reaches the browser. */
+export type LoginLabels = {
+  handle: string;
+  handleHint: string;
+  send: string;
+  sending: string;
+  code: string;
+  codeHint: string;
+  verify: string;
+  verifying: string;
+  remember: string;
+  sent: string;
+  needHandle: string;
+  badCode: string;
+  expired: string;
+  tooMany: string;
+  rateLimited: string;
+  failed: string;
+  restart: string;
+};
 
 /**
- * The two-step DM-token flow (docs/09). A client component because it is the one place in the panel
- * that has to POST and react to the answer without a page of its own per step.
+ * The two-step DM login: ask for a code, then type it.
  *
- * The failure wording deliberately does not distinguish "no such account" from "DMs closed" — the
- * API returns the same 202 either way, and a page that guessed would undo that (docs/09: no user
- * enumeration). The help box covers both cases at once.
+ * Both steps stay on one page and the handle stays visible in step two, so the visitor can see what
+ * they asked a code for. The API answers `request-token` identically whether or not the account is
+ * known — so this form says "if that account is known here" rather than claiming a DM was sent.
  */
-export function LoginForm({ locale }: { locale: Locale }) {
-  // A function is not serializable across the server/client boundary, so client components take the
-  // locale and bind their own `t` — the dictionary is a module import either way.
-  const t = translator(locale);
+export function LoginForm({ labels }: { labels: LoginLabels }) {
   const router = useRouter();
-  const [stage, setStage] = useState<Stage>("handle");
-  const [username, setUsername] = useState("");
+
+  const [handle, setHandle] = useState("");
   const [code, setCode] = useState("");
   const [remember, setRemember] = useState(false);
+  const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
 
   async function requestCode(event: React.FormEvent) {
     event.preventDefault();
 
-    // Trimmed and stripped here for the person typing; the API validates it again for real.
-    const handle = username.trim().replace(/^@/, "");
-    if (!handle) {
-      setError(t("login.needHandle"));
+    // Validated here so an empty submit does not cost a round trip; the API validates too.
+    if (handle.trim().length === 0) {
+      setProblem(labels.needHandle);
+
       return;
     }
 
     setBusy(true);
-    setError(null);
+    setProblem(null);
 
-    try {
-      const response = await fetch("/api/auth/request-token", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ username: handle }),
-      });
+    const result = await write("/api/auth/request-token", "POST", { username: handle.trim() });
 
-      if (response.status === 429) {
-        setError(t("login.rateLimited"));
-        return;
-      }
+    setBusy(false);
 
-      // 202 is the only success, and it means the same thing whoever asked.
-      setUsername(handle);
-      setStage("code");
-      setNotice(t("login.sent"));
-    } catch {
-      setError(t("login.failed"));
-    } finally {
-      setBusy(false);
+    if (result.ok) {
+      setSent(true);
+
+      return;
     }
+
+    setProblem(result.status === 429 ? labels.rateLimited : labels.failed);
   }
 
   async function verify(event: React.FormEvent) {
     event.preventDefault();
-
     setBusy(true);
-    setError(null);
+    setProblem(null);
 
-    try {
-      const response = await fetch("/api/auth/verify", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ username, code: code.trim(), remember }),
-      });
+    const result = await write("/api/auth/verify", "POST", {
+      username: handle.trim(),
+      // Upper-cased because the alphabet is upper-case only and typing it in lower case is not a
+      // wrong code — it is the same code.
+      code: code.trim().toUpperCase(),
+      remember,
+    });
 
-      if (response.status === 429) {
-        setError(t("login.tooManyAttempts"));
-        setStage("handle");
-        setCode("");
-        return;
-      }
-
-      if (!response.ok) {
-        setError(t("login.badCode"));
-        setCode("");
-        return;
-      }
-
-      // The session cookie is set by the API's response; refresh so the server components on the
-      // next page read it.
-      router.push("/");
+    if (result.ok) {
+      // A full navigation rather than a push: the session cookie was just set and every page above
+      // this one reads it on the server.
+      router.replace("/");
       router.refresh();
-    } catch {
-      setError(t("login.failed"));
-    } finally {
-      setBusy(false);
+
+      return;
     }
+
+    setBusy(false);
+    setProblem(
+      result.status === 429
+        ? labels.tooMany
+        : result.status === 401
+          ? labels.badCode
+          : labels.failed,
+    );
   }
 
-  return (
-    <>
-      {/* aria-live so a screen reader hears the result of a submit without moving focus. */}
-      <div aria-live="polite">
-        {error && (
-          <p className="notice bad" role="alert">
-            {error}
-          </p>
-        )}
-        {!error && notice && <p className="notice good">{notice}</p>}
+  return sent ? (
+    <form onSubmit={verify}>
+      <p className="notice">{labels.sent}</p>
+
+      <div className="field">
+        <label htmlFor="code">{labels.code}</label>
+        <input
+          id="code"
+          name="code"
+          type="text"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          // The code is not a secret to the person holding it, and hiding it causes typos.
+          autoComplete="one-time-code"
+          inputMode="text"
+          autoCapitalize="characters"
+          spellCheck={false}
+          className="mono code-input"
+          required
+          aria-describedby="code-hint"
+          autoFocus
+        />
+        <p className="hint" id="code-hint">
+          {labels.codeHint}
+        </p>
       </div>
 
-      {stage === "handle" ? (
-        <form onSubmit={requestCode}>
-          <label htmlFor="handle">
-            {t("login.handleLabel")}
-            <input
-              id="handle"
-              name="handle"
-              type="text"
-              autoComplete="username"
-              autoCapitalize="none"
-              spellCheck={false}
-              maxLength={64}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              aria-describedby="handle-hint"
-            />
-          </label>
-          <p className="hint" id="handle-hint">
-            {t("login.handleHint")}
-          </p>
+      <div className="field">
+        <label className="switch" htmlFor="remember">
+          <input
+            id="remember"
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+          />
+          <span className="switch-track" aria-hidden="true" />
+          <span>{labels.remember}</span>
+        </label>
+      </div>
 
-          <div className="row">
-            <button type="submit" disabled={busy}>
-              {busy ? t("login.sending") : t("login.sendCode")}
-            </button>
-          </div>
-        </form>
-      ) : (
-        <form onSubmit={verify}>
-          <label htmlFor="code">
-            {t("login.codeLabel")}
-            <input
-              id="code"
-              name="code"
-              type="text"
-              inputMode="text"
-              autoComplete="one-time-code"
-              autoCapitalize="characters"
-              spellCheck={false}
-              maxLength={16}
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              aria-describedby="code-hint"
-            />
-          </label>
-          <p className="hint" id="code-hint">
-            {t("login.codeHint")}
-          </p>
+      {problem ? (
+        <p className="notice notice-danger" role="alert">
+          {problem}
+        </p>
+      ) : null}
 
-          <label className="check" htmlFor="remember">
-            <input
-              id="remember"
-              name="remember"
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-            />
-            {t("login.remember")}
-          </label>
+      <div className="actions">
+        <button className="btn btn-accent" type="submit" disabled={busy}>
+          {busy ? labels.verifying : labels.verify}
+        </button>
+        <button
+          className="btn"
+          type="button"
+          onClick={() => {
+            setSent(false);
+            setCode("");
+            setProblem(null);
+          }}
+        >
+          {labels.restart}
+        </button>
+      </div>
+    </form>
+  ) : (
+    <form onSubmit={requestCode}>
+      <div className="field">
+        <label htmlFor="handle">{labels.handle}</label>
+        <input
+          id="handle"
+          name="username"
+          type="text"
+          value={handle}
+          onChange={(e) => setHandle(e.target.value)}
+          autoComplete="username"
+          spellCheck={false}
+          required
+          aria-describedby="handle-hint"
+          autoFocus
+        />
+        <p className="hint" id="handle-hint">
+          {labels.handleHint}
+        </p>
+      </div>
 
-          <div className="row">
-            <button type="submit" disabled={busy || code.trim().length === 0}>
-              {busy ? t("login.verifying") : t("login.verify")}
-            </button>
-            <button
-              type="button"
-              className="quiet"
-              disabled={busy}
-              onClick={() => {
-                setStage("handle");
-                setCode("");
-                setNotice(null);
-                setError(null);
-              }}
-            >
-              {t("login.startOver")}
-            </button>
-          </div>
-        </form>
-      )}
-    </>
+      {problem ? (
+        <p className="notice notice-danger" role="alert">
+          {problem}
+        </p>
+      ) : null}
+
+      <div className="actions">
+        <button className="btn btn-accent" type="submit" disabled={busy}>
+          {busy ? labels.sending : labels.send}
+        </button>
+      </div>
+    </form>
   );
 }
