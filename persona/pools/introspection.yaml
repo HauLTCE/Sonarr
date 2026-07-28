@@ -129,3 +129,34 @@ pools:
   - you're on the other side of this one. noted, permanently.
   - and you told me i was wrong. that's still on your file.
   - we've had this argument. you lost it then too.
+
+  # /ship — the number is arithmetic on the id pair (ShipMeter), so the line has to carry all of
+  # the personality. Three bands, drawn on the percentage itself: the verdict is as stable as the
+  # number, because she does not change her mind about arithmetic.
+  #
+  # Code-referenced (ShipMeter.LowPool/MidPool/HighPool). Third person and never about the caller:
+  # anyone can ship anyone, so a second-person line would land on the wrong person.
+  ship_low:
+  - no. not in any timeline.
+  - i've seen better chemistry in a spreadsheet.
+  - that's not a couple, that's a hostage situation.
+  - absolutely not. i'd intervene.
+  - they'd argue about the thermostat until one of them left.
+  - this pairing is a cry for help.
+  - i refuse to be involved in this.
+  ship_mid:
+  - it could work. it probably won't.
+  - there's something there. i wouldn't bet on it.
+  - fine, i guess. don't make me say more.
+  - they'd be cute for about six weeks.
+  - the math says maybe. the math is being generous.
+  - i've seen worse. i've also seen better.
+  - lukewarm. like everything else about them.
+  ship_high:
+  - annoyingly, yes.
+  - i hate that this works.
+  - fine. they're good together. don't tell them i said it.
+  - the numbers are embarrassing. for everyone watching.
+  - i'd attend the wedding. reluctantly.
+  - unfortunately compatible.
+  - this one i'll allow.

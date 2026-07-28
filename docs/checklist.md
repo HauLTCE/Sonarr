@@ -307,7 +307,7 @@ J2900 · nothing durable lost on restart.
 - [ ] `/capsule write when message` — delivery via `core.job`
 - [ ] `/event create|list|cancel` — native Discord events + opt-in role pings
 - [ ] `/ticket` — private thread with mods; close button saves a transcript
-- [ ] `/ship user_a user_b` — deterministic seed from the id pair, no table
+- [x] `/ship user_a user_b` — deterministic seed from the id pair, no table — `ShipMeter` (Application) + `ShipModule`. FNV-1a over the *sorted* id pair, so `/ship a b` and `/ship b a` are the same question, and the answer never re-rolls — a changing number would make it obvious it means nothing. Guild-independent on purpose: two people are the same two people in every server they share, and a per-guild number invites shopping for a better one. The line is drawn seeded on the percentage rather than the turn, so the verdict is as stable as the arithmetic it claims to be. Three authored bands in `introspection.yaml` (`ship_low/mid/high`, third person — anyone can ship anyone). Public reply with `AllowedMentions.None`: the joke is for the room, but being shipped is not a notification. Nothing stored, no table, as specified.
 - [ ] `/anniversary` — auto-announced join anniversaries + command shows yours
 - [ ] Birthday feature (opt-in `core.member.birthday`, month+day)
 - [ ] `SeasonRoller` — month boundary: close season, write results, announce top chatter, open next
