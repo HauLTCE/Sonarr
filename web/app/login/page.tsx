@@ -22,7 +22,9 @@ export default async function LoginPage() {
   }
 
   return (
-    <div className="solo">
+    // <main>, not a div: this page is outside Frame, so nothing else on it is a landmark. A screen
+    // reader user jumping by landmark would otherwise find none at all here.
+    <main className="solo">
       <div className="sheet slide">
         <div className="page-head">
           <div className="page-label mono">{t("app.name")}</div>
@@ -62,6 +64,6 @@ export default async function LoginPage() {
           <p className="hint">{t("login.noDm")}</p>
         </section>
       </div>
-    </div>
+    </main>
   );
 }
