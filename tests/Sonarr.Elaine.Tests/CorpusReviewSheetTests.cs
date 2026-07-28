@@ -51,8 +51,12 @@ public class CorpusReviewSheetTests
         text.AppendLine(new string('=', 78));
         text.AppendLine();
 
+        // No BOM: `Encoding.UTF8` emits one, and a JSONL file whose first line starts with a BOM
+        // fails to parse in every reader that does not ask for utf-8-sig.
+        UTF8Encoding utf8 = new(encoderShouldEmitUTF8Identifier: false);
+
         string jsonPath = Path.Combine(Corpus.Directory, JsonFile);
-        using StreamWriter json = new(jsonPath, append: false, Encoding.UTF8);
+        using StreamWriter json = new(jsonPath, append: false, utf8);
 
         int index = 0;
         foreach (CorpusRow row in Corpus.Rows)
@@ -94,7 +98,7 @@ public class CorpusReviewSheetTests
         }
 
         string sheetPath = Path.Combine(Corpus.Directory, SheetFile);
-        File.WriteAllText(sheetPath, text.ToString(), Encoding.UTF8);
+        File.WriteAllText(sheetPath, text.ToString(), utf8);
 
         Console.WriteLine($"wrote {index} rows to {sheetPath} and {jsonPath}");
 
