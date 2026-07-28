@@ -207,6 +207,32 @@ public sealed class ChatPipelineTests
         Assert.Equal(0, people.FactReads);
     }
 
+    [Fact]
+    public async Task A_grudge_cools_by_itself_while_they_stay_away()
+    {
+        // Two identical people with a held grudge; the only difference is when they were last
+        // seen. The pipeline is the only thing that reads a clock, so this is where the wiring
+        // from "gone for a week" to ExtraDecaySteps is actually observable.
+        static async Task<double> Returning(TimeSpan away)
+        {
+            FakePersonRepository people = new();
+            people.Seed((long)Build.Guild, (long)Build.User, p =>
+            {
+                p.Registers = new PersonRegisters { Grudge = 8, Trust = -4 };
+                p.UpdatedAt = Build.Now - away;
+            });
+
+            await Build.Pipeline(people, new FakeSessionCache()).HandleAsync(Build.Request("hey"));
+            return people.Writes[^1].Person.Registers.Grudge;
+        }
+
+        double sameDay = await Returning(TimeSpan.FromMinutes(5));
+        double aWeek = await Returning(TimeSpan.FromDays(7));
+
+        Assert.True(sameDay > 7.5, $"a five-minute gap is one turn of decay: {sameDay}");
+        Assert.True(aWeek < sameDay - 1, $"a week away should cool it: {sameDay} → {aWeek}");
+    }
+
     private static async Task<string> Recall(ChatPipeline pipeline)
         => (await pipeline.HandleAsync(Build.Request("what's my name"))).Text ?? string.Empty;
 
