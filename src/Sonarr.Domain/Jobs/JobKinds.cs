@@ -20,6 +20,9 @@ public static class JobKinds
     /// <summary><c>/announce</c> with a schedule — one-shot or recurring.</summary>
     public const string Announce = "announce";
 
+    /// <summary><c>/capsule write</c> — never recurring; a capsule opens once.</summary>
+    public const string CapsuleOpen = "capsule_open";
+
     /// <summary>
     /// Payload field every user-scoped kind must write: <c>IJobRepository</c> matches ownership
     /// through <c>payload-&gt;&gt;'user_id'</c>, so <c>/reminders cancel</c> depends on it.
@@ -32,4 +35,11 @@ public static class JobKinds
 
     /// <summary>Reminder text / announcement body.</summary>
     public const string TextField = "text";
+
+    /// <summary>
+    /// <c>social.capsule.capsule_id</c> the <see cref="CapsuleOpen"/> job delivers. The message
+    /// itself stays in the table rather than the payload — the row is the one place a user's
+    /// <c>/privacy</c> export and a "forget me" delete can both reach it (docs/06).
+    /// </summary>
+    public const string CapsuleIdField = "capsule_id";
 }

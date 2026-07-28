@@ -1,5 +1,6 @@
 using Sonarr.Application.Utility;
 using Sonarr.Domain.Abstractions;
+using Sonarr.Infrastructure.Persistence.Repositories.Social;
 using Sonarr.Infrastructure.Persistence.Repositories.Stats;
 
 namespace Sonarr.Bot.Discord.Utility;
@@ -25,6 +26,9 @@ public static class UtilityServiceCollectionExtensions
         // stats.* belongs to this slice, so it is registered here rather than in
         // AddSonarrPersistence — same scoped lifetime as every other repository.
         services.AddScoped<IStatsRepository, StatsRepository>();
+
+        // social.capsule, for /capsule write and the job that opens it.
+        services.AddScoped<ICapsuleRepository, CapsuleRepository>();
 
         services.AddSingleton<WelcomeFlow>();
         services.AddHostedService(sp => sp.GetRequiredService<WelcomeFlow>());

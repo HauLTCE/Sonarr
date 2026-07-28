@@ -23,6 +23,7 @@ public static class JobServiceCollectionExtensions
         // handler shares that tick's DbContext.
         services.AddScoped<IJobHandler, ReminderJobHandler>();
         services.AddScoped<IJobHandler, AnnounceJobHandler>();
+        services.AddScoped<IJobHandler, CapsuleJobHandler>();
 
         services.AddHostedService<JobScheduler>();
 
