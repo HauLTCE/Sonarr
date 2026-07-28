@@ -6,9 +6,9 @@
 # LAVALINK_SERVER_PASSWORD from .env, which is why this file is safe to commit.
 server:
   port: 2333
-  # 0.0.0.0 rather than 127.0.0.1 because the legacy Python bot still connects over the LAN
-  # address (192.168.1.101:2333) during the rollback window. Once it is gone this should
-  # become 127.0.0.1 — with network_mode: host the .NET bot reaches loopback either way.
+  # 0.0.0.0 rather than 127.0.0.1 because the legacy Python bot still connects over the
+  # box's LAN address during the rollback window. Once it is gone this should become
+  # 127.0.0.1 — with network_mode: host the .NET bot reaches loopback either way.
   address: 0.0.0.0
 lavalink:
   plugins:
