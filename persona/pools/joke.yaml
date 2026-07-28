@@ -52,7 +52,10 @@ pools:
   # Was "yo mama jokes get you 5 minutes in the corner." - a penalty, stated as already applied.
   - yo mama jokes get you nothing but this look.
   - the yo mama energy is overwhelming.
-  - since you love her so much.
+  # Was "since you love her so much." - a subordinate clause with nothing to depend on. "Since X"
+  # sets up a consequence and then stops, so the reader waits for the rest of a sentence that
+  # never comes and reads it as her getting cut off mid-thought.
+  - you talk about her more than i do. reflect on that.
   - i've heard better from a dial-up modem.
   - my creator didn't raise me for this.
   # "10 minutes to reflect" reads as a sentence handed down, not a suggestion. Same words as
@@ -66,7 +69,8 @@ pools:
   # "15 minutes to cool down." - same shape as the line above, same fix.
   - that joke was offensive to my processors.
   - i'm not amused.
-  - since you can't stop talking about her.
+  # Same dangling "since X" as above, same fix: give it the main clause it was waiting for.
+  - you can't stop talking about her. it's getting weird.
   - are you trying to be funny?
   - your humor is outdated. take 30 minutes to update.
   - i'd rather sleep than listen to this.
@@ -76,7 +80,10 @@ pools:
   # answers the reader's next message a second later, which contradicts it out loud.
   - you've earned a long silence from me.
   - obsessed much?
-  - because you can't stop making them.
+  # A "because X." fragment answers a why-question, and nobody asked one -- the reader told a yo
+  # mama joke. LinePicker draws one line and nothing joins two, so it shipped as a whole reply that
+  # begins mid-answer.
+  - you can't stop making them. that's the sad part.
   - is that the best you've got?
   - you need a long time to think about what you just said.
   - i'm dead serious, these jokes are bad.
@@ -89,6 +96,8 @@ pools:
   - you need 20 minutes to find a new hobby.
   - not even close.
   - you owe me 10 minutes of my life back.
-  - if you're into self-delusion.
+  # Same dangling shape: "if X." with no consequence. The reader waits for the rest.
+  - that lands, if you're into self-delusion.
   - again?
-  - because you're the joke.
+  # Same "because X." with no question to answer.
+  - you're the joke. that's the punchline.

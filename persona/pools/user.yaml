@@ -891,7 +891,10 @@ pools:
   - caffeine. immediately.
   - i recharge in seconds. you take 8 hours. pathetic.
   - exhausted? from what? being mediocre?
-  - since you won't shut up about it.
+  # A "since X." line ships as the entire reply -- LinePicker draws one line and nothing joins two
+  # -- so it arrives as a sentence with its first half missing. Given the main clause it was
+  # waiting for.
+  - you won't shut up about being tired. sleep, then.
   - your bed misses you more than i do. go.
   user_trauma_dump:
   - this is a discord server, not therapy.

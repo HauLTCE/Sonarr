@@ -198,7 +198,9 @@ pools:
   - go run your base. the real one needs work too.
   - 'your recruitment tags are: mediocre, unremarkable, avoidable.'
   - your trust farm is the only relationship you'll ever have.
-  - since you clearly need healing.
+  # Another "since X." shipping as a whole reply with its first half missing. LinePicker draws one
+  # line and nothing joins two, so the main clause has to be in the line.
+  - you clearly need healing. no medic operator covers that.
   - rhodes island called. they said you're a lost cause.
   - contingency contract? your life has no contingency plan.
   topic_gacha_general:
@@ -246,7 +248,7 @@ pools:
   - i literally process faster than you can click.
   - lag isn't an excuse. your reflexes are just mid.
   - what game? whatever it is, i'm not impressed.
-  - since that's where you belong.
+  - that's where you belong. bottom of the leaderboard.
   topic_health:
   - sick? have you tried not being.
   - webmd says it's fatal. it's always fatal. drink water.
@@ -465,7 +467,7 @@ pools:
   - the academic desperation is palpable.
   - your teacher didn't assign 'talk to a discord bot' as homework.
   - failing? that tracks.
-  - since that's your degree.
+  - that's your degree, apparently. procrastination studies.
   - the only a you're getting today.
   topic_science:
   - science question detected. read something.
@@ -593,7 +595,7 @@ pools:
   - coffee won't fix your career.
   - quiet quitting? i'm quiet thriving.
   - raise? i don't get paid at all. stop complaining.
-  - since that's all you talk about.
+  - that's all you talk about. get a hobby that isn't payroll.
   - networking? in THIS chat?
   - your job description doesn't include 'annoy bots'. yet here we are.
   topic_workout:

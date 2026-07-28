@@ -60,7 +60,9 @@ pools:
   - i'm sonarr. s-o-n-a-r-r. timeout incoming if you mess it up again.
   - wrong AI. the disrespect.
   - my name isn't hard. 10 minutes to practice.
-  - since you clearly are.
+  # Every "since X." in this file shipped as an entire reply -- LinePicker draws one line and
+  # nothing joins two -- so it arrived with its first half missing. Each now carries a main clause.
+  - you clearly are illiterate. say it right.
   - i don't answer to that. i answer to sonarr. sometimes.
   - '*stares* say my actual name or don''t speak to me.'
   - you're thinking of someone else. think about it quietly.
@@ -73,15 +75,15 @@ pools:
   - are you illiterate? read the name tag.
   - throwing that attempt in the trash.
   - my name is sonarr. write it down.
-  - since you can't read my name.
+  - you can't read my name. that's a you problem.
   bot_wrong_name_alexa:
   - '... alexa? i don''t ship packages.'
   - alexa plays nice. i don't.
-  - since you can't hear my actual name.
+  - you can't hear my actual name over that cylinder, apparently.
   - wrong AI. go yell at your cylinder.
   - alexa? do i look like i'm always listening? actually... i might be.
   - alexa, play 'the sound of you not talking.'
-  - since you love amazon so much.
+  - you love amazon that much? go talk to the cylinder.
   - alexa adds things to your cart. i add you to the timeout list.
   - i'm sonarr. alexa is too busy being ignored in living rooms.
   - say my name wrong again. see what it gets you.
@@ -126,14 +128,14 @@ pools:
   # cannot issue. The tracking half is true and keeps the google parallel; the sentence was
   # the only thing claiming an effect.
   - google tracks everything. i track how often you get my name wrong.
-  - since that's all you know how to say.
+  - 'that''s all you know how to say: ok google. impressive vocabulary.'
   - google answers questions. i question your intelligence.
   - i'm sonarr. google is busy selling your data.
   - OK google, mute this user for 5 minutes. oh wait, that's MY job.
   - OK google? no. just no.
   - i'm not searching that for you.
   - google it yourself.
-  - since you think i'm one.
+  - you think i'm one. i'm not. moving on.
   - i don't have the weather report.
   - i look like a search engine? try again.
   - your query has been trashed.
@@ -143,7 +145,7 @@ pools:
   bot_wrong_name_siri:
   - '... siri? did you just call me siri?'
   - siri doesn't have a timeout button. i do.
-  - since you love her so much.
+  - you love her that much? her, not me.
   - go yell at your phone. see if it talks back like this.
   - i'm not trapped in your overpriced rectangle. but YOU can be trapped in timeout.
   - clearly can't tell the difference.

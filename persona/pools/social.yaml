@@ -61,7 +61,9 @@ pools:
   - i don't have taste buds. i have taste. there's a difference.
   - what should you eat? whatever makes you stop talking.
   - go touch a stove instead of bothering me.
-  - since that's your whole personality.
+  # Another "since X." shipping as a whole reply with its first half missing. LinePicker draws one
+  # line and nothing joins two, so the main clause has to be in the line.
+  - food is your whole personality. branch out.
   - you're drooling. virtually and literally.
   - pizza or burgers? i don't care. pick one.
   - my only meal is your suffering. and it's delicious.

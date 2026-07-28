@@ -156,6 +156,53 @@ public class SeedPersonaTests
                 + string.Join(Environment.NewLine, bad));
     }
 
+    /// <summary>A line may not be a subordinate clause with nothing to depend on.</summary>
+    /// <remarks>
+    /// <para><c>LinePicker.Pick</c> draws exactly one line and <c>ReplyComposer</c> never joins two,
+    /// so a line is the whole reply. Nineteen lines opened with a subordinating conjunction and
+    /// stopped — "since you love her so much.", "because you're the joke.", "if you're into
+    /// self-delusion." — which arrives as a sentence whose first half went missing, and the reader
+    /// waits for a rest that never comes. A mood fragment ("mm.") can prepend, but a fragment is not
+    /// a main clause.</para>
+    /// <para>Three forms are deliberately allowed, and all three are decidable from the string.
+    /// A comma-joined main clause ("if you're bored, go outside.") is a whole sentence — the comma is
+    /// what carries the other half, and its absence is the actual tell. A line that supplies its own
+    /// second sentence ("because i can be. next question.") has its main clause there. And an
+    /// elliptical idiom that answers on its own ("since day one.", "if you say so.").</para>
+    /// <para><c>because</c> is not checked at all: "because i'm literally better than you in every
+    /// metric." is a complete answer to a why-question, and whether one was asked lives in the pool,
+    /// not the string. The joke-pool "because you're the joke." was the same shape and had to be
+    /// fixed by hand — a guard that fires on the legitimate ones gets weakened until it catches
+    /// nothing.</para>
+    /// </remarks>
+    [Fact]
+    public void ShippedPersona_HasNoDanglingSubordinateClause()
+    {
+        // Opens with a subordinator and runs to the end with no comma to introduce a main clause and
+        // no second sentence to land on.
+        const string Dangling =
+            @"^(?:since|if|unless|although|though|whereas)\b(?![^.!?]*[.!?]\s+\S)[^.!?,]*[.!?]?$";
+
+        // Complete on their own: a bare noun phrase after the subordinator, or a fixed idiom that is
+        // itself the whole reply.
+        const string Elliptical =
+            @"^(?:(?:since)\s+(?:day one|then|now|always|forever)|if you say so)[.!]?$";
+
+        List<string> bad =
+        [
+            .. from pool in SeedPersona.Graph.Pools
+               from line in pool.Value.Lines.Concat(pool.Value.ByMode.Values.SelectMany(v => v))
+               where Regex.IsMatch(line, Dangling, RegexOptions.IgnoreCase)
+                   && !Regex.IsMatch(line, Elliptical, RegexOptions.IgnoreCase)
+               select $"{pool.Key}: {line}",
+        ];
+
+        Assert.True(
+            bad.Count == 0,
+            $"authored lines that are a subordinate clause and nothing else:{Environment.NewLine}"
+                + string.Join(Environment.NewLine, bad));
+    }
+
     /// <summary>
     /// An intent's template may not repeat a slot that every line of its pool already renders.
     /// </summary>
