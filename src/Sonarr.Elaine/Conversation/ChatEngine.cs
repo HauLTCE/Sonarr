@@ -44,7 +44,8 @@ public sealed class ChatEngine(PersonaGraph persona, ISemanticMatcher? semantic 
         MatchCandidate? primary = outcome.Ranked.FirstOrDefault(
             c => working.Fired.IsEligible(c.Intent, turn));
 
-        ReplyComposer composer = new(_persona, new LinePicker(_persona, input.ActiveOverlays));
+        ReplyComposer composer = new(
+            _persona, new LinePicker(_persona, input.ActiveOverlays), input.ShakySlots);
         (ConversationState next, string? text, string? intentId) =
             primary is null
                 ? Fallback(working, composer, modeId, rng, input)

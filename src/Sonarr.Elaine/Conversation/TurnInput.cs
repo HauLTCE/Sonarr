@@ -31,4 +31,17 @@ public sealed record TurnInput
     /// runs the pgvector query; the engine only decides whether to use the line.
     /// </summary>
     public string? Callback { get; init; }
+
+    /// <summary>
+    /// Slot names she is only half-sure of — facts heard once and never confirmed.
+    /// </summary>
+    /// <remarks>
+    /// Confidence is a database column, so the comparison against the threshold happens in the
+    /// adapter and arrives here as a plain set of names: the engine only decides whether to
+    /// hedge, the same shape as <see cref="Callback"/>.
+    /// </remarks>
+    public IReadOnlySet<string> ShakySlots { get; init; } = EmptySlots;
+
+    private static readonly IReadOnlySet<string> EmptySlots =
+        new HashSet<string>(StringComparer.Ordinal);
 }

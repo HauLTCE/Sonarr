@@ -16,7 +16,12 @@ namespace Sonarr.Elaine.Conversation;
 /// <para>Every part is optional except the core: if a fragment cannot render, the reply is
 /// just the core line rather than nothing.</para>
 /// </remarks>
-public sealed class ReplyComposer(PersonaGraph persona, LinePicker picker)
+/// <param name="shakySlots">
+/// Slots whose remembered value she is not sure of. Their value is wrapped in an authored hedge
+/// before it reaches a template, so "you're Sam" comes out as "you're Sam, i think".
+/// </param>
+public sealed class ReplyComposer(
+    PersonaGraph persona, LinePicker picker, IReadOnlySet<string>? shakySlots = null)
 {
     /// <summary>The mode-covered pool the opener is drawn from (see <c>sonarr.yaml</c>).</summary>
     public const string MoodFragmentPool = "mood_fragment";
@@ -26,6 +31,12 @@ public sealed class ReplyComposer(PersonaGraph persona, LinePicker picker)
 
     /// <summary>Capture name the remembered quote is substituted into: <c>{$quote}</c>.</summary>
     public const string CallbackCapture = "quote";
+
+    /// <summary>The pool a shaky remembered value is wrapped in (<c>persona/pools/memory.yaml</c>).</summary>
+    public const string HedgePool = "fact_hedge";
+
+    /// <summary>Capture name the shaky value is substituted into: <c>{$value}</c>.</summary>
+    public const string HedgeCapture = "value";
 
     /// <summary>1-in-N turns carry a mood fragment. Every turn would be a verbal tic.</summary>
     private const int FragmentOdds = 3;
@@ -52,6 +63,8 @@ public sealed class ReplyComposer(PersonaGraph persona, LinePicker picker)
 
     private readonly LinePicker _picker = picker ?? throw new ArgumentNullException(nameof(picker));
 
+    private readonly IReadOnlySet<string> _shaky = shakySlots ?? NoShakySlots;
+
     /// <summary>
     /// Composes a reply for <paramref name="candidate"/>, or null when the pool could not
     /// produce a renderable line at all (the caller falls back to the activity's pool).
@@ -71,8 +84,8 @@ public sealed class ReplyComposer(PersonaGraph persona, LinePicker picker)
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(rng);
 
-        string? core = _picker.Pick(
-            candidate.Intent.Pool, modeId, rng, state.RenderSlots, candidate.Captures);
+        IReadOnlyDictionary<string, string> slots = Hedged(state, modeId, rng);
+        string? core = _picker.Pick(candidate.Intent.Pool, modeId, rng, slots, candidate.Captures);
         if (core is null)
         {
             return null;
@@ -82,12 +95,12 @@ public sealed class ReplyComposer(PersonaGraph persona, LinePicker picker)
         // a generic pool line ("sure.") carries the specific bit ("nice to meet you, Sam").
         if (candidate.Intent.Template is { } template
             && TemplateRenderer.TryRender(
-                template, state.RenderSlots, candidate.Captures, out string rendered))
+                template, slots, candidate.Captures, out string rendered))
         {
             core = Join(core, rendered);
         }
 
-        return Wrap(core, state, modeId, rng, callback);
+        return Wrap(core, slots, modeId, rng, callback);
     }
 
     /// <summary>
@@ -104,8 +117,9 @@ public sealed class ReplyComposer(PersonaGraph persona, LinePicker picker)
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(rng);
 
-        string? core = _picker.Pick(poolId, modeId, rng, state.RenderSlots);
-        return core is null ? null : Wrap(core, state, modeId, rng, callback);
+        IReadOnlyDictionary<string, string> slots = Hedged(state, modeId, rng);
+        string? core = _picker.Pick(poolId, modeId, rng, slots);
+        return core is null ? null : Wrap(core, slots, modeId, rng, callback);
     }
 
     /// <summary>
@@ -121,12 +135,63 @@ public sealed class ReplyComposer(PersonaGraph persona, LinePicker picker)
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(rng);
-        return _picker.Pick(poolId, modeId, rng, state.RenderSlots);
+        return _picker.Pick(poolId, modeId, rng, Hedged(state, modeId, rng));
     }
+
+    /// <summary>
+    /// The render slots with every shaky value wrapped in an authored hedge.
+    /// </summary>
+    /// <remarks>
+    /// docs/04: a fact's confidence is "reinforced on repeat mention → hedging behavior". Done at
+    /// the value rather than by pairing every recall pool with an unsure variant, because the
+    /// uncertainty belongs to the fact, not to the sentence — one hedge pool covers every line
+    /// that ever substitutes a remembered slot, including ones authored later.
+    /// <para>The hedge wraps the value in place, so word order and punctuation stay the author's:
+    /// "you're Sam" becomes "you're Sam, i think" without the pool knowing hedging exists.</para>
+    /// </remarks>
+    private IReadOnlyDictionary<string, string> Hedged(
+        ConversationState state, string modeId, IDeterministicRandom rng)
+    {
+        if (_shaky.Count == 0)
+        {
+            return state.RenderSlots;
+        }
+
+        Dictionary<string, string> slots = new(state.RenderSlots, StringComparer.Ordinal);
+        foreach (string slot in _shaky)
+        {
+            if (!slots.TryGetValue(slot, out string? value))
+            {
+                continue;
+            }
+
+            // One hedge per turn, not per slot: the draw is seeded on the pool id, so a reply
+            // holding two shaky facts hedges both the same way. That reads as one uncertain
+            // sentence rather than a list of disclaimers.
+            string? hedged = _picker.Pick(
+                HedgePool,
+                modeId,
+                rng,
+                NoSlots,
+                new Dictionary<string, string>(StringComparer.Ordinal) { [HedgeCapture] = value });
+            if (hedged is not null)
+            {
+                slots[slot] = hedged;
+            }
+        }
+
+        return slots;
+    }
+
+    private static readonly IReadOnlySet<string> NoShakySlots =
+        new HashSet<string>(StringComparer.Ordinal);
+
+    private static readonly IReadOnlyDictionary<string, string> NoSlots =
+        new Dictionary<string, string>(StringComparer.Ordinal);
 
     private string Wrap(
         string core,
-        ConversationState state,
+        IReadOnlyDictionary<string, string> slots,
         string modeId,
         IDeterministicRandom rng,
         string? callback)
@@ -138,7 +203,7 @@ public sealed class ReplyComposer(PersonaGraph persona, LinePicker picker)
         if (_persona.Pools.ContainsKey(_picker.Resolve(MoodFragmentPool))
             && rng.Next("compose:fragment", FragmentOdds) == 0)
         {
-            string? fragment = _picker.Pick(MoodFragmentPool, modeId, rng, state.RenderSlots);
+            string? fragment = _picker.Pick(MoodFragmentPool, modeId, rng, slots);
             if (fragment is not null)
             {
                 reply.Append(fragment);
@@ -152,7 +217,7 @@ public sealed class ReplyComposer(PersonaGraph persona, LinePicker picker)
         if (!string.IsNullOrWhiteSpace(callback) && WantsCallback(rng))
         {
             string? tail = _picker.Pick(
-                CallbackPool, modeId, rng, state.RenderSlots, new Dictionary<string, string>
+                CallbackPool, modeId, rng, slots, new Dictionary<string, string>
                 {
                     [CallbackCapture] = callback.Trim(),
                 });

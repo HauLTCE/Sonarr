@@ -25,13 +25,20 @@ public class GoldenConversationTests
         public ConversationState State { get; private set; } =
             ConversationState.Fresh(Graph.Root, salt);
 
-        public TurnResult Say(string text, int decaySteps = 0)
+        public TurnResult Say(string text, int decaySteps = 0, params string[] shaky)
         {
-            TurnResult result = _engine.Turn(
-                State, new TurnInput { Text = text, ExtraDecaySteps = decaySteps });
+            TurnResult result = _engine.Turn(State, new TurnInput
+            {
+                Text = text,
+                ExtraDecaySteps = decaySteps,
+                ShakySlots = shaky.ToHashSet(StringComparer.Ordinal),
+            });
             State = result.State;
             return result;
         }
+
+        /// <summary>Puts the conversation back, so the same turn can be replayed under new input.</summary>
+        public void Rewind(ConversationState to) => State = to;
     }
 
     [Fact]
@@ -243,6 +250,53 @@ public class GoldenConversationTests
             .Select(line => line.Split('{')[0].TrimEnd())
             .Where(prefix => prefix.Length > 8)
             .FirstOrDefault(prefix => text.Contains(prefix, StringComparison.Ordinal));
+
+    [Fact]
+    public void AFactSheOnlyHeardOnceComesBackOutHedged()
+    {
+        Script chat = new();
+        chat.Say("my name is Hau");
+
+        // Same recall, twice: once while the adapter says the fact is shaky, once while it does
+        // not. The name is in both, but only the shaky one wears a hedge.
+        string sure = Recall(chat, shaky: false);
+        string unsure = Recall(chat, shaky: true);
+
+        Assert.Contains("Hau", sure, StringComparison.Ordinal);
+        Assert.Contains("Hau", unsure, StringComparison.Ordinal);
+        Assert.False(IsHedged(sure));
+        Assert.True(IsHedged(unsure));
+    }
+
+    [Fact]
+    public void HedgingNeedsTheSlotToActuallyBeShaky()
+    {
+        Script chat = new();
+        chat.Say("my name is Hau");
+
+        // A predicate she has no slot for cannot hedge anything, and must not disturb the reply.
+        Assert.Equal(
+            Recall(chat, shaky: false),
+            Recall(chat, shaky: true, "favorite_food"));
+    }
+
+    /// <summary>
+    /// One "what's my name" turn, rewound afterwards so repeated calls see the same turn number
+    /// and the same seed — then the only difference between two runs is the shaky set.
+    /// </summary>
+    private static string Recall(Script chat, bool shaky, string slot = "name")
+    {
+        ConversationState before = chat.State;
+        string text = chat.Say("what's my name", 0, shaky ? [slot] : []).Text ?? string.Empty;
+        chat.Rewind(before);
+        return text;
+    }
+
+    private static bool IsHedged(string text) =>
+        Graph.Pools[ReplyComposer.HedgePool].Lines
+            .Select(line => line.Replace("{$value}", string.Empty, StringComparison.Ordinal).Trim())
+            .Where(fragment => fragment.Length > 3)
+            .Any(fragment => text.Contains(fragment, StringComparison.Ordinal));
 
     [Fact]
     public void TheWholeConversationReplaysIdenticallyFromTheSameSalt()
