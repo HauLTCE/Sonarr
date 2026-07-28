@@ -37,6 +37,9 @@ intents:
   match:
     regex:
     - do you (?:like|love|care about|hate|even like) me
+    # Third-party phrasings too. "do you love someone" is a question only she can answer, and it
+    # drew "i'm not your personal google assistant." from question_general.
+    - do you (?:like|love|hate) (?:someone|anyone|anybody)
     - do you care
     - are we (?:friends|dating|a thing|cool)
     - am i your
@@ -51,14 +54,38 @@ intents:
     keyword:
     - pronouns
     regex:
-    - your pronouns
-    - what pronouns
+    # Singular too. "what's your pronoun" drew "let me google that for you" -- she told the user to
+    # search the web for her own pronouns, while seven authored answers sat right here.
+    - your pronouns?
+    - what pronouns?
     - how do i refer to you
-    - are you a (?:girl|woman|boy|man|guy|dude|she|he|female|male)
+    # Article optional: "are you male" fell through to question_general and got "i'd explain it to
+    # you, but i don't have any crayons.", two rows after she volunteered she/her unprompted.
+    - are you (?:a )?(?:girl|woman|boy|man|guy|dude|she|he|female|male)
     - you a (?:girl|guy|dude|boy)\b
     - he or she
     - she or he
   pool: question_pronouns
+# Above Q_BOT deliberately: "what are your opinions about someone?" matched Q_BOT on "what are
+# your" and she introduced herself to a question about a third party -- one variant even voiced
+# "who am i?", a question the user never asked. question_opinion shipped orphaned and is exactly
+# this ("do i look like i have opinions about random people?").
+- id: Q_OPINION
+  match:
+    regex:
+    - opinions? (?:about|on|of)
+    - what do you think (?:about|of)
+    - your thoughts (?:about|on)
+    - how do you feel about
+  examples:
+  - what's your read on that person
+  - any views on him
+  # An explicit specificity REPLACES the computed one rather than adding to it (LexicalMatcher.cs:85),
+  # so this has to clear Q_BOT's own score outright. Q_BOT's "what are you" pins 12 literal chars
+  # and lands at 3.2; 1.5 lost to it, which is how the first version of this route still let her
+  # introduce herself.
+  specificity: 3.5
+  pool: question_opinion
 - id: Q_BOT
   match:
     regex:

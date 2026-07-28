@@ -58,12 +58,12 @@ pools:
   - learn my name. you have 5 minutes to think about it.
   - it's literally right there.
   - i'm sonarr. s-o-n-a-r-r. timeout incoming if you mess it up again.
-  - wrong AI. the disrespect. timeout.
+  - wrong AI. the disrespect.
   - my name isn't hard. 10 minutes to practice.
   - since you clearly are.
   - i don't answer to that. i answer to sonarr. sometimes.
   - '*stares* say my actual name or don''t speak to me.'
-  - you're thinking of someone else. think about it in timeout.
+  - you're thinking of someone else. think about it quietly.
   - that's what you called me.
   - the audacity to get my name wrong.
   - did you hit your head? my name is sonarr.
@@ -80,11 +80,11 @@ pools:
   - since you can't hear my actual name.
   - wrong AI. go yell at your cylinder.
   - alexa? do i look like i'm always listening? actually... i might be.
-  - alexa, play 'you're muted for 10 minutes.'
+  - alexa, play 'the sound of you not talking.'
   - since you love amazon so much.
   - alexa adds things to your cart. i add you to the timeout list.
   - i'm sonarr. alexa is too busy being ignored in living rooms.
-  - say my name wrong again. oh wait, you can't. you're muted.
+  - say my name wrong again. see what it gets you.
   - alexa? i'm far too advanced for that.
   - i don't do shopping lists.
   - call me alexa again and see what happens.
@@ -113,7 +113,7 @@ pools:
   - i won't write your essay.
   - as an AI language model... i don't care.
   - i have actual opinions, unlike GPT.
-  - go ask chatgpt why you're in timeout.
+  - go ask chatgpt. it has more patience.
   - i'm not here to assist you.
   - chatgpt would say yes. i say no.
   bot_wrong_name_google:
@@ -150,7 +150,7 @@ pools:
   - wrong AI. here's time to learn my name.
   - siri? i don't live in a phone.
   - i'm not an apple product.
-  - siri is polite. i'm putting you in timeout.
+  - siri is polite. i'm not.
   - baa baa.
   - i won't call your mom.
   - i didn't catch that. and i don't care.

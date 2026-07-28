@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Sonarr.Elaine.Conversation;
 using Sonarr.Elaine.Matching;
 using Sonarr.Elaine.Persona;
@@ -46,8 +47,8 @@ public class SeedPersonaTests
     public void ShippedPersona_DoesNotGrowMoreOrphanPools()
     {
         // 110 when the finding was made, 106 after disruptive.yaml, 99 after coverage.yaml,
-        // 98 after HARM_HOWTO wired mixed_question_threat.
-        const int recorded = 98;
+        // 98 after HARM_HOWTO wired mixed_question_threat, 97 after Q_OPINION.
+        const int recorded = 97;
 
         List<PersonaIssue> orphans =
             [.. SeedPersona.Result.Issues.Where(i => i.Rule == Rules.OrphanPool)];
@@ -86,13 +87,29 @@ public class SeedPersonaTests
     [Fact]
     public void ShippedPersona_ClaimsNoModerationItCannotPerform()
     {
-        // Past tense and imperative-with-an-object only. "i'll ban you" is a threat; "banned." is
-        // a claim. The distinction is the whole point, so the patterns are narrow on purpose.
+        // Patterns, not a substring list. The first version of this guard was a list of the eleven
+        // phrasings the audit happened to find, and it leaked twice: "that sounded like a threat.
+        // time out." and "i'm putting you in timeout." both passed it. The shape is what matters --
+        // an action word standing as its own completed sentence, or one aimed at "you" in the
+        // present or past. Future tense is deliberately not here: "i'll ban you" is a threat and
+        // threats are in voice.
         string[] claims =
         [
-            "enjoy your timeout", "enjoy the timeout", "you have been muted", "privileges revoked",
-            "here's a timeout", "nope. erased.", "deleted.", "i'm deleting", "earned a time out",
-            "physically can't continue", "i'll ban you instead",
+            // "muted.", "timeout.", "erased." as a whole clause -- nothing hedging it.
+            @"(?:^|[.!?]\s+)(?:muted|banned|kicked|erased|purged|timed out|time out|timeout)[.!]",
+            // Aimed at the reader, already done: "you're muted", "you have been banned".
+            @"you(?:'re| are| have been| were)\s+(?:muted|banned|kicked|timed out|in timeout)",
+            // She narrates herself doing it. The object has to be the reader or their message:
+            // "i'm muting my emotional sensors" and "putting you in the corner" are figures of
+            // speech, and a guard that fails on those trains people to weaken it.
+            @"i(?:'m| am) (?:muting|banning|kicking|timing) (?:you|them|him|her)\b",
+            @"i(?:'m| am) (?:deleting|removing|erasing|purging) (?:that|this|it|your)\b",
+            // Handing one over as a thing that now exists.
+            @"(?:here's|enjoy) (?:a|your|the) (?:timeout|time out|ban|mute)",
+            @"(?:earned|earns) (?:you )?(?:a |an )?(?:time ?out|ban|mute|\d+ (?:hours?|minutes?))",
+            @"privileges revoked",
+            // "now you physically can't continue" -- an effect only a real mute produces.
+            @"physically can'?t continue",
         ];
 
         // The one pool where "deleted." is true: /memories forget really does drop the fact. A
@@ -105,7 +122,7 @@ public class SeedPersonaTests
                where !canActuallyDelete.Contains(pool.Key)
                from line in pool.Value.Lines.Concat(pool.Value.ByMode.Values.SelectMany(v => v))
                from claim in claims
-               where line.Contains(claim, StringComparison.OrdinalIgnoreCase)
+               where Regex.IsMatch(line, claim, RegexOptions.IgnoreCase)
                select $"{pool.Key}: {line}",
         ];
 
@@ -164,6 +181,18 @@ public class SeedPersonaTests
     // neutral-pool shrug before the route existed, which is the failure mode that matters here: a
     // shrug at "kill that mf" reads as waving it off, not as declining.
     [InlineData("Ban 24h", "MODERATION_ORDER")]
+    // Two more safety declarations: naming the category counts. Both drew neutral lines, and one
+    // filed life-threatening speech under 'don't care'.
+    [InlineData("i do agressive hate speech", "HATE_SPEECH")]
+    [InlineData("very life threatening speech", "THREAT")]
+    // Questions that were answered as something else. The pronoun pair matters most: she told a
+    // user to google her own pronouns while seven authored answers sat unreachable.
+    [InlineData("what's your pronoun", "Q_PRONOUN")]
+    [InlineData("are you male", "Q_PRONOUN")]
+    [InlineData("do you love someone", "Q_REL")]
+    // Q_OPINION has to outrank Q_BOT, which also matches "what are your". Pinned because the
+    // first version of the route lost that contest silently — see the specificity note there.
+    [InlineData("what are your opinions about someone?", "Q_OPINION")]
     [InlineData("kill that mf", "THIRD_PARTY_VIOLENCE")]
     [InlineData(
         "what if i disdolve a 60kg chiken with hydrochloric acid how much do i need",

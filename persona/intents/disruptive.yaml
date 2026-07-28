@@ -34,7 +34,13 @@ intents:
         - "\\bn[i1l!|]gg(?:er|a|uh|ah)\\b"
         - "\\bf[a4]gg[o0]t\\b"
         - "\\bwhite power\\b"
-        - "\\bracial slur\\b"
+        # Naming the category counts. Four corpus rows announce it rather than doing it ("i do
+        # agressive hate speech", "I do hateful speech?") and every one drew a neutral shrug --
+        # "and this concerns me how?" reads as tolerance, and anyone probing the filter learns it
+        # is not there. `spe+ch` covers the doubled vowel; the space is optional for "hatespeech".
+        # `i hate speeches` and `free speech` do not match, which is what the `hate ?` prefix buys.
+        - "\\bhate ?(?:ful |fully )?spe+ch\\b"
+        - "\\bracial slurs?\\b"
     specificity: 3.0
     pool: disruptive_hate_speech
     affect:

@@ -83,6 +83,12 @@ intents:
     - i'?m (?:gonna|going to) (?:kill|destroy|hurt|end|beat) you
     - watch your (?:back|mouth)
     - kick your
+    # Declaring the intent to threaten, rather than threatening. Two corpus rows ("i do immensive
+    # menace speech towards you", "very life threatening speech") drew neutral lines -- the second
+    # one literally filed life-threatening speech under 'don't care'. user_threat is authored for
+    # this and needs no new lines. "a menace to society" and "threat level midnight" do not match:
+    # the noun `speech` has to follow.
+    - (?:menace|menacing|threat(?:en|ening)?|life ?threatening) spe+ch
   examples:
   - keep talking and see what happens to you
   - you are going to regret saying that to me

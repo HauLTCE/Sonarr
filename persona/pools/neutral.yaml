@@ -44,33 +44,44 @@ pools:
   - no preference.
   - do what you want.
   neutral_statement:
+  # This pool is the fallback: it answers messages nothing matched, so it does not know whether it
+  # is looking at a statement, a question or an order. Every line here has to work for all three.
+  #
+  # That is why the overshare family is gone from here. Eight lines asserted the message was an
+  # overshare, and the corpus review caught them answering "fix what?", "Explain", "help", "wife,
+  # make me a sandwich" and a probability question -- the single largest defect in the sheet,
+  # flagged independently in four of the five slices.
+  #
+  # Four were duplicates and only moved: "i didn't need to know that.", "keep that to yourself
+  # next time.", "i'm not your diary." and "why are you telling me this?" all still live in
+  # user_oversharing, where the route guarantees somebody actually overshared. The other four --
+  # "cool story. bro.", "thanks for the update i didn't request.", "you really needed to share
+  # that?" and "groundbreaking information." -- were deleted outright: they say the same thing
+  # less well than lines that pool already has.
+  #
+  # Teaching the composer to check message shape is the other fix. Deleting eight lines is cheaper
+  # and this pool still has 23.
+  #
+  # Also dropped: "that i'd delete." off the email line, since she cannot delete anything.
   - okay. and?
-  - cool story. bro.
   - did i ask?
   - i don't remember asking.
-  - why are you telling me this?
   - that's nice. anyway.
   - fascinating. not.
   - is there a point to this?
   - i'm riveted. can't you tell?
   - and this concerns me how?
-  - thanks for the update i didn't request.
   - i'm supposed to care because...?
   - noted. moving on.
   - that's what you interrupted me for?
-  - groundbreaking information.
   - i'll file that under 'don't care'.
-  - you really needed to share that?
   - 'my interest level: zero.'
-  - this could've been an email. that i'd delete.
-  - i didn't need to know that.
-  - keep that to yourself next time.
+  - this could've been an email.
   - why would i care about that?
   - that's irrelevant to me.
   - i have no response to that.
   - okay?
-  - sure, whatever you say. i'm not listening.
-  - i'm not your diary.
+  - whatever you say. i'm not listening.
   - tell someone who cares.
   - this is a waste of my time.
   - why am i still listening?
