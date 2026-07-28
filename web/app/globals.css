@@ -251,25 +251,40 @@ a {
   min-width: 0;
 }
 
-/* The inactive segments are --edge rather than a surface tint: they are the navigation, not a
-   decoration behind it, so 1.4.11's 3:1 applies to them and a 6px bar at 1.09:1 is not there. */
+/* The link is 24px tall and the bar inside it is 6px: 2.5.8 asks for a 24px target, and a 6px-tall
+   anchor is a target you have to aim at. The height is invisible — it is padding around the bar —
+   so the rail still reads as a row of thin segments. */
 .seg {
-  display: block;
-  height: 6px;
+  display: flex;
+  align-items: center;
+  height: 24px;
   flex: 1 1 0;
   min-width: 8px;
-  border-radius: 999px;
-  background: var(--edge);
-  transition: background var(--slide) var(--ease), flex-grow var(--slide) var(--ease);
+  transition: flex-grow var(--slide) var(--ease);
 }
 
-.seg:hover {
+/* The inactive segments are --edge rather than a surface tint: they are the navigation, not a
+   decoration behind it, so 1.4.11's 3:1 applies to them and a 6px bar at 1.09:1 is not there. */
+.seg::before {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--edge);
+  transition: background var(--slide) var(--ease);
+}
+
+.seg:hover::before {
   background: var(--muted);
 }
 
 .seg[aria-current="page"] {
-  background: var(--accent);
   flex-grow: 3;
+}
+
+.seg[aria-current="page"]::before {
+  background: var(--accent);
 }
 
 .seg-label {
