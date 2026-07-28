@@ -27,21 +27,23 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # TODO: the Next.js app does not exist yet (web/ is unwritten — phase 5, docs/09-web-panels.md).
-  # Uncomment the build block and drop the placeholder image when it does.
   web:
     image: ${WEB_IMAGE:-sonarr-web:local}
-    # build:
-    #   context: ../web
-    #   dockerfile: Dockerfile
+    # Same ./repo tree deploy.sh rsyncs for the bot image; web/ rides along.
+    build:
+      context: ./repo/web
+      dockerfile: Dockerfile
+    # Host networking, like the bot: that is what makes 127.0.0.1:5088 below the API rather
+    # than this container talking to itself. No port mapping applies as a result — HOSTNAME
+    # is what keeps :3000 on loopback, where the user's tunnel picks it up.
+    network_mode: host
     environment:
       # Server-side calls only; the panel never gets DB creds or the Discord token (docs/06).
-      SONARR_API_BASE: http://127.0.0.1:5088
-    ports:
-      - "127.0.0.1:3000:3000"   # user's tunnel maps sonarr.hault.io.vn -> :3000
+      SONARR_API_URL: http://127.0.0.1:5088
+      HOSTNAME: 127.0.0.1       # user's tunnel maps sonarr.hault.io.vn -> :3000
+      PORT: 3000
     depends_on: [bot]
     restart: unless-stopped
-    profiles: ["web"]           # TODO: remove this line once the image builds, so it starts by default
 
   postgres:
     image: pgvector/pgvector:pg17

@@ -33,6 +33,7 @@ public static class PanelEndpoints
 
         RouteGroupBuilder group = routes.MapGroup("/api/me");
 
+        group.MapGet("/guilds", GetGuildsAsync);
         group.MapGet("/overview", GetOverviewAsync);
         group.MapGet("/sonarr", GetSonarrAndMeAsync);
         group.MapGet("/errors", GetErrorsAsync);
@@ -40,6 +41,21 @@ public static class PanelEndpoints
         group.MapDelete("/facts/{predicate}", ForgetFactAsync);
 
         return routes;
+    }
+
+    /// <summary>
+    /// The servers this user shares with Sonarr — the panel's server picker. Every other page here
+    /// is guild-scoped, and a visitor should not have to know a snowflake to use their own panel.
+    /// </summary>
+    private static async Task<IResult> GetGuildsAsync(
+        HttpContext http, IWebAuthService auth, IMemberRepository members, CancellationToken ct)
+    {
+        PanelUser? me = await Me(http, auth, ct);
+
+        return me is null
+            ? Results.Unauthorized()
+            : Results.Ok((await members.GetGuildsAsync((long)me.UserId, ct))
+                .Select(g => new { guildId = Id((ulong)g.GuildId), name = g.Name }));
     }
 
     /// <summary>Level, rank, streak, activity and the user's own pending reminders.</summary>

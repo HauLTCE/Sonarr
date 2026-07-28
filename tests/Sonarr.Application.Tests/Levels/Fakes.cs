@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Extensions.Logging.Abstractions;
 using Sonarr.Application.Levels;
 using Sonarr.Domain.Abstractions;
@@ -309,6 +310,17 @@ internal sealed class FakeMemberRepository : IMemberRepository
             .Distinct()];
 
         return Task.FromResult(ids.Length == 1 ? ids[0] : (long?)null);
+    }
+
+    public Task<IReadOnlyList<MemberGuild>> GetGuildsAsync(long userId, CancellationToken ct = default)
+    {
+        // No guild names in this fake — the picker's wording is the panel's problem, not the
+        // repository's, so the id doubles as the name.
+        IReadOnlyList<MemberGuild> guilds = [.. _rows.Values
+            .Where(m => m.UserId == userId)
+            .Select(m => new MemberGuild(m.GuildId, m.GuildId.ToString(CultureInfo.InvariantCulture)))];
+
+        return Task.FromResult(guilds);
     }
 }
 

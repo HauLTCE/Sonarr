@@ -71,9 +71,12 @@ if [ "$MODE" = remote ]; then
 
     if [ "$ACTION" = build ]; then
         echo "==> syncing sources for the on-server image build"
+        # node_modules/.next are host artefacts: npm ci in the image installs the right
+        # platform binaries, and shipping ~400MB over this link to be ignored is waste.
         rsync -az --delete --info=stats0 \
             --exclude 'bin/' --exclude 'obj/' --exclude '.env' \
-            Directory.Build.props Directory.Packages.props Sonarr.slnx src tests \
+            --exclude 'node_modules/' --exclude '.next/' --exclude '*.tsbuildinfo' \
+            Directory.Build.props Directory.Packages.props Sonarr.slnx src tests web \
             "$TARGET:${DEPLOY_REMOTE_DIR}/repo/"
     fi
 
@@ -93,8 +96,8 @@ echo "==> validating compose file"
 docker compose -f "$COMPOSE_FILE" config -q
 
 if [ "$ACTION" = build ]; then
-    echo "==> building bot image"
-    docker compose -f "$COMPOSE_FILE" build bot
+    echo "==> building bot + web images"
+    docker compose -f "$COMPOSE_FILE" build bot web
 else
     echo "==> pulling images"
     docker compose -f "$COMPOSE_FILE" pull

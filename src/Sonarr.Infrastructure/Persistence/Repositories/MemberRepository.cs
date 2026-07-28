@@ -127,6 +127,16 @@ public sealed class MemberRepository(SonarrDbContext db) : IMemberRepository
                 && m.FirstSeenAt.Day == day)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<MemberGuild>> GetGuildsAsync(
+        long userId, CancellationToken ct = default)
+        => await (from m in db.Members
+                  join g in db.Guilds on m.GuildId equals g.GuildId
+                  where m.UserId == userId
+                  orderby g.Name
+                  select new MemberGuild(g.GuildId, g.Name))
+            .AsNoTracking()
+            .ToListAsync(ct);
+
     public async Task<long?> FindUserIdByUsernameAsync(string username, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(username);
