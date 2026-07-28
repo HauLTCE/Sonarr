@@ -201,6 +201,49 @@ public class ChatIntrospectionTests
     }
 
     [Fact]
+    public async Task Relationship_adds_a_trajectory_line_for_a_week_that_moved()
+    {
+        FakePersonRepository people = new();
+        people.Seed(Guild, User, p => p.Registers = new PersonRegisters { Trust = 8 });
+        people.SeedEvent(Guild, User, 1.0, Build.Now.AddDays(-2));
+        people.SeedEvent(Guild, User, 1.0, Build.Now.AddDays(-1));
+
+        string line = await Build.Introspection(people).DescribeRelationshipAsync(Guild, User, User);
+
+        // Level and trend are both in the answer: where you stand, then which way you're going.
+        Assert.Contains(Pool("relationship_regular"), l => line.StartsWith(l, StringComparison.Ordinal));
+        Assert.Contains(Pool(ChatIntrospection.TrendUpPool), line.EndsWith);
+    }
+
+    [Fact]
+    public async Task A_week_of_losing_ground_says_so()
+    {
+        FakePersonRepository people = new();
+        people.Seed(Guild, User, p => p.Registers = new PersonRegisters { Trust = 8 });
+        people.SeedEvent(Guild, User, -2.0, Build.Now.AddHours(-3));
+
+        string line = await Build.Introspection(people).DescribeRelationshipAsync(Guild, User, User);
+
+        Assert.Contains(Pool(ChatIntrospection.TrendDownPool), line.EndsWith);
+    }
+
+    [Fact]
+    public async Task A_flat_week_gets_no_trajectory_line_at_all()
+    {
+        FakePersonRepository people = new();
+        people.Seed(Guild, User, p => p.Registers = new PersonRegisters { Trust = 8 });
+
+        // Movement below the threshold, and movement that happened before the window: neither is
+        // a trajectory, and a line about no movement is worse than no line.
+        people.SeedEvent(Guild, User, 0.4, Build.Now.AddDays(-1));
+        people.SeedEvent(Guild, User, 9.0, Build.Now - ChatIntrospection.TrendWindow.Add(TimeSpan.FromDays(1)));
+
+        string line = await Build.Introspection(people).DescribeRelationshipAsync(Guild, User, User);
+
+        Assert.Contains(line, Pool("relationship_regular"));
+    }
+
+    [Fact]
     public void Every_tier_the_persona_declares_has_an_authored_description()
     {
         // The command looks pools up by tier id, so a tier added to sonarr.yaml without a pool

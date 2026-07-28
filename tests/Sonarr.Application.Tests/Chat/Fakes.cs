@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Sonarr.Application.Chat;
 using Sonarr.Domain.Abstractions;
@@ -47,6 +48,17 @@ internal sealed class FakePersonRepository : IPersonRepository
         _people[(guildId, userId)] = row;
         return row;
     }
+
+    /// <summary>One stored register movement, for the trajectory queries /relationship reads.</summary>
+    public void SeedEvent(long guildId, long userId, double trust, DateTimeOffset at, string cause = "TEST")
+        => Events.Add(new RelationshipEvent
+        {
+            GuildId = guildId,
+            UserId = userId,
+            Delta = new JsonObject { [Sonarr.Elaine.Conversation.Registers.Names.Trust] = trust },
+            Cause = cause,
+            At = at,
+        });
 
     public Fact SeedFact(long guildId, long userId, string predicate, string value, long turn = 1)
     {
@@ -298,8 +310,9 @@ internal static class Build
             new FixedClock(now ?? Now),
             NullLogger<ChatPipeline>.Instance);
 
-    public static ChatIntrospection Introspection(FakePersonRepository people)
-        => new(Persona(), people);
+    public static ChatIntrospection Introspection(
+        FakePersonRepository people, DateTimeOffset? now = null)
+        => new(Persona(), people, new FixedClock(now ?? Now));
 
     public static ChatEditWatcher EditWatcher(
         FakeSessionCache cache,
