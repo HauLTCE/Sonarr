@@ -96,14 +96,6 @@ public sealed class FakeWebAuthRepository : IWebAuthRepository
         return Task.FromResult<IReadOnlyList<string>>(revoked);
     }
 
-    public Task<IReadOnlyList<WebSession>> GetActiveSessionsAsync(long userId, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<WebSession>>(
-        [
-            .. _sessions.Values
-                .Where(s => s.UserId == userId && !s.Revoked && s.ExpiresAt > DateTimeOffset.UtcNow)
-                .OrderByDescending(s => s.CreatedAt),
-        ]);
-
     public Task AddAuditAsync(WebAudit entry, CancellationToken ct = default)
     {
         Audits.Add(entry);
