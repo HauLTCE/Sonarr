@@ -9,18 +9,35 @@
 # here twice, and the crash this script first caught (a function prop crossing into a client
 # component) passed `next build` cleanly.
 #
-# Run on the CT, from the compose directory:  sh tier-check.sh
-# Reads POSTGRES_PASSWORD and ADMIN_USER_IDS from ./.env and never echoes either.
+# Run on the CT:  sh tier-check.sh   (from anywhere -- it finds the compose directory itself)
+# Reads POSTGRES_PASSWORD and ADMIN_USER_IDS from the stack's .env and never echoes either.
 set -eu
 
-cd "$(dirname "$0")"
+# The stack directory is the one holding .env, and this script lives at repo/deploy/ inside it -- so
+# walk up rather than assuming a cwd. Without this the greps below quietly find nothing and the
+# script runs on to build malformed SQL: `set -e` does not catch a failing grep in a pipeline,
+# because the pipeline's status is cut's.
+DIR=$(cd "$(dirname "$0")" && pwd)
+while [ ! -f "$DIR/.env" ] && [ "$DIR" != / ]; do
+  DIR=$(dirname "$DIR")
+done
+[ -f "$DIR/.env" ] || { echo "no .env found above $0 -- run this on the CT" >&2; exit 1; }
+cd "$DIR"
 
-API=http://127.0.0.1:$(grep -m1 '^API_PORT=' .env | cut -d= -f2-)
+# Reads one key from .env, and refuses to continue without it: every one of these is load-bearing,
+# and an empty value fails much later as a confusing syntax error rather than as a missing setting.
+env_or_die() {
+  value=$(grep -m1 "^$1=" .env | cut -d= -f2- || true)
+  [ -n "$value" ] || { echo "$1 is not set in $DIR/.env" >&2; exit 1; }
+  echo "$value"
+}
+
+API=http://127.0.0.1:$(env_or_die API_PORT)
 WEB=http://127.0.0.1:3000
 
-PGPASSWORD=$(grep -m1 '^POSTGRES_PASSWORD=' .env | cut -d= -f2-)
+PGPASSWORD=$(env_or_die POSTGRES_PASSWORD)
 export PGPASSWORD
-ADMINS=$(grep -m1 '^ADMIN_USER_IDS=' .env | cut -d= -f2-)
+ADMINS=$(env_or_die ADMIN_USER_IDS)
 
 psql() {
   docker exec -i -e PGPASSWORD sonarr-postgres-1 psql -U sonarr -d sonarr -q -t -A "$@"
