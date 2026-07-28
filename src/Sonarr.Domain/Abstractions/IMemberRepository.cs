@@ -28,6 +28,13 @@ public interface IMemberRepository
     /// </summary>
     Task<IReadOnlyList<Member>> GetJoinAnniversariesAsync(
         long guildId, int month, int day, CancellationToken ct = default);
+
+    /// <summary>
+    /// Panel login: the user id behind a Discord handle, or null when nobody here has it.
+    /// Case-insensitive, and null when two rows disagree — the cached username is not unique
+    /// across guilds, and DMing the wrong person is worse than a failed login.
+    /// </summary>
+    Task<long?> FindUserIdByUsernameAsync(string username, CancellationToken ct = default);
 }
 
 /// <summary>One member's accumulated activity since the last flush.</summary>

@@ -161,6 +161,9 @@ public class RedisKeysTests
     [InlineData("RateLimitCommand", Reset)]
     [InlineData("RateLimitSpam", Reset)]
     [InlineData("RateLimitLogin", Reset)]
+    // rl:login:verify also fails closed, so a flush forgives an attacker mid-guessing at the cost
+    // of a token they still do not have — and the token itself lives in Postgres.
+    [InlineData("RateLimitLoginVerify", Reset)]
     [InlineData("RateLimitXp", Reset)]
     // Presence is re-sampled within 5 min by PresenceSampler; a lost voice key costs at most one
     // accrual window, and stats.activity_sample already has the durable copy.

@@ -289,6 +289,27 @@ internal sealed class FakeMemberRepository : IMemberRepository
         => Task.FromResult<IReadOnlyList<Member>>(
             [.. _rows.Values.Where(m => m.GuildId == guildId
                 && m.FirstSeenAt.Month == month && m.FirstSeenAt.Day == day)]);
+
+    /// <summary>Names a seeded row, so the panel-login lookup has something to find.</summary>
+    public FakeMemberRepository Named(long guildId, long userId, string username)
+    {
+        Member row = _rows.TryGetValue((guildId, userId), out Member? existing)
+            ? existing
+            : _rows[(guildId, userId)] = new Member { GuildId = guildId, UserId = userId };
+        row.Username = username;
+        return this;
+    }
+
+    public Task<long?> FindUserIdByUsernameAsync(string username, CancellationToken ct = default)
+    {
+        // Mirrors the real query: distinct ids, ambiguous means nobody.
+        long[] ids = [.. _rows.Values
+            .Where(m => string.Equals(m.Username, username, StringComparison.OrdinalIgnoreCase))
+            .Select(m => m.UserId)
+            .Distinct()];
+
+        return Task.FromResult(ids.Length == 1 ? ids[0] : (long?)null);
+    }
 }
 
 /// <summary>
@@ -320,6 +341,9 @@ internal sealed class FakeCooldownStore : ICooldownStore
         => Task.FromResult(true);
 
     public Task<bool> TryConsumeLoginAsync(string identifier, CancellationToken cancellationToken = default)
+        => Task.FromResult(true);
+
+    public Task<bool> TryConsumeVerifyAsync(string identifier, CancellationToken cancellationToken = default)
         => Task.FromResult(true);
 
     public Task<int> RecordMessageHashAsync(

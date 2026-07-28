@@ -54,6 +54,32 @@ internal sealed class RedisCooldownStore : RedisCacheBase, ICooldownStore
         }
     }
 
+    public async Task<bool> TryConsumeVerifyAsync(string identifier, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(identifier);
+
+        var key = RedisKeys.RateLimitLoginVerify(identifier);
+        try
+        {
+            // Same counter shape as the request limit, but the window is the token's own life: the
+            // key is armed on the first wrong guess and dies with the code.
+            var count = await Db.StringIncrementAsync(key).ConfigureAwait(false);
+            if (count == 1)
+            {
+                await Db.KeyExpireAsync(key, CacheTtl.RateLimitLoginVerify).ConfigureAwait(false);
+            }
+
+            return count <= CacheTtl.LoginVerifyAttempts;
+        }
+        catch (Exception ex) when (IsRedisFailure(ex))
+        {
+            // FAIL CLOSED: without a counter there is no attempt cap, which turns an 8-char code
+            // into something brute-forceable. Denying verifies during an outage is the cheaper loss.
+            Logger.LogError(ex, "Redis unavailable for login verify limit; denying (fail closed).");
+            return false;
+        }
+    }
+
     public async Task<int> RecordMessageHashAsync(
         ulong guildId,
         ulong userId,

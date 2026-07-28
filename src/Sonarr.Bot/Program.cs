@@ -2,6 +2,7 @@ using Serilog;
 using Serilog.Events;
 using Sonarr.Application.Config;
 using Sonarr.Application.Health;
+using Sonarr.Bot.Api;
 using Sonarr.Bot.Discord.Chat;
 using Sonarr.Bot.Discord.Jobs;
 using Sonarr.Bot.Discord.Levels;
@@ -65,14 +66,16 @@ try
     builder.Services.AddSonarrChat(options);
     builder.Services.AddSonarrDiscord();
 
+    builder.Services.AddSonarrPanelApi(options);
+
     // Plain HTTP: HTTPS is terminated by the user's tunnel in front of
     // sonarr.hault.io.vn (docs/02-architecture.md).
     builder.WebHost.UseUrls($"http://0.0.0.0:{options.ApiPort}");
 
     var app = builder.Build();
 
-    // ponytail: the panel API, Discord gateway and background services land here as
-    // they are built (docs/09, docs/08). /health is the only route that exists now.
+    app.UseCors(PanelApiServiceCollectionExtensions.CorsPolicy);
+
     app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
     // docs/03-stack.md: lightweight counters, rendered by the panel. No auth needed —
@@ -83,6 +86,13 @@ try
         uptimeSeconds = (long)(DateTimeOffset.UtcNow - m.StartedAt).TotalSeconds,
         counters = m.Snapshot(),
     }));
+
+    // The panel surface (docs/09): login, the user's own data, the public status blob and the
+    // allow-listed admin routes.
+    app.MapSonarrAuth();
+    app.MapSonarrMe();
+    app.MapSonarrStatus();
+    app.MapSonarrAdmin();
 
     Log.Information("Sonarr starting — API on :{Port}, commands {Scope}",
         options.ApiPort,

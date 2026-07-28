@@ -100,6 +100,9 @@ public sealed class CooldownStoreContractTests
         public Task<bool> TryConsumeLoginAsync(string identifier, CancellationToken cancellationToken = default)
             => Task.FromResult(allow);
 
+        public Task<bool> TryConsumeVerifyAsync(string identifier, CancellationToken cancellationToken = default)
+            => Task.FromResult(allow);
+
         public Task<int> RecordMessageHashAsync(
             ulong guildId, ulong userId, string messageHash, CancellationToken cancellationToken = default)
             => Task.FromResult(1);
