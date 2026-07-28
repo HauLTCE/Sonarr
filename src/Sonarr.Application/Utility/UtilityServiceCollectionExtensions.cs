@@ -23,6 +23,9 @@ public static class UtilityServiceCollectionExtensions
 
         // /capsule write. The repository is registered by the social slice's wiring.
         services.AddScoped<ICapsuleService, CapsuleService>();
+
+        // /event. Same reason for the interface: it takes the internal ZoneResolver.
+        services.AddScoped<IEventService, EventService>();
         services.AddScoped<IReminderService, ReminderService>();
         services.AddScoped<IAnnounceService, AnnounceService>();
         services.AddScoped<IWelcomeService, WelcomeService>();
