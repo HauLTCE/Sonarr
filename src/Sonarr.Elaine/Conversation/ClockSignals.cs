@@ -8,11 +8,18 @@ namespace Sonarr.Elaine.Conversation;
 /// Wall-clock time, reduced to the handful of signals a turn is allowed to see.
 /// </summary>
 /// <remarks>
+/// <para>
 /// This is the whole of docs/10's "the adapter feeds wall-clock signals": absence tiers,
 /// multi-day decay, the 3–6 am pool, the mood-of-the-day seed, seasonal overlays. Deriving
 /// them is pure — <see cref="From"/> takes the instants rather than reading a clock — so a
 /// stored turn replays to the same reply a year later, which an ambient <c>UtcNow</c> would
 /// make impossible.
+/// </para>
+/// <para>
+/// The calendar comes from <c>now</c>'s own offset, so the caller decides whose 3 am this is.
+/// It used to be the host's, via <c>ToLocalTime()</c>, which is the same class of mistake as
+/// reading the clock: a UTC container made "3–6 am" fire in the afternoon for a server in
+/// Asia/Ho_Chi_Minh, and the mood of the day turned over mid-morning.
 /// </remarks>
 public sealed record ClockSignals
 {
@@ -58,6 +65,10 @@ public sealed record ClockSignals
     /// <summary>
     /// Derives the signals for a turn happening at <paramref name="now"/>.
     /// </summary>
+    /// <param name="now">
+    /// The turn's instant, in the zone whose calendar should decide. Pass a UTC value only if
+    /// UTC is genuinely the room's clock.
+    /// </param>
     /// <param name="lastSeen">
     /// The person's previous turn, or null for first contact — which is not an absence, so it
     /// gets no catch-up decay and no "long time no see" tier.
@@ -66,13 +77,12 @@ public sealed record ClockSignals
     {
         ArgumentNullException.ThrowIfNull(persona);
 
-        DateTimeOffset local = now.ToLocalTime();
         Dictionary<string, int> fields = new(StringComparer.Ordinal)
         {
-            [OverlayActivation.Fields.Hour] = local.Hour,
-            [OverlayActivation.Fields.Month] = local.Month,
-            [OverlayActivation.Fields.Day] = local.Day,
-            [OverlayActivation.Fields.DayOfWeek] = (int)local.DayOfWeek,
+            [OverlayActivation.Fields.Hour] = now.Hour,
+            [OverlayActivation.Fields.Month] = now.Month,
+            [OverlayActivation.Fields.Day] = now.Day,
+            [OverlayActivation.Fields.DayOfWeek] = (int)now.DayOfWeek,
         };
 
         TimeSpan away = lastSeen is { } seen && now > seen ? now - seen : TimeSpan.Zero;
@@ -84,7 +94,7 @@ public sealed record ClockSignals
                 away.TotalHours * StepsPerHourAway,
                 MaxExtraDecaySteps),
             AbsenceTier = TierFor(away),
-            DaySeed = StableHash.Of(local.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
+            DaySeed = StableHash.Of(now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
         };
     }
 

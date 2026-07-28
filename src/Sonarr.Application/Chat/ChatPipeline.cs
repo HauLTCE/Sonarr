@@ -28,6 +28,7 @@ public sealed class ChatPipeline(
     ISessionCache cache,
     IFeatureGate features,
     IClock clock,
+    IGuildConfigService config,
     ILogger<ChatPipeline> log,
     SemanticIntentIndex? semantic = null,
     CallbackRetriever? callbacks = null) : IChatPipeline
@@ -80,7 +81,14 @@ public sealed class ChatPipeline(
         ChatSessionState? session = await cache.GetSessionAsync(request.GuildId, request.UserId, ct)
             .ConfigureAwait(false);
 
-        ClockSignals signals = ClockSignals.From(graph, now, session?.LastTurnAt ?? person.UpdatedAt);
+        // Her calendar is the room's, not the container's: 3–6 am and "the mood of the day" are
+        // about when the people talking to her are awake. Config is Redis-cached, so this is a
+        // dictionary lookup on the warm path, and an unset or unresolvable zone lands on UTC —
+        // the same fallback reminders use, and a dev box without ICU can only ever get that one.
+        ClockSignals signals = ClockSignals.From(
+            graph,
+            TimeZoneInfo.ConvertTime(now, await GuildZoneAsync(request.GuildId, ct).ConfigureAwait(false)),
+            session?.LastTurnAt ?? person.UpdatedAt);
 
         // Salt mixes the person with the day so two people on the same turn hear different
         // lines, and the same person hears a different one tomorrow.
@@ -174,6 +182,27 @@ public sealed class ChatPipeline(
     /// embedding or the vector query. That is the whole reason
     /// <see cref="ReplyComposer.WantsCallback"/> is public.
     /// </remarks>
+    /// <summary>
+    /// The zone whose calendar decides her overlays and mood of the day, UTC when the guild has
+    /// not set one.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately the guild's zone and never the speaker's: an overlay replaces a pool for the
+    /// whole room, so if it followed whoever happened to be typing she would be in October for
+    /// one person and not for the next. <c>InvariantGlobalization</c> means IANA ids only resolve
+    /// where tzdata exists (see ZoneResolver) — hence the UTC fallback rather than a throw.
+    /// </remarks>
+    private async Task<TimeZoneInfo> GuildZoneAsync(ulong guildId, CancellationToken ct)
+    {
+        ConfigValue? configured = await config.GetAsync(guildId, ConfigKeys.Timezone, ct)
+            .ConfigureAwait(false);
+
+        return configured?.Raw is { } id
+               && TimeZoneInfo.TryFindSystemTimeZoneById(id.Trim(), out TimeZoneInfo? zone)
+            ? zone
+            : TimeZoneInfo.Utc;
+    }
+
     private async Task<string?> CallbackAsync(
         ChatRequest request, ConversationState state, ulong salt, CancellationToken ct)
     {
