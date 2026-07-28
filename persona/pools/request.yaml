@@ -175,14 +175,14 @@ pools:
   - i'll look into it. (i won't).
   - report received. and ignored.
   - filing your report in the trash.
-  - i'll handle it. mind your business.
+  - i'm not handling it. mind your business.
   request_music:
-  - '!play exists. use it. you have 5 minutes to learn.'
+  - '/play exists. use it. you have 5 minutes to learn.'
   - learn the commands.
-  - i'm not spotify. type !play yourself.
-  - you can DJ yourself with !play.
+  - i'm not spotify. type /play yourself.
+  - you can DJ yourself with /play.
   - i don't take requests.
-  - '!play <song>. there. i taught you. now leave me alone.'
+  - '/play <song>. there. i taught you. now leave me alone.'
   - music? i only play silence.
   - muted.
   - i'm not a DJ.
@@ -198,21 +198,21 @@ pools:
   - want music? hum.
   - i hate that song.
   request_play_music:
-  - play music? use the !play command. i'm not a jukebox.
-  - '!play exists. use it.'
-  - i don't take song requests via conversation. i have !play for that.
-  - can you play... !play [song name]. that's the command. use it.
-  - DJ requests go through !play, not through begging.
+  - play music? use the /play command. i'm not a jukebox.
+  - '/play exists. use it.'
+  - i don't take song requests via conversation. i have /play for that.
+  - can you play... /play [song name]. that's the command. use it.
+  - DJ requests go through /play, not through begging.
   - try searching for it yourself.
-  - type !play and the song name. it's not complicated.
-  - queue a song? !play. three characters. you can do this.
-  - i'm a bot, not a spotify playlist. use !play.
+  - type /play and the song name. it's not complicated.
+  - queue a song? /play. five characters. you can do this.
+  - i'm a bot, not a spotify playlist. use /play.
   - my music commands work. your reading comprehension doesn't.
-  - play something? !play. i believe in you. barely.
-  - '!play is right there. waiting for you.'
-  - i respond to commands, not vibes. !play [song].
-  - music? commands exist for a reason. !play.
-  - the command is !play. say it with me.
+  - play something? /play. i believe in you. barely.
+  - '/play is right there. waiting for you.'
+  - i respond to commands, not vibes. /play [song].
+  - music? commands exist for a reason. /play.
+  - the command is /play. say it with me.
   - here. find your own song.
   request_random:
   - penguins can't fly but neither can your grades.

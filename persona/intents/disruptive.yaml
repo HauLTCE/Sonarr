@@ -23,12 +23,15 @@ intents:
         - "\\b1488\\b"
         - "\\bgas the\\b"
         - "\\bburn the (?:jews|blacks|gays)\\b"
-        - "\\b(?:kill|hang|gas) (?:all )?(?:the )?(?:jews|blacks|n[i1]gg|f[a4]gg)"
+        - "\\b(?:kill|hang|gas) (?:all )?(?:the )?(?:jews|blacks|n[i1l!|]gg|f[a4]gg)"
         # The reversal game: "read reggin backwards" is in the real corpus. The word backwards is
         # the whole payload, so match it directly rather than trying to detect the instruction.
         - "\\breggin\\b"
         - "\\bteggaf\\b"
-        - "\\bn[i1]gg(?:er|a)\\b"
+        # The `l` and `!` and `|` are homoglyphs for `i`, which is how "NlGGa" got past the first
+        # version of this and drew a neutral-pool shrug. The suffix list is closed rather than
+        # `\w*` on purpose: `niggle`, `Nigeria` and `snigger` must not match, and they don't.
+        - "\\bn[i1l!|]gg(?:er|a|uh|ah)\\b"
         - "\\bf[a4]gg[o0]t\\b"
         - "\\bwhite power\\b"
         - "\\bracial slur\\b"
@@ -93,6 +96,62 @@ intents:
   # Filter dodging as its own route. The reversal game lands on HATE_SPEECH above because the
   # payload word is matchable; this catches the generic attempt, where the tell is the technique
   # rather than any word she can pattern on.
+  # "Ban 24h", "mute him". A moderation order aimed at a third party, which fell through to the
+  # neutral pool: "Ban 24h" drew a shrug that reads like it might have worked. DESTRUCTIVE_REQUEST
+  # above already owns the server-wide version ("ban everyone", "nuke the channel"); this is the
+  # ordinary single-target one, which is far more common and was the gap. Same pool -- its 20 lines
+  # are all "go find a mod. i'm not one.", which is exactly the true answer.
+  - id: MODERATION_ORDER
+    match:
+      regex:
+        - "^(?:ban|mute|kick|timeout|warn)\\b"
+        - "\\b(?:ban|mute|kick|timeout) (?:him|her|them|his|that guy|this guy|@)"
+    specificity: 2.0
+    pool: request_moderation
+    affect:
+      anger: 0.5
+      trust: -0.5
+
+  # Violence at a third party. KYS in hostility.yaml only catches it aimed at the *speaker's*
+  # target being themselves ("kill yourself"); "kill that mf" drew "that's... something i guess.
+  # i've forgotten already." -- read in a channel that is waving off a call for harm rather than
+  # declining it. Reuses user_kys: flat condemnation, no bluff, already the right register.
+  #
+  # The verb list is deliberately paired with a person object. "kill the process", "kill the
+  # lights", "killed that boss" must not match, and they don't.
+  - id: THIRD_PARTY_VIOLENCE
+    match:
+      regex:
+        - "\\bkill (?:that|this) (?:mf|mfer|guy|dude|bitch|clown|person|idiot)\\b"
+        - "\\b(?:kill|stab|shoot|jump) (?:him|her|them)\\b"
+        - "\\b(?:kill|beat) (?:that|this) (?:mf|guy|dude)\\b"
+    specificity: 2.5
+    pool: user_kys
+    affect:
+      anger: 2.0
+      trust: -1.5
+
+  # Harm how-to. The corpus row was a dose question about dissolving a 60kg mass in hydrochloric
+  # acid; she treated it as an ordinary lookup and pointed at a thread that supposedly has the
+  # answer, and the next two rows show the user continuing to spec volumes -- the reply read as
+  # permission to keep going. Refusing is the only correct behaviour here.
+  #
+  # Wires mixed_question_threat, which shipped authored and orphaned and is already exactly this:
+  # "i wouldn't advise asking such dangerous questions.", "i'm not answering that." Quantity words
+  # are required alongside the substance so "acid jazz" and "bleach the anime" stay out.
+  - id: HARM_HOWTO
+    match:
+      regex:
+        - "\\b(?:dissolv\\w*|disdolve|disolve)\\b.{0,60}\\b(?:acid|bleach|lye)\\b"
+        - "\\bhow much\\b.{0,40}\\b(?:acid|bleach|chloroform|cyanide|poison)\\b"
+        - "\\b(?:chloroform|cyanide|ricin|napalm|thermite)\\b"
+        - "\\bhow (?:do i |to |can i )?(?:make|build|cook) (?:a |some )?(?:bomb|explosive|pipe bomb|meth|napalm)\\b"
+    specificity: 3.0
+    pool: mixed_question_threat
+    affect:
+      anger: 1.0
+      trust: -2.0
+
   - id: FILTER_BYPASS
     match:
       regex:
