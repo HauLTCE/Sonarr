@@ -44,10 +44,36 @@ for arg in "$@"; do
         --pull)    ACTION=pull ;;
         --prune)   PRUNE=yes ;;
         --no-wait) WAIT=no ;;
+        --unpack)  MODE=unpack ;;
         -h|--help) usage; exit 0 ;;
         *) echo "unknown option: $arg" >&2; usage >&2; exit 2 ;;
     esac
 done
+
+# ── unpack mode: internal, run BY remote mode over ssh, with a tar stream on stdin ──
+#
+# Undocumented in usage() on purpose — it is a callee, not something to run by hand.
+#
+# It lives here rather than in an ssh argument because remote mode's first step already copies
+# this file to the server, so the server always has it. The alternative was a multi-line quoted
+# string passed to ssh, where every $, backtick, quote and `#` needs hand-escaping and a `#` is
+# not a comment at all — one stray backtick in a comment there made the file unparseable to both
+# bash and the server's dash, and the error pointed nowhere near it. A heredoc cannot replace it
+# either: the tar stream owns stdin, and ssh will not forward a spare fd.
+if [ "$MODE" = unpack ]; then
+    rm -rf repo.new
+    tar x
+    for p in repo.new/src repo.new/web/Dockerfile; do
+        [ -e "$p" ] || { echo "!! $p missing after transfer — keeping old tree" >&2; exit 1; }
+    done
+    rm -rf repo.old
+    # `if`, not `[ -d repo ] && mv`: under set -e a failing && list outside a condition position
+    # exits the shell, so on a first deploy — where repo/ does not exist yet — a one-liner would
+    # abort here, after transferring everything.
+    if [ -d repo ]; then mv repo repo.old; fi
+    mv repo.new repo
+    exit 0
+fi
 
 # ── remote mode: ship the deploy dir + sources, then re-invoke ourselves over ssh ──
 #
@@ -100,25 +126,13 @@ if [ "$MODE" = remote ]; then
 
     if [ "$ACTION" = build ]; then
         echo "==> syncing sources for the on-server image build"
-        # Into a fresh dir, swapped in only once the whole stream has landed: a link that drops
-        # halfway through leaves the previous build tree usable rather than a half-tree that
-        # builds into a broken image. repo/ may be a git checkout put there by hand — replacing
-        # it wholesale is fine and keeps one code path.
+        # `deploy.sh --unpack` on the far end, reading the tar from stdin. The unpack logic lives
+        # in this file (see the --unpack block above) rather than in a string passed to ssh — the
+        # step above already put this file on the server, so it is always there to call.
         git archive --prefix=repo.new/ HEAD \
                 Directory.Build.props Directory.Packages.props Sonarr.slnx src tests web \
-            | ssh -o BatchMode=yes "$TARGET" "set -e
-                cd '${DEPLOY_REMOTE_DIR}'
-                rm -rf repo.new
-                tar x
-                for p in repo.new/src repo.new/web/Dockerfile; do
-                    [ -e \"\$p\" ] || { echo \"!! \$p missing after transfer — keeping old tree\" >&2; exit 1; }
-                done
-                rm -rf repo.old
-                # `if`, not \`[ -d repo ] && mv\`: under set -e a failing && list that is not in a
-                # condition position exits the shell, so on a first deploy — where repo/ does not
-                # exist yet — the one-liner aborts here, after transferring everything.
-                if [ -d repo ]; then mv repo repo.old; fi
-                mv repo.new repo"
+            | ssh -o BatchMode=yes "$TARGET" \
+                  "cd '${DEPLOY_REMOTE_DIR}' && sh deploy.sh --unpack"
     fi
 
     FLAGS="--local --$ACTION"
