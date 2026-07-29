@@ -20,5 +20,34 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "typescript": "^5"
+  },
+  "//overrides": [
+    "12 high-severity advisories, both packages reached only through next, which pins postcss to an",
+    "exact 8.4.31 and takes sharp as an optional ^0.34.5. So `npm audit fix` cannot touch either and",
+    "`npm audit fix --force` proposes next@9.3.3 — a 2020 release — to fix 2026 advisories. Downgrading",
+    "seven major versions to silence an audit trades a real vulnerability for a much larger one.",
+    "",
+    "Overrides move them forward instead. Both are patch/minor bumps within the same major, and the",
+    "build + typecheck + 15-route render is what proves the pin still holds.",
+    "",
+    "ponytail: an override is a claim that next works with a version it did not pick. Revisit on every",
+    "next upgrade — if it starts declaring postcss >=8.5.18 and sharp >=0.35 itself, delete this block",
+    "rather than leaving a pin that silently holds a dependency back.",
+    "",
+    "NOT overridden, deliberately: brace-expansion (GHSA-mh99-v99m-4gvg, DoS via unbounded expansion).",
+    "It is the single root behind the 9 advisories that remain, reached only through minimatch under",
+    "eslint and its plugins. `\"brace-expansion\": \"^5.0.8\"` does take the audit to 0 — and breaks the",
+    "linter: 5.x changed its export shape, minimatch@3.1.5 calls it as `expand()`, and every eslint run",
+    "then dies with `TypeError: expand is not a function`. A clean audit and a dead lint is a worse",
+    "trade than a build-time DoS advisory, so the number stays at 9 with a reason.",
+    "",
+    "It also does not reach production: the Dockerfile is multi-stage and the runtime image copies only",
+    ".next/standalone + .next/static, so /app/node_modules holds 10 packages and no eslint. Verified by",
+    "searching the built image, not inferred from the Dockerfile. Clears when eslint's plugins move to",
+    "minimatch >=10; re-run `npm audit` after any eslint bump and drop this note if it reports 0."
+  ],
+  "overrides": {
+    "postcss": "^8.5.24",
+    "sharp": "^0.35.3"
   }
 }
