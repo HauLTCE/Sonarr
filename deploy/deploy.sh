@@ -49,7 +49,17 @@ for arg in "$@"; do
     esac
 done
 
-# ── remote mode: rsync the deploy dir + sources, then re-invoke ourselves over ssh ──
+# ── remote mode: ship the deploy dir + sources, then re-invoke ourselves over ssh ──
+#
+# Transport is `git archive | ssh tar x`, not rsync. rsync has to exist on BOTH ends, and the
+# dev box here is Git Bash on Windows, which ships no rsync at all — the old version died with
+# a bare "rsync: command not found" and no hint that the fix was on the client. tar and ssh are
+# already required for everything else this script does.
+#
+# git archive rather than plain tar also means the tree that lands is exactly what is committed:
+# no bin/obj, no node_modules, no .env, no stale file left behind by a deleted source. That was
+# the point of --delete, and gitignore already encodes the exclude list, so there is no second
+# list to keep in sync.
 if [ "$MODE" = remote ]; then
     : "${DEPLOY_HOST:?set DEPLOY_HOST (hostname or IP of the target box)}"
     DEPLOY_USER="${DEPLOY_USER:-root}"
@@ -57,32 +67,58 @@ if [ "$MODE" = remote ]; then
     TARGET="${DEPLOY_USER}@${DEPLOY_HOST}"
 
     [ -f deploy/docker-compose.yml ] || { echo "run this from the repo root" >&2; exit 1; }
+    git rev-parse --git-dir >/dev/null 2>&1 || {
+        echo "!! not a git checkout — remote mode ships the committed tree" >&2; exit 1; }
 
-    echo "==> ${TARGET}:${DEPLOY_REMOTE_DIR}"
-    ssh -o BatchMode=yes "$TARGET" "mkdir -p '${DEPLOY_REMOTE_DIR}' '${DEPLOY_REMOTE_DIR}/persona'"
+    # Uncommitted work would be silently left behind, and the deploy would look like it worked.
+    # Warn rather than abort: deploying HEAD while mid-edit is a legitimate thing to want.
+    if [ -n "$(git status --porcelain -- persona src tests web deploy Directory.Build.props \
+                                          Directory.Packages.props Sonarr.slnx)" ]; then
+        echo "!!  uncommitted changes in the deployed paths — shipping HEAD, not your worktree:" >&2
+        git status --short -- persona src tests web deploy >&2
+    fi
+    echo "==> ${TARGET}:${DEPLOY_REMOTE_DIR}  (HEAD $(git rev-parse --short HEAD))"
+
+    ssh -o BatchMode=yes "$TARGET" "mkdir -p '${DEPLOY_REMOTE_DIR}'"
 
     # Compose file + deploy script. The remote .env is NOT overwritten — it holds the
-    # only copy of the prod secrets.
-    rsync -az --info=stats0 deploy/docker-compose.yml deploy/deploy.sh \
-        "$TARGET:${DEPLOY_REMOTE_DIR}/"
+    # only copy of the prod secrets. --strip-components=1 drops the leading deploy/.
+    git archive HEAD deploy/docker-compose.yml deploy/deploy.sh \
+        | ssh -o BatchMode=yes "$TARGET" \
+              "tar x --strip-components=1 -C '${DEPLOY_REMOTE_DIR}'"
+
     # Persona YAML: repo-root persona/ is the source of truth (docs/10), mounted at
-    # /app/persona and hot-reloaded. --delete so a removed file is removed there too.
-    if [ -d persona ]; then
-        rsync -az --delete --info=stats0 persona/ "$TARGET:${DEPLOY_REMOTE_DIR}/persona/"
-    else
+    # /app/persona and hot-reloaded. The rm makes a removed file disappear there too, which
+    # is what rsync --delete did; persona/ is data the bot reads, never data it writes.
+    git ls-tree --name-only HEAD persona >/dev/null 2>&1 && [ -d persona ] || {
         echo "!!  ./persona is missing — the bot refuses to boot without it. Aborting." >&2
         exit 1
-    fi
+    }
+    git archive HEAD persona \
+        | ssh -o BatchMode=yes "$TARGET" \
+              "rm -rf '${DEPLOY_REMOTE_DIR}/persona' && tar x -C '${DEPLOY_REMOTE_DIR}'"
 
     if [ "$ACTION" = build ]; then
         echo "==> syncing sources for the on-server image build"
-        # node_modules/.next are host artefacts: npm ci in the image installs the right
-        # platform binaries, and shipping ~400MB over this link to be ignored is waste.
-        rsync -az --delete --info=stats0 \
-            --exclude 'bin/' --exclude 'obj/' --exclude '.env' \
-            --exclude 'node_modules/' --exclude '.next/' --exclude '*.tsbuildinfo' \
-            Directory.Build.props Directory.Packages.props Sonarr.slnx src tests web \
-            "$TARGET:${DEPLOY_REMOTE_DIR}/repo/"
+        # Into a fresh dir, swapped in only once the whole stream has landed: a link that drops
+        # halfway through leaves the previous build tree usable rather than a half-tree that
+        # builds into a broken image. repo/ may be a git checkout put there by hand — replacing
+        # it wholesale is fine and keeps one code path.
+        git archive --prefix=repo.new/ HEAD \
+                Directory.Build.props Directory.Packages.props Sonarr.slnx src tests web \
+            | ssh -o BatchMode=yes "$TARGET" "set -e
+                cd '${DEPLOY_REMOTE_DIR}'
+                rm -rf repo.new
+                tar x
+                for p in repo.new/src repo.new/web/Dockerfile; do
+                    [ -e \"\$p\" ] || { echo \"!! \$p missing after transfer — keeping old tree\" >&2; exit 1; }
+                done
+                rm -rf repo.old
+                # `if`, not \`[ -d repo ] && mv\`: under set -e a failing && list that is not in a
+                # condition position exits the shell, so on a first deploy — where repo/ does not
+                # exist yet — the one-liner aborts here, after transferring everything.
+                if [ -d repo ]; then mv repo repo.old; fi
+                mv repo.new repo"
     fi
 
     FLAGS="--local --$ACTION"
