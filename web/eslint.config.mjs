@@ -54,6 +54,33 @@ const eslintConfig = defineConfig([
       "jsx-a11y/tabindex-no-positive": "error",
     },
   },
+  {
+    /**
+     * No page hard-codes English.
+     *
+     * `lib/strings.ts` opens by stating this as the rule it exists to enforce, and until now nothing
+     * enforced it — the tree happened to comply because it was written that way, which lasts exactly
+     * until someone types a word into JSX. Adding Vietnamese should mean filling in one object, not
+     * hunting the tree for strings.
+     *
+     * `ignoreProps` because a prop is as likely to be a className or an href as user-visible text,
+     * and the ones that *are* text (`<PageHead title=…>`) already take a translated string; catching
+     * those would need a rule that knows which props render.
+     *
+     * The three allowed strings are separators between values that are already translated — "12 · 4",
+     * "3/9", "14:00". They are punctuation, not wording: there is no Vietnamese for "·". A "#" is not
+     * on this list on purpose. It looks like punctuation and is not — it is a Western ordinal
+     * convention, Vietnamese writes "hạng 4" — and this rule is what caught it sitting in
+     * app/activity/page.tsx.
+     */
+    files: ["**/*.tsx"],
+    rules: {
+      "react/jsx-no-literals": [
+        "error",
+        { noStrings: true, ignoreProps: true, allowedStrings: ["·", "/", ":"] },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

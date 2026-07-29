@@ -59,7 +59,9 @@ export default async function ActivityPage({ searchParams }: { searchParams: Que
               </div>
               <div className="stat">
                 <div className="stat-label">{t("activity.rank")}</div>
-                <div className="stat-value mono">#{count(locale, overview.data.rank)}</div>
+                <div className="stat-value mono">
+                  {t("activity.rankValue", { n: count(locale, overview.data.rank) })}
+                </div>
               </div>
               <div className="stat">
                 <div className="stat-label">{t("activity.xp")}</div>

@@ -128,6 +128,10 @@ const en = {
   "activity.lead": "Your level and streak in this server, plus any reminders you have set.",
   "activity.level": "Level",
   "activity.rank": "Rank",
+  // The "#" belongs to the dictionary, not the JSX: it is a Western ordinal convention, not neutral
+  // punctuation, and Vietnamese would write "hạng {n}". A translator cannot move a character that
+  // lives in a page.
+  "activity.rankValue": "#{n}",
   "activity.xp": "XP",
   "activity.toNext": "{n} XP to level {level}",
   "activity.streak": "Day streak",
