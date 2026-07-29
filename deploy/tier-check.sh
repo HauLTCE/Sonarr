@@ -5,7 +5,7 @@
 # Why this exists rather than a unit test: PanelGate is already covered as a pure function, and the
 # self-test already reports green. Neither can tell you whether the wiring in front of them agrees --
 # whether the cookie a browser sends resolves to the tier the routes enforce, and whether the pages
-# the rail offers are the pages that render. Green health checks have coexisted with a broken bot
+# the navbar offers are the pages that render. Green health checks have coexisted with a broken bot
 # here twice, and the crash this script first caught (a function prop crossing into a client
 # component) passed `next build` cleanly.
 #
@@ -234,19 +234,27 @@ if [ -n "$PLAIN" ]; then
     esac
   done
 
-  # The rail is built from the tier, so a link to a page they cannot open would be a dead end. Read
+  # The nav is built from the tier, so a link to a page they cannot open would be a dead end. Read
   # off a page that is known to have rendered, not off a 500 -- an error body has no links either,
   # which would make this assertion pass for the wrong reason.
+  #
+  # The sentinel is `class="topbar"`, not the sections nav: a one-section visitor gets no sections
+  # row at all, and that visitor is the entire point of this check -- pinning on the row that only
+  # an admin sees would make the assertion vacuous in exactly the case it guards.
   root=$(curl -s -b "sonarr_session=$PLAIN" "$WEB/")
   case $root in
-    *'class="rail"'*)
+    *'class="topbar"'*)
+      # No closing quote in the pattern: every nav link now carries a `?g=` guild query, so
+      # matching `href="/server"` exactly would find nothing and report a pass for a nav that
+      # links straight into the admin side. Sub-paths like /server/behaviour match too, which
+      # is correct -- they are pages this visitor cannot open either.
       for path in /server /bot; do
         case $root in
-          *"href=\"$path\""*) bad x "rail links $path" ;;
-          *) say ok "rail omits $path" ;;
+          *"href=\"$path"*) bad x "nav links $path" ;;
+          *) say ok "nav omits $path" ;;
         esac
       done ;;
-    *) bad x 'the root page rendered without a rail; the link check would be vacuous' ;;
+    *) bad x 'the root page rendered without a navbar; the link check would be vacuous' ;;
   esac
 fi
 

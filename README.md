@@ -20,7 +20,7 @@ ten-year-old Pentium.
 | **Levels** | XP with anti-spam cooldowns, streaks, role rewards, leaderboards. |
 | **Moderation** | Warn/mute/kick/ban with a case log, tempbans that survive restarts, purge, audit trail, a permission preflight (`/checkperms`), and private mod threads via `/ticket`. |
 | **Utility** | Reminders, birthdays, events with RSVP, time capsules, quote board, milestones, `/ship`. |
-| **Panel** | Next.js, dark, one horizontal slide across twelve pages in three tiers: **you** (your data, memory, music, activity), **your server** if you manage one (behaviour, moderation, stats), **the bot** if you own it (health, audit). Pages you cannot reach are absent from the rail, not greyed out. Login is a token DM'd by the bot — no passwords, no OAuth redirect. |
+| **Panel** | Next.js, dark, twelve pages behind a two-row navbar: the first row is which side you are on, the second is the pages inside it. **You** (your data, memory, music, activity), **your server** if you manage one (behaviour, moderation, stats), **the bot** if you own it (health, audit). A side you cannot reach is absent, not greyed out, and each side carries only the servers it accepts — so the server picker lists what you manage, not everything you are in. Channels and roles show their names. Login is a token DM'd by the bot — no passwords, no OAuth redirect. |
 | **Privacy** | `/privacy` and a My Data page: see what's stored, export it, delete it. No general message-content logging — counts and timestamps only, enforced by a test that reflects over every column in the schema. |
 
 97 slash commands (85 distinct names — the rest are subcommands like `list` and `set` reused
@@ -50,7 +50,7 @@ persona/                   authored YAML the engine loads; LIMITS.md is what it 
                            does not check, and why
 tests/                     xUnit — engine behavior catalog + service tests
 deploy/                    prod compose stack, deploy script, restore drill
-web/                       the Next.js panel — one slide, three tiers (you / server / bot)
+web/                       the Next.js panel — three sides (you / server / bot) behind one navbar
 ```
 
 Dependencies point one way: `Bot → Application → Domain ← Infrastructure`. `Sonarr.Elaine`
