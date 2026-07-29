@@ -30,13 +30,28 @@ export function GuildPicker({
   const router = useRouter();
 
   return (
-    <label className="picker">
-      <span className="picker-label">{label}</span>
-      {/* The hint goes in `title`, not `aria-label`: an aria-label replaces the accessible name, so
-          it would silence the visible "Server" label above and announce only the explanation. */}
+    <div className="picker">
+      {/* htmlFor rather than a wrapping label, because the hint below must NOT be inside it: text
+          inside a wrapping <label> becomes part of the control's accessible name, so the hint would
+          be announced as part of the name and then again as the description. */}
+      <label className="picker-label" htmlFor="picker">
+        {label}
+      </label>
+
+      {/* Not `aria-label`: that replaces the accessible name, so it would silence the visible
+          "Server" label and announce only the explanation. `title` alone was not enough either --
+          it is announced inconsistently, so the hint could simply never be heard. describedby is
+          the attribute for a supplementary description, and the text is real text. `title` stays
+          for the sighted mouse user, who has no other way to see it. */}
+      <span className="at-only" id="picker-hint">
+        {hint}
+      </span>
+
       <select
+        id="picker"
         value={current ?? ""}
         title={hint}
+        aria-describedby="picker-hint"
         onChange={(event) => router.push(`/${page}${guildQuery(event.target.value)}`)}
       >
         {guilds.map((g) => (
@@ -45,6 +60,6 @@ export function GuildPicker({
           </option>
         ))}
       </select>
-    </label>
+    </div>
   );
 }
