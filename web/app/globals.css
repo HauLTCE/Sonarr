@@ -28,12 +28,19 @@
      adjacency in this layout — a button inside a card, a switch track, an input on the page. */
   --edge: #606b74;
 
-  /* 14.8:1 on --bg. Body text is the one thing that must never be the "muted" grey. */
+  /* Measured, not estimated: 16.04:1 on --bg, 14.93 on --surface, 13.75 on --surface-2. Body text is
+     the one thing that must never be the "muted" grey. */
   --text: #e8eaed;
-  /* 5.9:1 on --bg — above AA for body, used for secondary lines only. */
+  /* 7.55:1 on --bg, 7.03 on --surface, 6.47 on --surface-2 — clears AA body everywhere it can land,
+     used for secondary lines only. */
   --muted: #9aa3ab;
-  /* 4.6:1 — labels and metadata, never a full sentence a user has to read. */
-  --faint: #757e86;
+  /* Labels and metadata, never a full sentence a user has to read — but "small and secondary" is not
+     an exemption from 1.4.3, so this has to clear 4.5:1 like any other text. It was #757e86, which is
+     4.68 on --bg and only 4.36 on --surface / 4.01 on --surface-2 — and .stat-label is 11px on a
+     --surface card, so the one that failed was the one most used. Raised to the first value that
+     clears 4.5 on all three surfaces (4.93 / 4.86 / 4.54) rather than the first that fixes .stat,
+     so moving a label onto a deeper surface cannot quietly reintroduce this. */
+  --faint: #7e878f;
 
   --accent: #7dd3a0;
   --accent-ink: #0c0e10;
