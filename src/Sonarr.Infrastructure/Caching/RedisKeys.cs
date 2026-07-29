@@ -59,7 +59,11 @@ public static class RedisKeys
 
     public static string WebLiveStatus => $"{Prefix}:web:live_status";
 
-    /// <summary>Her current mood mode id, for the panel's accent colour.</summary>
+    /// <summary>
+    /// Her current mood mode id, shown as text on the You and bot health pages. It fed a
+    /// mood-driven accent colour until the panel rewrite dropped that; the key outlived it,
+    /// because naming the mood is the accessible version of tinting the page with it.
+    /// </summary>
     public static string WebMood => $"{Prefix}:web:mood";
 
     // ---- area: cfg ----------------------------------------------------------------

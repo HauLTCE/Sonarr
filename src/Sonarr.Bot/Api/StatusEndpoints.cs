@@ -67,8 +67,9 @@ public static class StatusEndpoints
             live,
 
             // A persona mode id (NEUTRAL, PLAYFUL, SEETHING…) or null if she has not spoken in an
-            // hour. The panel maps it to an accent colour. Public on purpose: it names nobody, and
-            // hiding "she is in a good mood" from a visitor protects nothing.
+            // hour. The panel names it in words — it used to drive an accent colour, which asked
+            // people to read a hue. Public on purpose: it names nobody, and hiding "she is in a
+            // good mood" from a visitor protects nothing.
             mood,
         });
     }

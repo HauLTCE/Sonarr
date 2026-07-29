@@ -172,7 +172,7 @@ public static class PanelEndpoints
         {
             relationship,
             // The tier id is hers to phrase, not the panel's — but the id itself is harmless and
-            // lets the page pick an accent without inventing wording.
+            // lets the page style the row without inventing wording of its own.
             tier = person?.RelationshipTier,
             nickname = person?.AssignedNickname,
             opener = memories.Opener,
