@@ -244,10 +244,11 @@ if [ -n "$PLAIN" ]; then
   root=$(curl -s -b "sonarr_session=$PLAIN" "$WEB/")
   case $root in
     *'class="topbar"'*)
-      # No closing quote in the pattern: every nav link now carries a `?g=` guild query, so
-      # matching `href="/server"` exactly would find nothing and report a pass for a nav that
-      # links straight into the admin side. Sub-paths like /server/behaviour match too, which
-      # is correct -- they are pages this visitor cannot open either.
+      # No closing quote in the pattern: the /server pages are guild-scoped, so their hrefs end
+      # `?guild=<id>` and matching `href="/server"` exactly would find nothing -- reporting a pass
+      # for a nav that links straight into the admin side. (/bot carries no query, but the loose
+      # match costs nothing there.) Sub-paths like /server/behaviour match too, which is correct:
+      # they are pages this visitor cannot open either.
       for path in /server /bot; do
         case $root in
           *"href=\"$path"*) bad x "nav links $path" ;;
