@@ -149,6 +149,50 @@ case $(curl -s -b "sonarr_session=$ADMIN" "$API/api/me") in
   *) bad x '/api/me does not report isAdmin for an allow-listed account' ;;
 esac
 probe 'GET  /api/admin/config' 200 "$ADMIN" "$API/api/admin/config/$ADMIN_GUILD"
+
+# ---------------------------------------------------------------------------------------------
+# The one assertion in this file about a payload rather than a status code. Every probe above
+# passed on the day /api/admin/config answered with only the keys that had a stored row: 200 is
+# 200 whether the body is complete or not. The panel then guessed a kind for the missing keys and
+# defaulted to ChannelId, so a fresh guild rendered a channel picker for `dj_role` -- and picking
+# from it saved a channel id into a role setting with no error anywhere, because validation for
+# RoleId only checks snowflake-ness. A silent wrong write, under a green check run.
+#
+# So pin the kind per key. `[^}]*` cannot leave the key's own object, which is what makes this a
+# single signal: it cannot drift onto a neighbour's kind and pass for the wrong reason.
+# ---------------------------------------------------------------------------------------------
+echo '  config payload carries every key with its own kind:'
+CONFIG=$(curl -s -b "sonarr_session=$ADMIN" "$API/api/admin/config/$ADMIN_GUILD")
+kind_is() {
+  entry=$(printf '%s' "$CONFIG" | grep -o "\"$1\":{[^}]*}")
+  if [ -z "$entry" ]; then
+    bad x "config omits $1"
+  else
+    case $entry in
+      *"\"kind\":\"$2\""*) say ok "$1 -> $2" ;;
+      *) bad x "$1 is not $2: $entry" ;;
+    esac
+  fi
+}
+kind_is welcome_channel ChannelId
+kind_is log_channel ChannelId
+kind_is music_channel ChannelId
+kind_is levelup_channel ChannelId
+kind_is announce_channel ChannelId
+kind_is autorole_id RoleId
+kind_is dj_role RoleId
+kind_is timezone Timezone
+kind_is xp_multiplier Integer
+kind_is levelup_dm Boolean
+kind_is xp_decay Boolean
+kind_is xp_channel_weights ChannelWeights
+# The bounds the number inputs read. Sent as numbers, so an unset key answering null would fail
+# here -- which is the point: the weight editor offers a range, and it has to be the domain's.
+case $(printf '%s' "$CONFIG" | grep -o '"xp_channel_weights":{[^}]*}') in
+  *'"minimum":0'*'"maximum":500'*) say ok 'xp_channel_weights bounds 0-500' ;;
+  *) bad x 'xp_channel_weights carries no usable bounds' ;;
+esac
+
 probe 'GET  /api/admin/flags' 200 "$ADMIN" "$API/api/admin/flags/$ADMIN_GUILD"
 probe 'GET  /api/admin/stats' 200 "$ADMIN" "$API/api/admin/stats/$ADMIN_GUILD?days=30"
 probe 'GET  /api/admin/cases' 200 "$ADMIN" "$API/api/admin/cases/$ADMIN_GUILD?page=1"
