@@ -3,7 +3,7 @@ import Link from "next/link";
 import { serverTranslator } from "../lib/locale";
 
 /**
- * Outside the frame on purpose: a 404 can be reached logged out, and the rail is built from a
+ * Outside the frame on purpose: a 404 can be reached logged out, and the navbar is built from a
  * session. One way out, and it is the panel rather than the browser's Back.
  */
 export default async function NotFound() {

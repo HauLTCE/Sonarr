@@ -3,17 +3,21 @@ import type { StringKey } from "./strings";
 /**
  * The page list and the tier model.
  *
- * Kept free of any server-only import — the rail is a client component, so anything that reaches
- * `next/headers` from here lands in the browser bundle and fails the build. The session read that
- * used to live here is in `panel.ts`, next to its only caller.
+ * Kept free of any server-only import — the guild picker is a client component and imports from
+ * here, so anything that reaches `next/headers` lands in the browser bundle and fails the build.
+ * The session read that used to live here is in `panel.ts`, next to its only caller.
  *
- * One list drives three things: the rail at the bottom, which pages exist for a visitor, and the
- * order the slide moves in. A normal user's rail has no gap and no greyed-out segment — the pages
- * they cannot reach are absent, not disabled, because a disabled control is an invitation to wonder
- * what you are missing.
+ * One list drives three things: which pages exist for a visitor, which side of the panel each one
+ * belongs to, and the order they appear in the navbar. A normal user's nav has no gap and nothing
+ * greyed out — the pages they cannot reach are absent, not disabled, because a disabled control is
+ * an invitation to wonder what you are missing.
  *
- * Every page here has an endpoint behind it. If a page has no data source, it does not belong on
- * the rail pretending it will fill in later.
+ * The `tier` column does double duty, and that is deliberate: it is both the lowest tier that may
+ * open a page and which of the three sides it lives on. One column, so the nav cannot come to
+ * disagree with the gate — and it is the same line the API enforces.
+ *
+ * Every page here has an endpoint behind it. If a page has no data source, it does not belong in
+ * the nav pretending it will fill in later.
  */
 
 export type Tier = "user" | "guild" | "bot";
@@ -29,9 +33,12 @@ export type Page = {
 };
 
 /**
- * Ordered so the slide reads as a widening scope: your own data first, then the server you run,
- * then the bot. Someone sliding right is moving outward, which is also the order of how much
- * trust each page needs.
+ * Ordered as a widening scope: your own data first, then the server you run, then the bot. Reading
+ * left to right is moving outward, which is also the order of how much trust each page needs — so
+ * the sides row and the pages row inside it both run least-privileged first.
+ *
+ * The order is load-bearing in one place: `sectionHome` takes the first page of a side, so whatever
+ * sits at the top of each block is what a side's tab opens.
  */
 export const PAGES: readonly Page[] = [
   { path: "", label: "nav.you", tier: "user", guildScoped: true },

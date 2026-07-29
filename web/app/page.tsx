@@ -19,10 +19,12 @@ type Overview = { messageCount: number };
 export const generateMetadata = () => pageTitle("nav.you");
 
 /**
- * The panel root: who you are to Sonarr, in her words, and where to go next.
+ * The panel root: who you are to Sonarr, in her words.
  *
- * First page a visitor sees, so it also explains the rail — the one piece of this layout that is
- * not self-evident on first look.
+ * It used to end with a "where to go next" card explaining the rail — click a segment, use the
+ * arrow keys. That card is gone with the rail it described. Labelled tabs across the top need no
+ * instructions, and a page that opens by teaching you its own navigation is a page admitting the
+ * navigation is not obvious.
  */
 export default async function YouPage({ searchParams }: { searchParams: Query }) {
   const { session, guild, t } = await panel("", searchParams);
@@ -92,12 +94,6 @@ export default async function YouPage({ searchParams }: { searchParams: Query })
         <Fail failure={me.failure} t={t} />
       )}
 
-      <section className="card">
-        <div className="card-head">
-          <h2>{t("you.whereNext")}</h2>
-        </div>
-        <p className="hint">{t("you.railHint")}</p>
-      </section>
     </Frame>
   );
 }

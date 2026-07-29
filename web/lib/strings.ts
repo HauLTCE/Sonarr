@@ -111,9 +111,6 @@ const en = {
   "you.servers": "Servers you share",
   "you.none": "None yet",
   "you.sessionEnds": "This login expires",
-  "you.whereNext": "Where to go next",
-  "you.railHint":
-    "The bar at the bottom is every page you have. Click a segment, or use the left and right arrow keys.",
 
   // ---------------------------------------------------------------- memory
   "memory.title": "Memory",

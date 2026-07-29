@@ -44,8 +44,8 @@ type MeResponse = { userId: string; isAdmin: boolean; expiresAt: string | null }
  * Returns null when there is no valid session — every page treats that as "go to the login page"
  * rather than rendering an empty panel.
  *
- * Lives here rather than in `pages.ts` because it reads cookies: `pages.ts` is imported by the rail,
- * which is a client component, and a server-only import there is a broken build.
+ * Lives here rather than in `pages.ts` because it reads cookies: `pages.ts` is imported by the guild
+ * picker, which is a client component, and a server-only import there is a broken build.
  */
 export async function session(): Promise<Session | null> {
   const [me, guilds] = await Promise.all([

@@ -32,7 +32,7 @@ export async function serverTranslator(): Promise<Translate> {
  *
  * The root layout holds the `"%s · Sonarr"` template, so this returns the bare page name. It takes a
  * `StringKey` rather than a string so a page cannot hard-code English into its title — the same rule
- * the rest of the panel follows — and the keys it wants already exist as the rail's labels.
+ * the rest of the panel follows — and the keys it wants already exist as the navbar's tab labels.
  */
 export async function pageTitle(key: StringKey): Promise<{ title: string }> {
   const t = await serverTranslator();

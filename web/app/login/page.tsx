@@ -8,7 +8,7 @@ import { LoginForm } from "./LoginForm";
 type Me = { userId: string };
 
 /**
- * The only page outside the frame — there is no rail here, because there is nowhere to go yet.
+ * The only page outside the frame — no navbar here, because there is nowhere to go yet.
  *
  * A live session skips straight through: arriving at /login while logged in is almost always a stale
  * tab or a bookmark, and showing a login form to someone already logged in is a dead end.
