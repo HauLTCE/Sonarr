@@ -45,6 +45,7 @@ for arg in "$@"; do
         --prune)   PRUNE=yes ;;
         --no-wait) WAIT=no ;;
         --unpack)  MODE=unpack ;;
+        --unpack-persona) MODE=unpack-persona ;;
         -h|--help) usage; exit 0 ;;
         *) echo "unknown option: $arg" >&2; usage >&2; exit 2 ;;
     esac
@@ -72,6 +73,39 @@ if [ "$MODE" = unpack ]; then
     # abort here, after transferring everything.
     if [ -d repo ]; then mv repo repo.old; fi
     mv repo.new repo
+    exit 0
+fi
+
+# ── unpack-persona mode: same shape, but the directory is a live bind mount ──
+#
+# ./persona is bound into the bot at /app/persona, and Docker resolves a bind mount ONCE, to an
+# inode. `rm -rf persona && tar x` therefore does not update the mount: it detaches it. The
+# container keeps pointing at the unlinked directory, sees an empty /app/persona, and the
+# hot-reload watcher fires `[missing-root] sonarr.yaml is missing or empty` on every poll. The bot
+# stays up on the persona it loaded at boot — the validator refuses to swap in a broken one, which
+# is the only reason this was survivable — but a restart in that state would refuse to boot.
+# Nothing in the deploy output said so; it exited 0.
+#
+# So the mount root is never replaced. Files are written *into* the existing directory, and
+# only files that vanished from the repo are removed. `cp -R` then `rm` rather than swapping
+# directories, in the order that leaves the smallest broken window: contents appear before
+# anything is deleted, and the watcher rejects a mid-write tree rather than loading it.
+if [ "$MODE" = unpack-persona ]; then
+    rm -rf persona.new
+    tar x
+    [ -s persona.new/persona/sonarr.yaml ] || {
+        echo "!! persona.new/persona/sonarr.yaml missing or empty after transfer — live tree kept" >&2
+        rm -rf persona.new
+        exit 1
+    }
+    mkdir -p persona
+    cp -R persona.new/persona/. persona/
+    # Delete what the repo no longer has. Paths come from the transferred tree, so a file removed
+    # upstream disappears here too — what rsync --delete did — without touching the mount root.
+    ( cd persona && find . -mindepth 1 | sed 's|^\./||' ) | while IFS= read -r rel; do
+        [ -e "persona.new/persona/$rel" ] || rm -rf "persona/$rel"
+    done
+    rm -rf persona.new
     exit 0
 fi
 
@@ -114,15 +148,15 @@ if [ "$MODE" = remote ]; then
               "tar x --strip-components=1 -C '${DEPLOY_REMOTE_DIR}'"
 
     # Persona YAML: repo-root persona/ is the source of truth (docs/10), mounted at
-    # /app/persona and hot-reloaded. The rm makes a removed file disappear there too, which
-    # is what rsync --delete did; persona/ is data the bot reads, never data it writes.
+    # /app/persona and hot-reloaded. See --unpack-persona below for why this cannot simply
+    # rm -rf the directory the way the source tree can.
     git ls-tree --name-only HEAD persona >/dev/null 2>&1 && [ -d persona ] || {
         echo "!!  ./persona is missing — the bot refuses to boot without it. Aborting." >&2
         exit 1
     }
-    git archive HEAD persona \
+    git archive --prefix=persona.new/ HEAD persona \
         | ssh -o BatchMode=yes "$TARGET" \
-              "rm -rf '${DEPLOY_REMOTE_DIR}/persona' && tar x -C '${DEPLOY_REMOTE_DIR}'"
+              "cd '${DEPLOY_REMOTE_DIR}' && sh deploy.sh --unpack-persona"
 
     if [ "$ACTION" = build ]; then
         echo "==> syncing sources for the on-server image build"
