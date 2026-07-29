@@ -126,18 +126,47 @@ internal sealed class FakeConfigCache : IConfigCache
     }
 }
 
+/// <summary>
+/// A gateway cache holding whatever the test says it holds. <see cref="Empty"/> is the
+/// bot-is-not-in-this-guild case, which the service treats as "cannot tell" and lets through.
+/// </summary>
+internal sealed class FakeGuildDirectory : IGuildDirectory
+{
+    private GuildDirectory? _guild;
+
+    /// <summary>The default: no cached guild, so the channel/role check has nothing to check against.</summary>
+    public static FakeGuildDirectory Empty => new();
+
+    public static FakeGuildDirectory With(string[] channels, string[] roles) => new()
+    {
+        _guild = new GuildDirectory(
+            [.. channels.Select(c => new NamedEntity(c, $"channel-{c}"))],
+            [.. roles.Select(r => new NamedEntity(r, $"role-{r}"))]),
+    };
+
+    public ValueTask<GuildDirectory?> GetAsync(ulong guildId, CancellationToken ct = default)
+        => ValueTask.FromResult(_guild);
+
+    public string? DisplayName(ulong guildId, ulong userId) => null;
+
+    public string? GuildName(ulong guildId) => null;
+}
+
 internal static class Build
 {
     public const ulong Guild = 111UL;
     public const ulong Actor = 222UL;
 
     public static (Sonarr.Application.Config.GuildConfigService Service, FakeGuildConfigRepository Repo, FakeConfigCache Cache)
-        ConfigService()
+        ConfigService(IGuildDirectory? directory = null)
     {
         var repo = new FakeGuildConfigRepository();
         var cache = new FakeConfigCache();
         return (new Sonarr.Application.Config.GuildConfigService(
-            repo, cache, NullLogger<Sonarr.Application.Config.GuildConfigService>.Instance), repo, cache);
+            repo,
+            cache,
+            directory ?? FakeGuildDirectory.Empty,
+            NullLogger<Sonarr.Application.Config.GuildConfigService>.Instance), repo, cache);
     }
 
     public static (Sonarr.Application.Config.FeatureGate Gate, FakeConfigCache Cache)

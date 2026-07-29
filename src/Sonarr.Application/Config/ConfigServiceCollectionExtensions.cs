@@ -10,6 +10,13 @@ public static class ConfigServiceCollectionExtensions
     /// Scoped, matching the repositories they wrap (<c>AddSonarrPersistence</c>) — a slash command
     /// is the unit of work.
     /// </summary>
+    /// <remarks>
+    /// Needs an <see cref="IGuildDirectory"/> from somewhere, which <c>AddSonarrPanelApi</c>
+    /// registers. Order between the two calls does not matter — resolution happens per request — but
+    /// dropping the panel slice would leave every config write throwing at the first
+    /// <c>/config set</c> rather than at startup. The config service uses it to check that a
+    /// snowflake is the kind of thing its key asks for; see <c>GuildConfigService.Missing</c>.
+    /// </remarks>
     public static IServiceCollection AddSonarrConfig(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);

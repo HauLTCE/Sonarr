@@ -124,6 +124,88 @@ public sealed class GuildConfigServiceTests
         Assert.Null(await service.GetAsync(Build.Guild, ConfigKeys.WelcomeChannel));
     }
 
+    // -----------------------------------------------------------------------------------------
+    // A snowflake carries no type, so TryValidate can only prove a value is *a* snowflake. That is
+    // what made the panel's wrong-kind bug silent: a channel id landed in dj_role and the write
+    // reported success. The panel now sends the right control, but /config set and /config import
+    // still went through, so the check lives in the service where all three surfaces cross it.
+    // -----------------------------------------------------------------------------------------
+    [Fact]
+    public async Task SetAsync_rejects_a_channel_id_handed_to_a_role_key()
+    {
+        (var service, FakeGuildConfigRepository repo, FakeConfigCache cache) = Build.ConfigService(
+            FakeGuildDirectory.With(channels: ["123456789012345678"], roles: ["987654321098765432"]));
+
+        ConfigWriteResult result = await service.SetAsync(
+            Build.Guild, ConfigKeys.DjRole, "123456789012345678", Build.Actor);
+
+        Assert.False(result.Success);
+        Assert.Contains("role", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(repo.WrittenKeys);
+        Assert.Equal(0, cache.GuildInvalidations);
+    }
+
+    [Fact]
+    public async Task SetAsync_rejects_a_role_id_handed_to_a_channel_key()
+    {
+        (var service, FakeGuildConfigRepository repo, _) = Build.ConfigService(
+            FakeGuildDirectory.With(channels: ["123456789012345678"], roles: ["987654321098765432"]));
+
+        ConfigWriteResult result = await service.SetAsync(
+            Build.Guild, ConfigKeys.LogChannel, "987654321098765432", Build.Actor);
+
+        Assert.False(result.Success);
+        Assert.Empty(repo.WrittenKeys);
+    }
+
+    [Fact]
+    public async Task SetAsync_accepts_the_id_that_matches_the_kind()
+    {
+        (var service, FakeGuildConfigRepository repo, _) = Build.ConfigService(
+            FakeGuildDirectory.With(channels: ["123456789012345678"], roles: ["987654321098765432"]));
+
+        Assert.True((await service.SetAsync(
+            Build.Guild, ConfigKeys.DjRole, "987654321098765432", Build.Actor)).Success);
+        Assert.True((await service.SetAsync(
+            Build.Guild, ConfigKeys.LogChannel, "<#123456789012345678>", Build.Actor)).Success);
+
+        Assert.Equal([ConfigKeys.DjRole, ConfigKeys.LogChannel], repo.WrittenKeys);
+    }
+
+    /// <summary>
+    /// The deliberate fallback. "Not cached" and "does not exist" look the same from the gateway
+    /// cache, so an uncached guild lets the write through rather than failing every write for the
+    /// first seconds after a reconnect.
+    /// </summary>
+    [Fact]
+    public async Task SetAsync_allows_an_unknown_id_when_the_guild_is_not_cached()
+    {
+        (var service, FakeGuildConfigRepository repo, _) = Build.ConfigService(FakeGuildDirectory.Empty);
+
+        ConfigWriteResult result = await service.SetAsync(
+            Build.Guild, ConfigKeys.DjRole, "123456789012345678", Build.Actor);
+
+        Assert.True(result.Success);
+        Assert.Equal([ConfigKeys.DjRole], repo.WrittenKeys);
+    }
+
+    [Fact]
+    public async Task ImportAsync_rejects_an_export_whose_ids_belong_to_another_server()
+    {
+        (var service, FakeGuildConfigRepository repo, _) = Build.ConfigService(
+            FakeGuildDirectory.With(channels: ["123456789012345678"], roles: ["987654321098765432"]));
+
+        // Well-formed, in-catalog, every value a real snowflake — and none of them from here.
+        ConfigImportResult result = await service.ImportAsync(
+            Build.Guild,
+            """{"log_channel": "111111111111111111", "dj_role": "222222222222222222"}""",
+            Build.Actor);
+
+        Assert.False(result.Applied);
+        Assert.Equal(2, result.Rejections.Count);
+        Assert.Empty(repo.WrittenKeys);
+    }
+
     [Fact]
     public async Task ImportAsync_reports_every_rejection_not_just_the_first()
     {
