@@ -39,12 +39,29 @@ const en = {
   "nav.audit": "Audit",
 
   "nav.pages": "Pages",
-  "nav.of": "{n} of {total}",
+  // Pagination on the case and audit lists, not navigation between panel pages.
   "nav.prev": "Previous",
   "nav.next": "Next",
   "nav.skip": "Skip to content",
   "nav.logOut": "Log out",
-  "nav.goTo": "Go to {page}",
+  "nav.sections": "Panels",
+  "nav.inSection": "{section} pages",
+
+  // The three sides of the panel. Shorter than the `tier.*` badges because these are tabs, and
+  // said in the second person because a tab is something the visitor is choosing to open.
+  "sec.you": "You",
+  "sec.server": "Server admin",
+  "sec.bot": "Bot admin",
+  "sec.youLead": "Your own data and what Sonarr remembers about you.",
+  "sec.serverLead": "Settings for a server you have Manage Server in.",
+  "sec.botLead": "The bot itself: health and the audit trail.",
+
+  // ---------------------------------------------------------------- footer
+  "foot.session": "Signed in as {user}",
+  "foot.expires": "Session ends {when}",
+  "foot.expiresNever": "Session does not expire",
+  "foot.privacy": "Privacy",
+  "foot.legal": "Sonarr is a personal project. Your data is yours; see Privacy.",
 
   // ---------------------------------------------------------------- login
   "login.title": "Log in",
@@ -234,8 +251,15 @@ const en = {
   "feat.reminders.hint": "Off means reminders cannot be set in this server.",
 
   "behaviour.values": "Settings",
+  // Two leads, because the page can offer two different things. The first is the fallback for when
+  // the channel and role lists could not be read; the second is what an admin normally sees.
   "behaviour.valuesLead":
     "A blank field means Sonarr uses her default. Channels and roles take an id — right-click one in Discord and Copy ID.",
+  "behaviour.valuesLeadNamed":
+    "Pick a channel or role from the list. Leaving one on “Her default” means Sonarr decides for herself.",
+  "behaviour.none": "Her default",
+  "behaviour.gone":
+    "The saved value is not a channel or role here any more — pick another, or use her default.",
   "behaviour.unknown": "Not a setting this panel knows yet.",
 
   // One entry per key in ConfigKeys.All. Here rather than served from the API so they can be

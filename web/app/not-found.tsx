@@ -11,7 +11,7 @@ export default async function NotFound() {
 
   return (
     <div className="solo">
-      <div className="sheet slide">
+      <div className="sheet">
         <div className="page-head">
           <div className="page-label mono">{t("app.name")}</div>
           <h1>{t("state.notFound")}</h1>

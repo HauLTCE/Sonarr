@@ -29,6 +29,7 @@ public static class AdminEndpoints
         group.MapPut("/config/{guildId}", SetConfigAsync);
         group.MapGet("/flags/{guildId}", GetFlagsAsync);
         group.MapPut("/flags/{guildId}", SetFlagAsync);
+        group.MapGet("/directory/{guildId}", GetDirectoryAsync);
         group.MapGet("/cases/{guildId}", GetCasesAsync);
         group.MapGet("/stats/{guildId}", GetStatsAsync);
         group.MapGet("/audit", GetAuditAsync);
@@ -145,7 +146,8 @@ public static class AdminEndpoints
     /// </param>
     private static async Task<IResult> GetCasesAsync(
         ulong guildId, HttpContext http, IWebAuthService auth, IGuildAuthority guilds,
-        IModCaseRepository cases, int? page, string? target, CancellationToken ct)
+        IModCaseRepository cases, IGuildDirectory directory, int? page, string? target,
+        CancellationToken ct)
     {
         if (await Gate(http, auth, guilds, guildId, write: false, ct) is null)
         {
@@ -164,13 +166,43 @@ public static class AdminEndpoints
             {
                 caseId = c.CaseId,
                 targetId = Id(c.TargetId),
+                // The names beside the ids, not instead of them: a moderation log is evidence, and
+                // a nickname changes while a snowflake does not. Null when the member has left and
+                // is in no other guild she shares — the panel shows the id then.
+                targetName = directory.DisplayName(guildId, (ulong)c.TargetId),
                 actorId = Id(c.ActorId),
+                actorName = directory.DisplayName(guildId, (ulong)c.ActorId),
                 action = c.Action.ToString(),
                 c.Reason,
                 c.ExpiresAt,
                 c.CreatedAt,
             }),
         });
+    }
+
+    /// <summary>
+    /// The guild's channels and roles, named. What turns the settings page from "paste a snowflake"
+    /// into a list you pick from.
+    /// </summary>
+    /// <remarks>
+    /// Behind the same guild gate as config, because it is the same secret: which channels a private
+    /// server has is not public, so this is not a route an arbitrary logged-in user may read.
+    /// <para>404 rather than an empty directory when the bot is not in the guild — an empty channel
+    /// list would render as a picker with nothing in it, which reads as "this server has no
+    /// channels" rather than "she is not there".</para>
+    /// </remarks>
+    private static async Task<IResult> GetDirectoryAsync(
+        ulong guildId, HttpContext http, IWebAuthService auth, IGuildAuthority guilds,
+        IGuildDirectory directory, CancellationToken ct)
+    {
+        if (await Gate(http, auth, guilds, guildId, write: false, ct) is null)
+        {
+            return Deny(http);
+        }
+
+        GuildDirectory? found = await directory.GetAsync(guildId, ct);
+
+        return found is null ? Results.NotFound() : Results.Ok(found);
     }
 
     /// <summary>
@@ -218,7 +250,7 @@ public static class AdminEndpoints
     /// <param name="take">Nullable for the reason given on <see cref="GetCasesAsync"/>.</param>
     private static async Task<IResult> GetAuditAsync(
         HttpContext http, IWebAuthService auth, IGuildAuthority guilds, IWebAuthRepository repo,
-        int? skip, int? take, CancellationToken ct)
+        IGuildDirectory directory, int? skip, int? take, CancellationToken ct)
     {
         if (await Gate(http, auth, guilds, guildId: 0, write: false, ct) is null)
         {
@@ -233,7 +265,10 @@ public static class AdminEndpoints
         {
             r.AuditId,
             userId = Id((ulong)r.UserId),
+            userName = directory.DisplayName((ulong)r.GuildId, (ulong)r.UserId),
             guildId = r.GuildId == 0 ? null : Id((ulong)r.GuildId),
+            // The audit log spans guilds, so the server's own name is part of reading a row.
+            guildName = r.GuildId == 0 ? null : directory.GuildName((ulong)r.GuildId),
             r.Action,
             r.Target,
             r.Detail,

@@ -16,6 +16,10 @@ export type ConfigLabels = {
   on: string;
   off: string;
   failed: string;
+  /** The empty option on a channel/role picker — "use her default". */
+  none: string;
+  /** Said under a picker whose stored value is not in the list any more. */
+  gone: string;
 };
 
 /**
@@ -89,6 +93,15 @@ function ConfigRow({
   const id = `cfg-${field.key}`;
   const noteId = `${id}-note`;
 
+  // A stored id that is no longer in the list: a deleted channel, or one the bot lost sight of. The
+  // option is rendered anyway, because a <select> whose value is absent silently shows the first
+  // entry instead — which would make the page claim a setting the server does not have, and then
+  // save that claim on the next press of any other field's button.
+  const missing =
+    field.options !== undefined &&
+    field.value !== null &&
+    !field.options.some((o) => o.id === field.value);
+
   return (
     <div className="field">
       <label htmlFor={id}>{field.label}</label>
@@ -105,6 +118,23 @@ function ConfigRow({
             <option value="">{labels.reset}</option>
             <option value="true">{labels.on}</option>
             <option value="false">{labels.off}</option>
+          </select>
+        ) : field.options !== undefined ? (
+          <select
+            id={id}
+            value={draft}
+            disabled={busy}
+            aria-describedby={noteId}
+            onChange={(event) => setDraft(event.target.value)}
+          >
+            <option value="">{labels.none}</option>
+            {missing ? <option value={field.value!}>{field.value}</option> : null}
+            {field.options.map((o) => (
+              <option key={o.id} value={o.id}>
+                {field.sigil}
+                {o.name}
+              </option>
+            ))}
           </select>
         ) : (
           <input
@@ -136,15 +166,16 @@ function ConfigRow({
         )}
       </div>
 
-      {/* One line doing two jobs: the field's hint, and after a save the API's own answer. It is a
-          live region only while it carries that answer — a hint that speaks on render is noise. */}
+      {/* One line doing three jobs: the field's hint, a warning when the stored id is no longer a
+          real channel or role, and after a save the API's own answer. It is a live region only while
+          it carries that answer — a hint that speaks on render is noise. */}
       <p
         id={noteId}
         className={note?.bad ? "hint hint-bad" : "hint"}
         role={note?.bad ? "alert" : undefined}
         aria-live={note && !note.bad ? "polite" : undefined}
       >
-        {note?.text ?? field.hint}
+        {note?.text ?? (missing ? `${labels.gone} ${field.hint}` : field.hint)}
       </p>
     </div>
   );

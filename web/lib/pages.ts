@@ -59,6 +59,41 @@ export function pagesFor(tier: Tier): readonly Page[] {
   return PAGES.filter((p) => reaches(tier, p.tier));
 }
 
+/**
+ * The nav's top level. Your own data, the server you run and the bot are three different jobs done
+ * by three different people who happen to share one login, so they are three sections rather than
+ * one list of twelve — an admin looking for a setting should not scroll past their own XP to find it.
+ *
+ * The tier already draws that line (it is the same line the API gates on), so this is the existing
+ * field read as a grouping instead of a new one to keep in sync.
+ */
+export const SECTIONS: readonly Tier[] = ["user", "guild", "bot"];
+
+/** Section headings — `tier.*` names the badge, this names the tab. */
+export const SECTION_LABEL: Record<Tier, StringKey> = {
+  user: "sec.you",
+  guild: "sec.server",
+  bot: "sec.bot",
+};
+
+export function sectionsFor(tier: Tier): readonly Tier[] {
+  return SECTIONS.filter((s) => reaches(tier, s));
+}
+
+export function pagesIn(section: Tier): readonly Page[] {
+  return PAGES.filter((p) => p.tier === section);
+}
+
+/** Which section a page belongs to, by `path`. Falls back to the user side for an unknown path. */
+export function sectionOf(path: string): Tier {
+  return PAGES.find((p) => p.path === path)?.tier ?? "user";
+}
+
+/** The page a section's tab points at: its first, which is also its overview. */
+export function sectionHome(section: Tier): Page {
+  return pagesIn(section)[0];
+}
+
 export type GuildOption = {
   readonly guildId: string;
   readonly name: string;

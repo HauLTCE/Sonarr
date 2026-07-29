@@ -1,5 +1,5 @@
 import { apiGet } from "../../../lib/api";
-import { configFields } from "../../../lib/config";
+import { configFields, type Directory } from "../../../lib/config";
 import { pageTitle } from "../../../lib/locale";
 import { panel, type Query } from "../../../lib/panel";
 import type { StringKey } from "../../../lib/strings";
@@ -25,10 +25,16 @@ export default async function BehaviourPage({ searchParams }: { searchParams: Qu
   const { session, guild, t } = await panel("server/behaviour", searchParams);
   const id = guild!.guildId;
 
-  const [flags, config] = await Promise.all([
+  const [flags, config, directory] = await Promise.all([
     apiGet<Flags>(`/api/admin/flags/${id}`),
     apiGet<Config>(`/api/admin/config/${id}`),
+    apiGet<NonNullable<Directory>>(`/api/admin/directory/${id}`),
   ]);
+
+  // A failed directory is not a failed page: every channel and role field falls back to the text box
+  // it used to be, which still accepts a pasted id. Losing the names is worth less than losing the
+  // ability to change a setting.
+  const names: Directory = directory.ok ? directory.data : null;
 
   // A feature the API reports that this panel has no wording for still renders, under its own id —
   // adding one to the domain must never make it invisible here.
@@ -79,10 +85,10 @@ export default async function BehaviourPage({ searchParams }: { searchParams: Qu
       {config.ok ? (
         <ConfigForm
           guildId={id}
-          fields={configFields(config.data, t)}
+          fields={configFields(config.data, t, names)}
           labels={{
             title: t("behaviour.values"),
-            lead: t("behaviour.valuesLead"),
+            lead: names === null ? t("behaviour.valuesLead") : t("behaviour.valuesLeadNamed"),
             save: t("behaviour.save"),
             saving: t("behaviour.saving"),
             saved: t("behaviour.saved"),
@@ -90,6 +96,8 @@ export default async function BehaviourPage({ searchParams }: { searchParams: Qu
             on: t("behaviour.on"),
             off: t("behaviour.off"),
             failed: t("behaviour.failed"),
+            none: t("behaviour.none"),
+            gone: t("behaviour.gone"),
           }}
         />
       ) : (

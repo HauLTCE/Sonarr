@@ -11,7 +11,11 @@ import { Frame, PageHead } from "../../components/Frame";
 type Audit = {
   auditId: number;
   userId: string;
+  /** Null when the account is in no server Sonarr is in — the row then shows the id. */
+  userName: string | null;
   guildId: string | null;
+  /** Null for a bot-wide row, and for a server she has since been removed from. */
+  guildName: string | null;
   action: string;
   target: string | null;
   /**
@@ -53,11 +57,25 @@ export default async function AuditPage({ searchParams }: { searchParams: Query 
 
   const rows = await apiGet<Audit>(`/api/admin/audit?skip=${skip}&take=${TAKE}`);
 
-  /** The name of a server this admin shares, falling back to the raw id for the ones they do not. */
-  const serverName = (guildId: string | null) =>
-    guildId === null
-      ? t("audit.botWide")
-      : (session.guilds.find((g) => g.guildId === guildId)?.name ?? guildId);
+  /**
+   * The name of the server a row is about.
+   *
+   * Three sources in order, because each covers a case the next one misses: the API's own name (from
+   * the gateway, so it covers every server she is in — not just the ones this admin is a member of),
+   * then this admin's own guild list, then the raw id. The middle step is what keeps a row readable
+   * for a server she has since been removed from but the admin is still in.
+   */
+  const serverName = (row: Audit[number]) => {
+    if (row.guildId === null) {
+      return t("audit.botWide");
+    }
+
+    return (
+      row.guildName ??
+      session.guilds.find((g) => g.guildId === row.guildId)?.name ??
+      row.guildId
+    );
+  };
 
   return (
     <Frame session={session} current="bot/audit" guild={guild} t={t}>
@@ -85,9 +103,17 @@ export default async function AuditPage({ searchParams }: { searchParams: Query 
                   {describe(row.detail) ? (
                     <div className="row-sub">{describe(row.detail)}</div>
                   ) : null}
-                  <div className="row-sub mono">
-                    {t("audit.who")} {row.userId} · {t("audit.server")} {serverName(row.guildId)} ·{" "}
-                    {when(locale, row.at)}
+                  {/* Not `mono` on the whole line any more: it is mostly names now, and only the
+                      ids that survive a failed lookup keep the typewriter face. */}
+                  <div className="row-sub">
+                    {t("audit.who")}{" "}
+                    {row.userName === null ? (
+                      <span className="mono">{row.userId}</span>
+                    ) : (
+                      row.userName
+                    )}
+                    {" · "}
+                    {t("audit.server")} {serverName(row)} · {when(locale, row.at)}
                   </div>
                 </div>
               </div>

@@ -9,6 +9,7 @@ import { Frame, PageHead } from "../components/Frame";
 type Flags = { feature: string; enabled: boolean; source: string }[];
 type Config = Record<string, { value: string | null; kind: string }>;
 type Cases = { totalCount: number };
+type Names = { channels: { id: string; name: string }[] };
 
 export const generateMetadata = () => pageTitle("nav.server");
 
@@ -25,19 +26,31 @@ export default async function ServerPage({ searchParams }: { searchParams: Query
   // panel() redirects when a guild-tier page has no manageable guild, so this is non-null here.
   const id = guild!.guildId;
 
-  const [flags, config, cases] = await Promise.all([
+  const [flags, config, cases, names] = await Promise.all([
     apiGet<Flags>(`/api/admin/flags/${id}`),
     apiGet<Config>(`/api/admin/config/${id}`),
     apiGet<Cases>(`/api/admin/cases/${id}?page=1`),
+    apiGet<Names>(`/api/admin/directory/${id}`),
   ]);
 
   const on = (feature: string) =>
     flags.ok ? flags.data.find((f) => f.feature === feature)?.enabled === true : false;
 
+  /**
+   * A channel setting as `#general`. It used to be `#` glued to a snowflake, which is the shape of a
+   * channel mention and none of the meaning — an admin reading `#1183…` learns nothing they did not
+   * already know. Falls back to the id when the directory is unavailable or the channel is gone,
+   * because the value is still what is stored.
+   */
   const channel = (key: string) => {
     const value = config.ok ? config.data[key]?.value : null;
+    if (!value) {
+      return null;
+    }
 
-    return value ? `#${value}` : null;
+    const found = names.ok ? names.data.channels.find((c) => c.id === value) : undefined;
+
+    return `#${found?.name ?? value}`;
   };
 
   return (
@@ -76,7 +89,8 @@ export default async function ServerPage({ searchParams }: { searchParams: Query
             </div>
             <div className="stat">
               <div className="stat-label">{t("server.logChannel")}</div>
-              <div className="stat-value stat-value-sm mono">
+              {/* No `mono`: this holds a channel name now, not a snowflake. */}
+              <div className="stat-value stat-value-sm">
                 {channel("log_channel") ?? t("server.notSet")}
               </div>
             </div>

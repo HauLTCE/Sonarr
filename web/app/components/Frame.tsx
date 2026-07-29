@@ -1,18 +1,22 @@
-import Link from "next/link";
+import { currentLocale } from "../../lib/locale";
+import { sectionOf, type GuildOption, type Session } from "../../lib/pages";
+import type { Translate } from "../../lib/strings";
 
-import { PAGES, pagesFor, type GuildOption, type Session } from "../../lib/pages";
-import type { StringKey, Translate } from "../../lib/strings";
-
-import { GuildPicker } from "./GuildPicker";
-import { Rail } from "./Rail";
+import { Footer } from "./Footer";
+import { Nav } from "./Nav";
 
 /**
- * The shell every panel page renders inside: header, the sliding stage, the rail. A fixed grid, so
- * the rail never scrolls away — navigation you have to scroll to reach is a menu you have hidden.
+ * The shell every panel page renders inside: navbar, content, footer.
  *
- * Server component: it takes the session a page already fetched rather than fetching again.
+ * A fixed-height stage with its own scrollbar was the wrong shape — it made the content scroll inside
+ * a box while the browser's own scrollbar stayed empty, and it existed only to keep the rail glued to
+ * the bottom. The document scrolls now and the footer sits after the content, which is what every
+ * other site does and therefore what a visitor already knows how to use.
+ *
+ * Server component: it takes the session a page already fetched rather than fetching again. Async
+ * only because the footer formats a timestamp, which needs the locale.
  */
-export function Frame({
+export async function Frame({
   session,
   current,
   guild,
@@ -27,14 +31,7 @@ export function Frame({
   t: Translate;
   children: React.ReactNode;
 }) {
-  const tierLabel: StringKey = `tier.${session.tier}`;
-
-  // On a guild page the picker may only offer servers the visitor manages: `panel()` refuses the
-  // others and lands them on a different server instead, which reads as the picker ignoring them.
-  const scoped = PAGES.find((p) => p.path === current)?.tier === "guild";
-  const options = scoped ? session.guilds.filter((g) => g.canManage) : session.guilds;
-
-  const railPages = pagesFor(session.tier);
+  const locale = await currentLocale();
 
   return (
     <div className="frame">
@@ -42,46 +39,15 @@ export function Frame({
         {t("nav.skip")}
       </a>
 
-      <header className="header">
-        <div className="brand">
-          <span>{t("app.name")}</span>
-          <span className="tier">{t(tierLabel)}</span>
-        </div>
-
-        <div className="header-end">
-          {options.length > 1 ? (
-            <GuildPicker
-              guilds={options}
-              current={guild?.guildId}
-              page={current}
-              label={t("server.pick")}
-              hint={t("server.pickHint")}
-            />
-          ) : null}
-          <Link className="btn" href="/logout" prefetch={false}>
-            {t("nav.logOut")}
-          </Link>
-        </div>
-      </header>
+      {/* Which panel this page belongs to is derived from the page list, not passed in: a page
+          cannot then claim to be in a section it is not gated for. */}
+      <Nav session={session} current={current} section={sectionOf(current)} guild={guild} t={t} />
 
       <main className="stage" id="content">
-        <div className="sheet slide">{children}</div>
+        <div className="sheet">{children}</div>
       </main>
 
-      {/* Resolved here, not inside the rail: the rail is a client component and `t` is a function,
-          which cannot cross that boundary. Only this tier's pages are resolved, which is also the
-          set the rail renders. */}
-      <Rail
-        tier={session.tier}
-        current={current}
-        guildId={guild?.guildId}
-        labels={Object.fromEntries(railPages.map((p) => [p.path, t(p.label)]))}
-        pagesLabel={t("nav.pages")}
-        goTo={Object.fromEntries(railPages.map((p) => [p.path, t("nav.goTo", { page: t(p.label) })]))}
-        position={Object.fromEntries(
-          railPages.map((p, i) => [p.path, t("nav.of", { n: i + 1, total: railPages.length })]),
-        )}
-      />
+      <Footer session={session} locale={locale} t={t} />
     </div>
   );
 }

@@ -138,51 +138,138 @@ a {
 /* ------------------------------------------------------------------ layout */
 
 /*
- * The frame is a fixed three-row grid: header, the sliding stage, the rail. The stage is the only
- * scrolling region, so the rail never leaves the screen — it is the navigation, and navigation you
- * have to scroll to reach is a menu you have hidden.
+ * The frame is a normal document: navbar, content, footer, in that order, and the page scrolls the
+ * way the browser scrolls it. The stage used to be its own scrolling region so a bottom rail could
+ * stay glued to the viewport; with the rail gone, that box only served to hide the real scrollbar.
+ *
+ * A grid with a 1fr middle row rather than plain flow, so a short page still pushes the footer to
+ * the bottom of the viewport instead of leaving it floating mid-screen.
  */
 .frame {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto 1fr auto;
   min-height: 100dvh;
 }
 
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 24px;
+/* ------------------------------------------------------------------ the navbar */
+
+/*
+ * Two rows: which panel you are in, then the pages inside it. Sticky, because it is the navigation
+ * and a long settings page should not make you scroll back up to leave it.
+ */
+.topbar {
+  position: sticky;
+  top: 0;
+  /* Above the cards, and above the sticky table headers on the moderation and audit lists. */
+  z-index: 20;
   border-bottom: 1px solid var(--line);
   background: var(--bg);
 }
 
-.brand {
+.topbar-row {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.brand {
   font-family: var(--font-head, system-ui), sans-serif;
   font-weight: 650;
   letter-spacing: -0.02em;
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
 }
 
-/* The tier badge. A visitor should be able to tell at a glance which of the three panels they are
-   looking at, without opening a page to find out. */
-.tier {
-  font-size: 0.6875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  color: var(--accent);
-  border: 1px solid color-mix(in oklab, var(--accent) 40%, transparent);
-  border-radius: 999px;
-  padding: 2px 9px;
+.brand:hover {
+  color: var(--text);
+}
+
+.topbar-end {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  /* Pushes the picker and Log out to the right edge whether or not the section tabs are rendered —
+     a single-guild user with no tabs should still get the same header shape. */
+  margin-left: auto;
+}
+
+/* The section tabs: the three sides of the panel. Wraps rather than scrolls, because three tabs
+   that wrap onto a second line are still all visible, and a horizontal scroller hides the third. */
+.sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  /* 2.5.8: a 24px minimum target, and the padding here already clears it. */
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 550;
+  color: var(--muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--slide) var(--ease), color var(--slide) var(--ease);
+}
+
+.tab:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* The current section, marked twice over: colour and a filled surface. Colour alone would be the
+   only signal, and 1.4.1 says colour cannot be the only signal. */
+.tab[aria-current] {
+  background: var(--surface-2);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* The pages inside the current section. Indented to the same gutter as the row above, on its own
+   band so the two rows read as a hierarchy rather than as six tabs of equal weight. */
+.pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 0 24px 8px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.page-tab {
+  padding: 5px 10px;
+  min-height: 24px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  color: var(--faint);
+  text-decoration: none;
+  white-space: nowrap;
+  /* Reserves the underline's space at rest, so marking the current page does not shift the row. */
+  border-bottom: 2px solid transparent;
+  transition: color var(--slide) var(--ease);
+}
+
+.page-tab:hover {
+  color: var(--text);
+}
+
+.page-tab[aria-current="page"] {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+  font-weight: 550;
 }
 
 .stage {
-  position: relative;
-  overflow-y: auto;
-  padding: 32px 24px 40px;
+  padding: 32px 24px 48px;
 }
 
 .sheet {
@@ -205,124 +292,45 @@ a {
   width: 100%;
 }
 
-/* ------------------------------------------------------------------ the slide */
+/* ------------------------------------------------------------------ the footer */
 
 /*
- * Opacity plus a 24px shift, the direction taken from whether the target page is ahead or behind.
- * Borrowed from the slides deck; the difference is that each page here keeps its own URL, so this
- * animates a navigation rather than replacing one.
+ * Who you are and when the session ends. The rail's counter used to sit at the bottom saying "3 of
+ * 12"; this says the thing a visitor actually needs before typing into a form.
  */
-/* One direction, always forward. A back-slide would have to know which way the visitor moved, and
-   the only thing that knows that is browser history — a client wrapper tracking the previous path,
-   for a decoration. Not worth the component. */
-.slide {
-  animation: slide-in var(--slide) var(--ease) both;
-}
-
-@keyframes slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(24px);
-  }
-}
-
-/* Motion is decoration here — the page arrives either way, and the rail's current segment is
-   already wide before the widening animates. Only the two layout moves are cut: the page slide and
-   the segment's flex-grow. The colour fades stay, because 2.3.3 is about movement, and a segment
-   that snaps from grey to accent with no transition reads as a glitch rather than as calm. */
-@media (prefers-reduced-motion: reduce) {
-  .slide {
-    animation: none;
-  }
-
-  .seg {
-    transition: none;
-  }
-}
-
-/* ------------------------------------------------------------------ the rail */
-
-/*
- * Position indicator and navigation in one strip: a segment per page, the current one wide and
- * accent-filled. Real <a> elements, so it works with a keyboard, a screen reader and a middle
- * click, and so a page is still reachable with JavaScript off.
- */
-.rail {
+.footer {
   border-top: 1px solid var(--line);
   background: var(--bg);
-  padding: 12px 24px 14px;
+  padding: 18px 24px 24px;
 }
 
-.rail-inner {
-  max-width: 900px;
+.footer-inner {
+  max-width: 1100px;
   margin: 0 auto;
   display: flex;
-  align-items: center;
-  gap: 14px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 20px;
 }
 
-.segs {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
-  min-width: 0;
-}
-
-/* The link is 24px tall and the bar inside it is 6px: 2.5.8 asks for a 24px target, and a 6px-tall
-   anchor is a target you have to aim at. The height is invisible — it is padding around the bar —
-   so the rail still reads as a row of thin segments. */
-.seg {
-  display: flex;
-  align-items: center;
-  height: 24px;
-  flex: 1 1 0;
-  min-width: 8px;
-  transition: flex-grow var(--slide) var(--ease);
-}
-
-/* The inactive segments are --edge rather than a surface tint: they are the navigation, not a
-   decoration behind it, so 1.4.11's 3:1 applies to them and a 6px bar at 1.09:1 is not there. */
-.seg::before {
-  content: "";
-  display: block;
-  width: 100%;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--edge);
-  transition: background var(--slide) var(--ease);
-}
-
-.seg:hover::before {
-  background: var(--muted);
-}
-
-.seg[aria-current="page"] {
-  flex-grow: 3;
-}
-
-.seg[aria-current="page"]::before {
-  background: var(--accent);
-}
-
-.seg-label {
+.footer-line {
+  margin: 0;
   font-size: 0.75rem;
   color: var(--muted);
-  white-space: nowrap;
 }
 
-.counter {
-  font-size: 0.6875rem;
+.footer-dim {
   color: var(--faint);
-  white-space: nowrap;
 }
 
-/* ------------------------------------------------------------------ header end */
-
-.header-end {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+/* Motion is decoration in this panel — every page arrives either way — so the reduced-motion cut is
+   only ever about the hover and current-state fades, which snap instead of blending. */
+@media (prefers-reduced-motion: reduce) {
+  .tab,
+  .page-tab {
+    transition: none;
+  }
 }
 
 /* The server picker: label beside the control, not above, because it sits in a one-line header. */
@@ -834,14 +842,18 @@ select:focus {
 }
 
 @media (max-width: 640px) {
-  .header,
+  .topbar-row,
+  .pages,
   .stage,
-  .rail {
+  .footer {
     padding-left: 16px;
     padding-right: 16px;
   }
 
-  .seg-label {
-    display: none;
+  /* The two nav rows wrap on a phone rather than scroll sideways, so the brand gives up its place
+     on the first line before the tabs give up being visible. */
+  .topbar-row {
+    flex-wrap: wrap;
+    gap: 10px 14px;
   }
 }

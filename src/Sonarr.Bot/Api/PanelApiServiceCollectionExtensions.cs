@@ -39,6 +39,9 @@ public static class PanelApiServiceCollectionExtensions
         // than cached, because a role taken away on Discord must take effect on the next request.
         services.AddSingleton<IGuildAuthority, GatewayGuildAuthority>();
 
+        // Names for the ids the panel would otherwise print raw. Cache-only, so it is a lookup.
+        services.AddSingleton<IGuildDirectory, GatewayGuildDirectory>();
+
         services.AddSingleton<LoginTokenSender>();
         services.AddHostedService<StatusPagePusher>();
 

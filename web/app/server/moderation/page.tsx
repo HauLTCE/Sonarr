@@ -16,7 +16,10 @@ type Cases = {
   cases: {
     caseId: number;
     targetId: string;
+    /** Null when the member has left and is in no other server Sonarr shares. */
+    targetName: string | null;
     actorId: string;
+    actorName: string | null;
     action: string;
     reason: string | null;
     expiresAt: string | null;
@@ -25,6 +28,19 @@ type Cases = {
 };
 
 export const generateMetadata = () => pageTitle("nav.moderation");
+
+/**
+ * One person in a case row: their name, with the id kept as a tooltip-free second line only when
+ * there is no name to show.
+ *
+ * The id is not printed beside a known name. A case row already carries an action, a reason, two
+ * people and two timestamps; adding eighteen digits after each name is what made this page unreadable
+ * in the first place. The id is still how the row is filtered — the filter box takes it — and it is
+ * still in the API response for anyone reading that.
+ */
+function Who({ id, name }: { id: string; name: string | null }) {
+  return name === null ? <span className="mono">{id}</span> : <span>{name}</span>;
+}
 
 /**
  * The moderation record for one server. Read-only: actions are taken on Discord, where the person
@@ -95,8 +111,14 @@ export default async function ModerationPage({ searchParams }: { searchParams: Q
                     {c.action} · {t("moderation.case", { id: c.caseId })}
                   </div>
                   <div className="row-sub">{c.reason ?? t("moderation.noReason")}</div>
-                  <div className="row-sub mono">
-                    {t("moderation.target")} {c.targetId} · {t("moderation.by")} {c.actorId} ·{" "}
+                  {/* Not `mono` any more: this line is mostly names now, and a name set in a
+                      typewriter face reads as data rather than as a person. The ids that remain
+                      when a name is unknown carry `mono` themselves. */}
+                  <div className="row-sub">
+                    {t("moderation.target")} <Who id={c.targetId} name={c.targetName} />
+                    {" · "}
+                    {t("moderation.by")} <Who id={c.actorId} name={c.actorName} />
+                    {" · "}
                     {when(locale, c.createdAt)} ·{" "}
                     {c.expiresAt
                       ? t("moderation.expires", { when: when(locale, c.expiresAt) })
