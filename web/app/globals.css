@@ -619,6 +619,82 @@ select:focus {
   color: var(--danger);
 }
 
+/* ----------------------------------------------------------------- weights */
+
+/* The per-channel XP weight editor. A fieldset because it is a group of controls, so the browser
+   default border and padding have to go — the .field it sits in already draws the separator. */
+.weights {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+/* Styled like the <label> on every other field, because that is what it is doing. Fieldsets ignore
+   `display` on the legend in some engines, hence float:none — it is the reliable way to get one on
+   its own line without taking it out of the box. */
+.weights legend {
+  float: none;
+  padding: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.weights .hint {
+  margin: 0 0 8px;
+}
+
+.weight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.weight + .weight {
+  margin-top: 8px;
+}
+
+/* The channel name takes the room left over; the percentage is a fixed narrow box so a column of
+   them lines up. `min-width: 0` on the label or a long channel name pushes the input off the row. */
+.weight label {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-bottom: 0;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.weight .weight-value {
+  flex: 0 0 5.5rem;
+  width: 5.5rem;
+  text-align: right;
+}
+
+.weight .weight-add {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.weight .btn {
+  flex: 0 0 auto;
+}
+
+/* Sits inside a row rather than at the end of a field, so it matches the input's height instead of
+   setting it. */
+.btn-small {
+  font-size: 0.8125rem;
+  padding: 6px 10px;
+}
+
+/* Save and Reset follow the fieldset instead of sitting beside a control, so they need the gap the
+   flex row would otherwise have given them. */
+.weights + .field-row {
+  margin-top: 12px;
+}
+
 /* The login code, which is read off a DM one character at a time. Spaced out and larger so an 8 and
    a B are told apart before the fifth wrong try, not after. */
 .code-input {

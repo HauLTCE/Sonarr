@@ -10,7 +10,10 @@ import { ConfigForm } from "./ConfigForm";
 import { FlagToggles, type Flag } from "./FlagToggles";
 
 type Flags = { feature: string; enabled: boolean; source: string }[];
-type Config = Record<string, { value: string | null; kind: string }>;
+type Config = Record<
+  string,
+  { value: string | null; kind: string; minimum: number | null; maximum: number | null }
+>;
 
 export const generateMetadata = () => pageTitle("nav.behaviour");
 
@@ -98,6 +101,11 @@ export default async function BehaviourPage({ searchParams }: { searchParams: Qu
             failed: t("behaviour.failed"),
             none: t("behaviour.none"),
             gone: t("behaviour.gone"),
+            weightAdd: t("behaviour.weightAdd"),
+            weightAddNone: t("behaviour.weightAddNone"),
+            weightRemove: t("behaviour.weightRemove"),
+            weightPercent: t("behaviour.weightPercent"),
+            weightEmpty: t("behaviour.weightEmpty"),
           }}
         />
       ) : (

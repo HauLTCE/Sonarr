@@ -48,27 +48,36 @@ export type ConfigField = {
   readonly options?: readonly NamedEntity[];
   /** The sigil a picked value is shown with: `#` for a channel, `@` for a role. */
   readonly sigil?: string;
+  /** Bounds from the domain catalog, for the kinds that have them. Null when unbounded. */
+  readonly minimum?: number | null;
+  readonly maximum?: number | null;
+  /** Every channel in the guild, for the weights editor — it needs the list *and* a number each. */
+  readonly channels?: readonly NamedEntity[];
 };
 
-type ApiValues = Record<string, { value: string | null; kind: string }>;
+type ApiValues = Record<
+  string,
+  {
+    value: string | null;
+    kind: string;
+    minimum?: number | null;
+    maximum?: number | null;
+  }
+>;
 
 /**
- * The kind for a key the API did not send, so the row still renders the right control. Only Boolean
- * changes the control, so everything else can stay a text field.
- */
-const KINDS: Record<string, string> = {
-  levelup_dm: "Boolean",
-  xp_decay: "Boolean",
-};
-
-/**
- * Turns the API's map into the form's rows: known keys first in the order above, then anything the
- * API sent that this panel has not been taught yet.
+ * Turns the API's map into the form's rows: catalog keys first in the order above, then anything the
+ * API sent that this panel has not been taught wording for yet.
  *
- * Every known key gets a row whether or not the API sent it. `GET /api/admin/config/{id}` only
- * returns keys that already have a stored value, so filtering to what it sent would mean a setting
- * that has never been set cannot be set — the page would show fewer fields the less configured the
- * server is, which is backwards.
+ * Every key the API sends gets a row whether or not it has a stored value — `kind` comes from the
+ * domain catalog either way, so an unset key still renders the control it deserves. It used to come
+ * from a two-entry guess table here, defaulting to ChannelId, which is how `dj_role` on a fresh
+ * guild became a channel picker that saved a channel id into a role setting without complaint.
+ *
+ * Hence the `key in values` filter: a row is only rendered for a key the API vouched for. If a panel
+ * ever runs against an older bot that sends stored keys only, the unset ones go missing from the page
+ * — visible, and fixed by deploying the pair together. The alternative is inventing a `kind` for them
+ * again, which is invisible and writes the wrong id into the wrong setting.
  */
 export function configFields(
   values: ApiValues,
@@ -81,14 +90,15 @@ export function configFields(
     .sort();
 
   return [...CONFIG_ORDER, ...extra]
+    .filter((key) => key in values)
     .map((key) => {
-      const entry = values[key] ?? { value: null, kind: KINDS[key] ?? "ChannelId" };
+      const entry = values[key];
       const labelKey = `cfg.${key}` as StringKey;
       const hintKey = `cfg.${key}.hint` as StringKey;
       const label = t(labelKey);
 
-      // Only the two id kinds become pickers. ChannelWeights is `id:percent` pairs, so a list of
-      // names cannot express it, and Timezone/Integer/Boolean are not ids at all.
+      // Only the two id kinds become <select>s of names. ChannelWeights needs the channel list too,
+      // but a name per row plus a number — so it gets its own editor and `channels` below.
       const options =
         entry.kind === "ChannelId"
           ? directory?.channels
@@ -105,6 +115,92 @@ export function configFields(
         hint: label === labelKey ? t("behaviour.unknown") : t(hintKey),
         options,
         sigil: options === undefined ? undefined : entry.kind === "ChannelId" ? "#" : "@",
+        minimum: entry.minimum ?? null,
+        maximum: entry.maximum ?? null,
+        channels: entry.kind === "ChannelWeights" ? directory?.channels : undefined,
       };
     });
+}
+
+/** One row of the weights editor: a channel, and the percent it earns. */
+export type ChannelWeight = { readonly id: string; readonly percent: number };
+
+/**
+ * Reads the stored `channelId:percent,…` string into rows.
+ *
+ * Drops exactly what `LevelsConfigKeys.ParseWeights` drops, bounds included — hence `field`, which
+ * carries the domain's min/max. A pair the bot skips must not become a row here: a hand-edited `600`
+ * is ignored by the bot, and showing it would have the page promise a weight nothing applies. Order is
+ * the stored order, which the domain normalizes by channel id on write.
+ */
+export function parseWeights(
+  raw: string | null,
+  bounds: { minimum?: number | null; maximum?: number | null } = {},
+): ChannelWeight[] {
+  if (raw === null || raw.trim() === "") {
+    return [];
+  }
+
+  const rows = new Map<string, number>();
+
+  for (const pair of raw.split(",")) {
+    const [id, value] = pair.split(":", 2);
+    const percent = toPercent(value);
+
+    // /^\d+$/ and not Number(): the id is a snowflake, so it goes nowhere near a float. A blank
+    // percent is a dropped row rather than a 0 — 0 means "earns nothing", which is a real setting.
+    if (
+      id !== undefined &&
+      /^\d+$/.test(id.trim()) &&
+      percent !== null &&
+      percent >= (bounds.minimum ?? 0) &&
+      percent <= (bounds.maximum ?? Infinity)
+    ) {
+      rows.set(id.trim(), percent);
+    }
+  }
+
+  return [...rows].map(([id, percent]) => ({ id, percent }));
+}
+
+/** Back to the stored form. Empty means the key gets cleared, which is what "no weights" is. */
+export function serializeWeights(rows: readonly ChannelWeight[]): string | null {
+  const text = rows.map((row) => `${row.id}:${row.percent}`).join(",");
+  return text === "" ? null : text;
+}
+
+/**
+ * A percent out of whatever a human or an old row wrote, or null if it is not a number at all.
+ *
+ * A decimal is read as a fraction and a whole number as a percent already: `0.7` → 70, `70` → 70,
+ * `1.5` → 150. That split is the only unambiguous one — `1` alone could be 1% or 100%, and guessing
+ * "100%" there would silently multiply a channel that was meant to be nearly muted.
+ */
+export function toPercent(raw: string | number | null | undefined): number | null {
+  if (raw === null || raw === undefined) {
+    return null;
+  }
+
+  // A trailing "%" is stripped, because the editor's own field shows one: without this, reading back
+  // a value nobody edited (`70%`) gives NaN and the row reverts to what it already said, which looks
+  // like the field refusing input for no reason. A "%" anywhere else is still junk and stays junk.
+  const text = typeof raw === "number" ? String(raw) : raw.trim().replace(/%$/, "").trim();
+  if (text === "") {
+    return null;
+  }
+
+  const value = Number(text);
+  if (!Number.isFinite(value) || value < 0) {
+    return null;
+  }
+
+  return Math.round(Number.isInteger(value) ? value : value * 100);
+}
+
+/**
+ * `70` → `70%`. One place writes the sign, so no two rows can disagree about it — and it keeps the
+ * sign out of JSX, where `react/jsx-no-literals` (at error here) would reject a bare "%".
+ */
+export function formatPercent(percent: number): string {
+  return `${percent}%`;
 }

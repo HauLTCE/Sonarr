@@ -285,7 +285,15 @@ const en = {
   "cfg.xp_decay.hint": "On means inactive members slowly lose XP.",
   "cfg.xp_channel_weights": "Per-channel XP weight",
   "cfg.xp_channel_weights.hint":
-    "channelId:percent pairs, comma separated — 123:150,456:0. 100 is normal, 0 earns nothing.",
+    "How much XP a channel is worth. 100% is normal, 0% earns nothing, up to 500%. Anything outside that is put back.",
+
+  // The weights editor. Its own wording rather than reusing behaviour.* — "Remove" here means one
+  // channel's weight, not the setting, and the two buttons sit inches apart.
+  "behaviour.weightAdd": "Add a channel",
+  "behaviour.weightAddNone": "Every channel already has a weight.",
+  "behaviour.weightRemove": "Remove",
+  "behaviour.weightPercent": "XP percentage",
+  "behaviour.weightEmpty": "No channel is weighted — every one of them earns the normal amount.",
 
   "moderation.title": "Moderation",
   "moderation.lead": "Every warning, mute, kick and ban recorded in {guild}.",
