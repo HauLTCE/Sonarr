@@ -161,6 +161,23 @@ echo "==> validating compose file"
 docker compose -f "$COMPOSE_FILE" config -q
 
 if [ "$ACTION" = build ]; then
+    # BuildKit's cache is never reclaimed on its own. On this 20G disk one bot+web build grows it
+    # from nothing to ~8G, so the second or third deploy dies inside `npm ci` with
+    # "TAR_ENTRY_ERROR ENOSPC: no space left on device" — which reads like a broken dependency,
+    # not a full volume, and sent me looking at the Dockerfile the first time.
+    #
+    # Capped before the build rather than pruned after, so the space is there when it is needed.
+    # 2G keeps the layer cache useful (base images and the restore layer survive) while leaving
+    # room for a full build. --keep-storage only trims the cache; images, containers and volumes
+    # are untouched, which is why this is not behind --prune. Adjust down if / ever gets smaller.
+    echo "==> capping build cache at 2G (it grows ~8G per build and never self-trims)"
+    docker builder prune -f --keep-storage 2g >/dev/null 2>&1 || true
+    avail=$(df -Pk . | awk 'NR==2 {print $4}')
+    if [ "$avail" -lt 3145728 ]; then
+        echo "!! only $((avail / 1024))MB free — a build needs ~3G and will fail inside npm ci." >&2
+        echo "   Reclaim first: docker image prune -f  (then check du -sh /var/lib/docker)" >&2
+        exit 1
+    fi
     echo "==> building bot + web images"
     docker compose -f "$COMPOSE_FILE" build bot web
 else
