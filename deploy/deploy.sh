@@ -141,9 +141,14 @@ if [ "$MODE" = remote ]; then
 
     ssh -o BatchMode=yes "$TARGET" "mkdir -p '${DEPLOY_REMOTE_DIR}'"
 
-    # Compose file + deploy script. The remote .env is NOT overwritten — it holds the
+    # Compose file + both scripts. The remote .env is NOT overwritten — it holds the
     # only copy of the prod secrets. --strip-components=1 drops the leading deploy/.
-    git archive HEAD deploy/docker-compose.yml deploy/deploy.sh \
+    #
+    # tier-check.sh ships too, because it asserts against rendered markup and so it is only
+    # valid against the panel it was written for. It was left out at first, and the copy on the
+    # server went on pinning `class="rail"` for a day after the navbar rewrite deleted that
+    # element — a post-deploy check that fails on every run teaches you to stop running it.
+    git archive HEAD deploy/docker-compose.yml deploy/deploy.sh deploy/tier-check.sh \
         | ssh -o BatchMode=yes "$TARGET" \
               "tar x --strip-components=1 -C '${DEPLOY_REMOTE_DIR}'"
 
