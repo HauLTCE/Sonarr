@@ -39,6 +39,23 @@ export function day(locale: Locale, value: string | null | undefined): string {
   return Number.isNaN(at.getTime()) ? "—" : dateOnly(locale).format(at);
 }
 
+/** One bucket of the per-hour series: the day plus the hour, no minutes — the bucket is an hour. */
+export function hour(locale: Locale, value: string | null | undefined): string {
+  if (!value) {
+    return "—";
+  }
+
+  const at = new Date(value);
+
+  return Number.isNaN(at.getTime())
+    ? "—"
+    : `${new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        hour: "numeric",
+        timeZone: "UTC",
+      }).format(at)} UTC`;
+}
+
 export function count(locale: Locale, value: number): string {
   return new Intl.NumberFormat(locale).format(value);
 }

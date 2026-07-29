@@ -288,6 +288,8 @@ const en = {
   "stats.commandsEmpty": "No commands used in this window.",
   "stats.activity": "Messages per hour",
   "stats.activityEmpty": "No activity recorded in this window.",
+  // Only ever read aloud: the sparkline's bars carry the shape visually, this carries the numbers.
+  "stats.messages": "{n} messages",
   "stats.growth": "New members per day",
   "stats.growthEmpty": "Nobody joined in this window.",
   "stats.joined": "{n} joined",

@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { apiGet } from "../../../lib/api";
-import { count, day, percent } from "../../../lib/format";
+import { count, day, hour, percent } from "../../../lib/format";
 import { currentLocale, pageTitle } from "../../../lib/locale";
 import { panel, type Query } from "../../../lib/panel";
 
@@ -99,10 +99,22 @@ export default async function StatsPage({ searchParams }: { searchParams: Query 
             {stats.data.activity.length === 0 ? (
               <p className="empty">{t("stats.activityEmpty")}</p>
             ) : (
+              // The bar heights are the only thing a sighted visitor needs; the numbers were in
+              // `title`, which screen readers do not reliably announce, so this list read as 24
+              // empty items. Each item now carries its hour and count as real text, hidden
+              // visually. The growth section below is the same data shape rendered as rows, which
+              // is what this now sounds like.
               <ol className="spark" aria-label={t("stats.activity")}>
                 {stats.data.activity.map((a) => (
-                  <li key={a.at} title={`${a.at} — ${count(locale, a.messages)}`}>
-                    <span style={{ height: percent(a.messages / busiest) }} />
+                  <li key={a.at}>
+                    <span
+                      className="spark-bar"
+                      style={{ height: percent(a.messages / busiest) }}
+                      aria-hidden="true"
+                    />
+                    <span className="at-only">
+                      {hour(locale, a.at)}: {t("stats.messages", { n: count(locale, a.messages) })}
+                    </span>
                   </li>
                 ))}
               </ol>
