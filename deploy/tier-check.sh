@@ -193,6 +193,48 @@ case $(printf '%s' "$CONFIG" | grep -o '"xp_channel_weights":{[^}]*}') in
   *) bad x 'xp_channel_weights carries no usable bounds' ;;
 esac
 
+# ---------------------------------------------------------------------------------------------
+# A snowflake carries no type, so the service checks a channel/role id against the gateway
+# directory before writing. That check is unit-tested, but the unit tests fake the directory --
+# and their default fake returns null, which the service treats as "cannot tell" and lets
+# through. So a live directory that never resolved would leave the guard a permanent no-op with
+# every test still green. Only a running process can rule that out.
+#
+# Rejections only: a 400 never reaches Postgres, so this asserts the wiring without writing to a
+# live guild's settings. The other half -- that a right-kind id is still accepted -- is
+# SetAsync_accepts_the_id_that_matches_the_kind, where it costs nothing.
+# ---------------------------------------------------------------------------------------------
+echo '  a snowflake of the wrong kind is refused:'
+DIR=$(curl -s -b "sonarr_session=$ADMIN" "$API/api/admin/directory/$ADMIN_GUILD")
+CHANNEL=$(printf '%s' "$DIR" | sed -n 's/.*"channels":\[{"id":"\([0-9]*\)".*/\1/p')
+ROLE=$(printf '%s' "$DIR" | sed -n 's/.*"roles":\[{"id":"\([0-9]*\)".*/\1/p')
+
+if [ -z "$CHANNEL" ] || [ -z "$ROLE" ]; then
+  # Not a skip: the directory is how the panel names every id, so an empty one is its own defect.
+  bad x 'directory returned no channel or role, so the kind guard cannot be exercised'
+else
+  # CSRF is a double-submit compare against no server-side state, so a matching pair is a valid
+  # request -- which is what makes these reach the handler rather than stopping at 403 like the
+  # probe above. Anything other than 400 is a fail, including the 200 this used to answer.
+  CSRF=tier-check-$$
+  wrong_kind() {
+    got=$(curl -s -o /dev/null -w '%{http_code}' -X PUT \
+      -b "sonarr_session=$ADMIN; sonarr_csrf=$CSRF" \
+      -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json' \
+      -d "{\"key\":\"$1\",\"value\":\"$2\"}" \
+      "$API/api/admin/config/$ADMIN_GUILD")
+    if [ "$got" = 400 ]; then
+      printf '  ok   %-38s 400\n' "$3"
+    else
+      printf '  FAIL %-38s got %s, want 400\n' "$3" "$got"
+      fails=$((fails + 1))
+    fi
+  }
+  wrong_kind dj_role "$CHANNEL" 'dj_role given a channel id'
+  wrong_kind log_channel "$ROLE" 'log_channel given a role id'
+  wrong_kind dj_role 111111111111111111 'dj_role given a foreign snowflake'
+fi
+
 probe 'GET  /api/admin/flags' 200 "$ADMIN" "$API/api/admin/flags/$ADMIN_GUILD"
 probe 'GET  /api/admin/stats' 200 "$ADMIN" "$API/api/admin/stats/$ADMIN_GUILD?days=30"
 probe 'GET  /api/admin/cases' 200 "$ADMIN" "$API/api/admin/cases/$ADMIN_GUILD?page=1"
