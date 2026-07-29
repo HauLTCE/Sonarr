@@ -44,6 +44,17 @@ public static class LevelsConfigKeys
     /// </summary>
     public const string XpChannelWeights = "xp_channel_weights";
 
+    /// <summary>
+    /// The accepted percent range for one channel weight. Named because three places need it: this
+    /// parser, the catalog entry's bounds (and so the error text), and the panel's number input. It
+    /// was a bare <c>0 and &lt;= 500</c> here, which meant the web editor had to hardcode the same
+    /// pair and would have gone on offering 500 after the day someone loosened it.
+    /// </summary>
+    public const int MinWeightPercent = 0;
+
+    /// <inheritdoc cref="MinWeightPercent"/>
+    public const int MaxWeightPercent = 500;
+
     /// <summary>Parses the stored weights string. Unparsable pairs are skipped, never thrown.</summary>
     public static IReadOnlyDictionary<ulong, int> ParseWeights(string? raw)
     {
@@ -59,7 +70,8 @@ public static class LevelsConfigKeys
             if (parts.Length == 2
                 && ulong.TryParse(parts[0], out var channelId)
                 && int.TryParse(parts[1], out var percent)
-                && percent is >= 0 and <= 500)
+                && percent >= MinWeightPercent
+                && percent <= MaxWeightPercent)
             {
                 weights[channelId] = percent;
             }

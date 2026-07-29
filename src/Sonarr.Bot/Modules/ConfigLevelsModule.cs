@@ -31,8 +31,11 @@ public sealed class ConfigLevelsModule(IGuildConfigService config, ILevelService
     /// <summary>Matches <c>LevelService.MaxRewardLevel</c>; the service is still the authority.</summary>
     private const int MaxRewardLevel = 500;
 
-    /// <summary>Matches the bound <see cref="LevelsConfigKeys.ParseWeights"/> enforces.</summary>
-    private const int MaxChannelWeight = 500;
+    /// <summary>
+    /// The bound <see cref="LevelsConfigKeys.ParseWeights"/> enforces. Was a local <c>500</c> with a
+    /// comment saying it matched — a comment cannot fail a build, so it is the constant now.
+    /// </summary>
+    private const int MaxChannelWeight = LevelsConfigKeys.MaxWeightPercent;
 
     /// <summary>What an unweighted channel already earns, so storing it is redundant.</summary>
     private const int DefaultChannelWeight = 100;

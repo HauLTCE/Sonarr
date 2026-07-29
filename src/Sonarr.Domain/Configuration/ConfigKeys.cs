@@ -27,8 +27,13 @@ public enum ConfigValueKind
 /// <param name="Key">Storage key in <c>core.guild_config</c>.</param>
 /// <param name="Kind">Value shape.</param>
 /// <param name="Description">Shown in autocomplete and <c>/config list</c>.</param>
-/// <param name="Minimum">Inclusive lower bound, <see cref="ConfigValueKind.Integer"/> only.</param>
-/// <param name="Maximum">Inclusive upper bound, <see cref="ConfigValueKind.Integer"/> only.</param>
+/// <param name="Minimum">
+/// Inclusive lower bound for <see cref="ConfigValueKind.Integer"/>, and for
+/// <see cref="ConfigValueKind.ChannelWeights"/> the bound on one pair's percent — the value is a
+/// list, so there is no whole-value bound to mean anything else. Both are read by the web panel to
+/// set its number input's range, which is why the weights entry carries them at all.
+/// </param>
+/// <param name="Maximum">Inclusive upper bound; see <paramref name="Minimum"/>.</param>
 public sealed record ConfigKeyDefinition(
     string Key,
     ConfigValueKind Kind,
@@ -68,7 +73,9 @@ public static class ConfigKeys
         // Key names come from LevelsConfigKeys so the reader and the catalog can't drift.
         new(Levels.LevelsConfigKeys.XpDecay, ConfigValueKind.Boolean, "Inactive members lose XP over time"),
         new(Levels.LevelsConfigKeys.XpChannelWeights, ConfigValueKind.ChannelWeights,
-            "Per-channel XP weight, channelId:percent pairs (123:150,456:0)"),
+            "Per-channel XP weight, channelId:percent pairs (123:150,456:0)",
+            Minimum: Levels.LevelsConfigKeys.MinWeightPercent,
+            Maximum: Levels.LevelsConfigKeys.MaxWeightPercent),
     ];
 
     public static bool TryGet(
@@ -170,7 +177,7 @@ public static class ConfigKeys
                     return true;
                 }
 
-                error = $"`{definition.Key}` takes `channelId:percent` pairs, 0-500, comma separated — like `123:150,456:0`.";
+                error = $"`{definition.Key}` takes `channelId:percent` pairs, {definition.Minimum}-{definition.Maximum}, comma separated — like `123:150,456:0`.";
                 return false;
 
             default:

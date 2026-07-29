@@ -48,9 +48,21 @@ public static class AdminEndpoints
 
         IReadOnlyDictionary<string, ConfigValue> values = await config.GetAllAsync(guildId, ct);
 
-        return Results.Ok(values.ToDictionary(
-            kv => kv.Key,
-            kv => new { value = kv.Value.Raw, kind = kv.Value.Definition.Kind.ToString() }));
+        // The whole catalog, not just the keys with a stored row: an unset key still needs a row in
+        // the panel, and that row needs its `kind` to pick a control. Sending only stored keys meant
+        // the panel kept a guess table for the rest and defaulted to ChannelId — so `dj_role` on a
+        // fresh guild rendered a channel picker, and picking from it saved a channel id into a role
+        // setting with no error anywhere (TryValidate for RoleId only checks snowflake-ness).
+        // Min/Max ride along because ChannelWeights and Integer both need a range in the UI.
+        return Results.Ok(ConfigKeys.All.ToDictionary(
+            definition => definition.Key,
+            definition => new
+            {
+                value = values.TryGetValue(definition.Key, out ConfigValue? stored) ? stored.Raw : null,
+                kind = definition.Kind.ToString(),
+                minimum = definition.Minimum == int.MinValue ? (int?)null : definition.Minimum,
+                maximum = definition.Maximum == int.MaxValue ? (int?)null : definition.Maximum,
+            }));
     }
 
     private static async Task<IResult> SetConfigAsync(
