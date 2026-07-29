@@ -22,3 +22,8 @@
 *.pdf binary
 *.onnx binary
 *.gguf binary
+
+# An armoured GPG key is text, but its bytes are the thing apt verifies. Left to `text=auto eol=lf`
+# above it would survive today and break the day someone commits it from a CRLF checkout: the
+# fingerprint would still read correctly to a human and apt would reject the repo as unsigned.
+*.asc binary

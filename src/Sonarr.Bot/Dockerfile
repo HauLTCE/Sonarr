@@ -41,20 +41,33 @@ COPY --from=build /app ./
 # compose file pins pgvector/pgvector:pg17. This base is Ubuntu 24.04 (noble), whose
 # `postgresql-client` is 16 — verified by installing it and getting 16.14 — so the version
 # comes from PGDG, pinned explicitly rather than taken from whatever the base happens to
-# ship. ADD fetches the signing key so this needs no curl/gnupg in the final image.
-# `BackupProbe` goes red at boot if pg_dump ever disappears from PATH.
-# --checksum is not decoration. Without it, `ADD <url>` keys its layer cache on the URL *string*
-# only — so a fetch that lands truncated, rate-limited or HTML-bodied is cached under the same key
-# as a good one and replayed on every later build. That happened on GitHub Actions: the ADD reported
-# `DONE 0.0s` (a cache hit from type=gha), apt then failed with `NO_PUBKEY 7FCC7D46ACCC4CF8`, and the
-# identical Dockerfile kept building fine on the server, whose cache held a good copy. With a
-# checksum the content is part of the key, so a bad body can neither be stored nor replayed — it
-# fails the ADD itself, at the step that is actually wrong.
+# ship. The signing key is COPYied from the build context, so this needs no curl/gnupg in the
+# final image. `BackupProbe` goes red at boot if pg_dump ever disappears from PATH.
 #
-# Update this hash when PGDG rotates the key: fetch it, `sha256sum`, and check the fingerprint is
-# still ACCC4CF8 before trusting the new bytes.
-ADD --chmod=644 --checksum=sha256:0144068502a1eddd2a0280ede10ef607d1ec592ce819940991203941564e8e76 \
-    https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+# It was an `ADD --checksum=… https://www.postgresql.org/media/keys/ACCC4CF8.asc`, and that kept
+# failing on GitHub Actions with `NO_PUBKEY 7FCC7D46ACCC4CF8` while the identical Dockerfile built
+# fine on the server. The checksum was not the fix it looked like. Two probes against this base:
+#
+#   1. A checksummed ADD reuses a layer cached by a NON-checksummed ADD of the same URL — so the
+#      checksum is not part of the cache key. GHA's type=gha cache still held the entry from before
+#      the checksum existed, matched it on the URL string alone, and replayed it.
+#   2. A cache hit does NOT bypass verification: the same URL with a deliberately wrong hash fails
+#      `digest mismatch` off a warm cache.
+#
+# So the cached bytes were valid and the checksum was enforced — the fetch was never the broken
+# part, and pinning it harder could not have helped. What breaks is depending on a remote signed
+# repo mid-build at all: the failure is remote, intermittent, and reproduces on neither machine on
+# demand. (`apt-get update` still talks to apt.postgresql.org for the package itself; only the trust
+# root is now local, which is the half that was failing.)
+#
+# COPY has none of that: the bytes are in git, the cache key is their content, and there is no URL
+# to key a stale layer on. Verified before committing — sha256
+# 0144068502a1eddd2a0280ede10ef607d1ec592ce819940991203941564e8e76, and `gpg --show-keys`
+# fingerprint B97B 0AFC AA1A 47F0 44F2 44A0 7FCC 7D46 ACCC 4CF8, the same key id apt said was
+# missing. Marked `*.asc binary` in .gitattributes so no eol filter can rewrite what apt verifies.
+#
+# To rotate: fetch the new key, check its fingerprint by hand, replace the file. No hash to update.
+COPY --chmod=644 src/Sonarr.Bot/pgdg-ACCC4CF8.asc \
     /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
 RUN echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" \
         > /etc/apt/sources.list.d/pgdg.list \
