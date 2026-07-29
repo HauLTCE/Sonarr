@@ -20,9 +20,14 @@ jobs:
   dotnet:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Every action here is on its current major. They were a major behind, which is what emitted
+      # "Node 20 is being deprecated" on every run: the version warned about is the Node the *action*
+      # runs on, not anything this repo picks, so the fix is the bump and not
+      # ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION — that flag only silences the notice while keeping
+      # the runtime that is going away.
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
@@ -43,11 +48,13 @@ jobs:
       run:
         working-directory: web
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          # 24, not 22: `npm test` runs the type-stripping test runner directly on .ts, which needs
+          # no flag from 23 on. On 22 it errors out with "Unknown file extension .ts".
+          node-version: '24'
           cache: npm
           cache-dependency-path: web/package-lock.json
 
@@ -58,6 +65,11 @@ jobs:
       - run: npx tsc --noEmit
 
       - run: npm run lint
+
+      # Before the build, because it is the faster failure. These cover the formatters, whose Intl
+      # options are only validated when a row renders — `hour()` mixed `dateStyle` with `hour`, which
+      # throws, and tsc/eslint/next build all passed while the Stats page 500'd in production.
+      - run: npm test
 
       - run: npm run build
 
@@ -80,11 +92,11 @@ jobs:
             context: web
             dockerfile: web/Dockerfile
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -92,7 +104,7 @@ jobs:
 
       # Lowercased because GHCR rejects an uppercase path and the repo owner is not.
       - id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}
           tags: |
@@ -100,7 +112,7 @@ jobs:
             type=sha,format=long
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}

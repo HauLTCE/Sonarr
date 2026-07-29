@@ -47,14 +47,23 @@ export function hour(locale: Locale, value: string | null | undefined): string {
 
   const at = new Date(value);
 
+  // Components, not `dateStyle` + `hour`: Intl treats the two families as mutually exclusive and
+  // throws `TypeError: Invalid option : option` when they are mixed. That threw on every row of the
+  // series, so the whole Stats page 500'd while the API behind it was returning 200 — and the error
+  // surfaced as `Array.map` in a minified chunk, which reads like a data problem rather than a bad
+  // formatter option. Any date+time formatter added here needs the same treatment.
   return Number.isNaN(at.getTime())
     ? "—"
-    : `${new Intl.DateTimeFormat(locale, {
-        dateStyle: "medium",
-        hour: "numeric",
-        timeZone: "UTC",
-      }).format(at)} UTC`;
+    : `${hourFormat(locale).format(at)} UTC`;
 }
+
+const hourFormat = (locale: Locale) =>
+  new Intl.DateTimeFormat(locale, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    timeZone: "UTC",
+  });
 
 export function count(locale: Locale, value: number): string {
   return new Intl.NumberFormat(locale).format(value);

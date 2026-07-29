@@ -43,7 +43,18 @@ COPY --from=build /app ./
 # comes from PGDG, pinned explicitly rather than taken from whatever the base happens to
 # ship. ADD fetches the signing key so this needs no curl/gnupg in the final image.
 # `BackupProbe` goes red at boot if pg_dump ever disappears from PATH.
-ADD --chmod=644 https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+# --checksum is not decoration. Without it, `ADD <url>` keys its layer cache on the URL *string*
+# only — so a fetch that lands truncated, rate-limited or HTML-bodied is cached under the same key
+# as a good one and replayed on every later build. That happened on GitHub Actions: the ADD reported
+# `DONE 0.0s` (a cache hit from type=gha), apt then failed with `NO_PUBKEY 7FCC7D46ACCC4CF8`, and the
+# identical Dockerfile kept building fine on the server, whose cache held a good copy. With a
+# checksum the content is part of the key, so a bad body can neither be stored nor replayed — it
+# fails the ADD itself, at the step that is actually wrong.
+#
+# Update this hash when PGDG rotates the key: fetch it, `sha256sum`, and check the fingerprint is
+# still ACCC4CF8 before trusting the new bytes.
+ADD --chmod=644 --checksum=sha256:0144068502a1eddd2a0280ede10ef607d1ec592ce819940991203941564e8e76 \
+    https://www.postgresql.org/media/keys/ACCC4CF8.asc \
     /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
 RUN echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" \
         > /etc/apt/sources.list.d/pgdg.list \
