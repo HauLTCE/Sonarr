@@ -1,0 +1,24 @@
+# Line endings are decided here, not by whoever cloned this.
+#
+# The dev box is Windows with core.autocrlf=true, which rewrites LF to CRLF on checkout — and
+# `git archive` applies the same filters, so `deploy.sh` remote mode was about to ship a script
+# starting `#!/bin/sh\r` to a Linux host. That fails as `bad interpreter: /bin/sh^M`, and the
+# blob in the repo is LF, so nothing in `git status` or `git diff` would have shown it.
+#
+# eol=lf, not text=auto alone: text=auto only settles what is stored, and the CR is introduced on
+# the way out.
+* text=auto eol=lf
+
+# Windows-only, and cmd.exe needs the CR.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Never touch these: a filter that "normalises" a binary corrupts it.
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+*.onnx binary
+*.gguf binary
