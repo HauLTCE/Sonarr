@@ -183,6 +183,60 @@ public class PersonaValidatorContentTests
         Assert.Contains(result.Warnings, w => w.Rule == Rules.OrphanPool);
     }
 
+    /// <summary>
+    /// A pool the host draws by name is reachable, and saying so is what <c>host_pools</c> is for.
+    /// </summary>
+    /// <remarks>
+    /// Sonarr.Application references the engine and not the reverse, so <c>ChatIntrospection</c>'s
+    /// <c>const string ForgotPool = "memory_forget"</c> is invisible to the validator. Before the
+    /// declaration existed, 22 of the 78 reported orphans were pools behind working slash commands
+    /// — which is worse than a wrong number, because it buried the pools nothing really reaches.
+    /// </remarks>
+    [Fact]
+    public void PoolDeclaredInHostPools_IsNotAnOrphan()
+    {
+        PersonaValidationResult result = WithHostPools(
+            "[drawn_by_command]",
+            ("pools/spare.yaml", "pools:\n  drawn_by_command: [\"ask them yourself.\"]\n"));
+
+        Assert.DoesNotContain(
+            result.Warnings,
+            w => w.Rule == Rules.OrphanPool && w.Message.Contains("drawn_by_command", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// The failure mode the list introduces: a name that matches no pool would silence an orphan
+    /// warning for something that does not exist, so a rename fails loudly instead.
+    /// </summary>
+    [Fact]
+    public void HostPoolsNamingAMissingPool_IsAnError()
+    {
+        PersonaValidationResult result = WithHostPools("[renamed_away]");
+
+        Assert.True(result.Has(Rules.DanglingPool), result.Report());
+    }
+
+    /// <summary>
+    /// Loads the baseline persona with a <c>host_pools</c> list spliced into its root.
+    /// </summary>
+    /// <remarks>
+    /// Not <see cref="Load"/> with an extra <c>sonarr.yaml</c>: that helper already supplies one,
+    /// and a second file at the same path does not override it — the first wins and the spliced
+    /// list is silently never parsed, which is how both of these tests first passed for the wrong
+    /// reason and then failed for it.
+    /// </remarks>
+    private static PersonaValidationResult WithHostPools(
+        string list, params (string Path, string Text)[] extra) =>
+        PersonaLoader.Load(new InMemoryPersonaSource(
+        [
+            new PersonaFile("sonarr.yaml", $"{Root}\nhost_pools: {list}\n"),
+            new PersonaFile("pools/p.yaml", Pools),
+            new PersonaFile(
+                "intents/i.yaml",
+                "intents:\n  - id: RPS_ROCK\n    match: { keyword: [rock] }\n    pool: filler\n"),
+            .. extra.Select(e => new PersonaFile(e.Path, e.Text)),
+        ]));
+
     [Fact]
     public void AffectDeltaOnAnUndeclaredRegister_IsAnError()
     {

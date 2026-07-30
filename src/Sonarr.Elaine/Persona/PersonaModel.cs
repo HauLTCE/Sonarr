@@ -66,6 +66,23 @@ public sealed record PersonaRoot
     /// <summary>Pool ids that must have a variant for every non-fallback mode.</summary>
     public required IReadOnlyList<string> ModeCoveragePools { get; init; }
 
+    /// <summary>
+    /// Pool ids the host application draws by name rather than through an intent, activity,
+    /// stance or overlay — <c>/relationship</c>, <c>/memories</c>, <c>/ship</c>, milestones,
+    /// season close. Reachable, just not from here.
+    /// </summary>
+    /// <remarks>
+    /// Declared in YAML because the dependency only runs one way: <c>Sonarr.Application</c>
+    /// references this assembly, so the validator cannot see a <c>const string</c> over there.
+    /// Without the declaration those pools look unreferenced, and they were — 22 of the 78
+    /// reported orphans were commands that work, which is worse than a miscount: it buries the
+    /// pools nothing really reaches under noise nobody can act on.
+    /// <para>Only the ids C# names literally. A pool the host builds by prefix
+    /// (<c>relationship_</c> + tier id) still has to be listed, because a prefix is not a
+    /// reference the validator can check.</para>
+    /// </remarks>
+    public required IReadOnlyList<string> HostPools { get; init; }
+
     /// <summary>Declared memory slot keys. Templates may only reference these as <c>{slot}</c>.</summary>
     public required IReadOnlyList<string> Slots { get; init; }
 

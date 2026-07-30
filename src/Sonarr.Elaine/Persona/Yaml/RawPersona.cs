@@ -13,6 +13,7 @@ internal sealed class RawRoot
     public List<RawTier>? Tiers { get; set; }
     public List<RawMode>? Modes { get; set; }
     public List<string>? ModeCoveragePools { get; set; }
+    public List<string>? HostPools { get; set; }
     public List<string>? Slots { get; set; }
 }
 

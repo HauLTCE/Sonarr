@@ -50,7 +50,18 @@ public class SeedPersonaTests
         // 98 after HARM_HOWTO wired mixed_question_threat, 97 after Q_OPINION, 96 after the
         // dangling-clause pass folded a pool away. Lowered on sight: a ratchet left one notch
         // above the real count is one free regression, which is the thing it exists to refuse.
-        const int recorded = 96;
+        //
+        // 78 once the count was actually measured rather than inherited — the ratchet had been
+        // sitting 18 notches high, which is 18 free regressions. Then 56, because 22 of those 78
+        // were never unreachable: /relationship, /memories, /ship, /opinion and the milestone and
+        // season jobs draw their pools by name from Sonarr.Application, and the validator cannot
+        // see across that dependency. They are declared in sonarr.yaml `host_pools` now.
+        //
+        // The remaining 56 are real: 1061 authored lines with no input that reaches them. They are
+        // not one defect — morning_grace/evening_grace/lunch_break want a daypart overlay,
+        // greeting_first and argument_open/argument_fallback want the rule layer the rewrite
+        // dropped, know_person_* want a lookup nothing calls, and the rest want intents.
+        const int recorded = 56;
 
         List<PersonaIssue> orphans =
             [.. SeedPersona.Result.Issues.Where(i => i.Rule == Rules.OrphanPool)];

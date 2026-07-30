@@ -155,6 +155,7 @@ public static partial class PersonaLoader
             Tiers = tiers,
             Modes = modes,
             ModeCoveragePools = raw.ModeCoveragePools ?? [],
+            HostPools = raw.HostPools ?? [],
             Slots = raw.Slots ?? [],
             Location = loc,
         };

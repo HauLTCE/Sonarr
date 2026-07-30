@@ -100,6 +100,42 @@ modes:
 mode_coverage_pools:
   - mood_fragment
 
+# Pools a slash command draws by name instead of an intent routing to them. Sonarr.Application
+# references the engine and not the reverse, so its `const string PoolId` is invisible to the
+# validator — without this list all 22 read as unreferenced, and the orphan warning that exists
+# to find unreachable text spent 22 of its 78 findings on commands that work.
+#
+# Listed with the call site, because that is the thing to check when one of these moves. Pools
+# the host builds by prefix are spelled out in full: `relationship_` + tier id is not a
+# reference anything can verify.
+host_pools:
+  # ChatIntrospection — /relationship, /memories forget
+  - relationship_third_party
+  - relationship_stranger      # TierPoolPrefix + sonarr.yaml tiers, one each
+  - relationship_acquaintance
+  - relationship_regular
+  - relationship_favorite
+  - relationship_inner_circle
+  - relationship_nemesis
+  - trend_up                   # appended to the tier line: which way the week went
+  - trend_down
+  - standing_top               # top or bottom of the guild's trust ordering
+  - standing_bottom
+  - memory_forget
+  - memory_forget_missing
+  # ChatOpinions — /opinion
+  - opinion_you_agreed
+  - opinion_you_disagreed
+  - neutral_opinion
+  # ShipMeter — /ship
+  - ship_low
+  - ship_mid
+  - ship_high
+  # MilestoneService, SeasonService — background, not a command
+  - milestone_birthday
+  - milestone_anniversary
+  - season_close
+
 # Memory slots templates may reference as {slot}. Anything not listed here is a typo, and
 # the validator says so instead of shipping a literal "{nmae}" to a channel.
 slots:

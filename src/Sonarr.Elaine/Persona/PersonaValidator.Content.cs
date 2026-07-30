@@ -28,6 +28,25 @@ public static partial class PersonaValidator
             referenced.Add($"{ChatEngine.TierMomentPoolPrefix}{tier.Id}");
         }
 
+        // Pools the host application draws by name (sonarr.yaml `host_pools`). The dependency runs
+        // one way — Sonarr.Application references this assembly, not the reverse — so a `const
+        // string` over there is invisible here and the declaration has to be authored.
+        foreach (string poolId in graph.Root.HostPools)
+        {
+            referenced.Add(poolId);
+
+            // A name that matches nothing is the failure mode this list introduces: it would
+            // silence an orphan warning for a pool that does not exist, or paper over a rename.
+            // Same severity as the equivalent mode_coverage_pools miss, for the same reason.
+            if (!graph.Pools.ContainsKey(poolId))
+            {
+                issues.Add(new PersonaIssue(
+                    PersonaIssueSeverity.Error, Rules.DanglingPool,
+                    $"host_pools names pool '{poolId}', which does not exist",
+                    graph.Root.Location));
+            }
+        }
+
         foreach (IntentDef intent in graph.Intents)
         {
             referenced.Add(intent.Pool);
