@@ -15,7 +15,10 @@ server:
   address: 127.0.0.1
 lavalink:
   plugins:
-    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.1"
+    # 1.18.2, not 1.18.1: 1.18.1 logged "A newer version was found" on every boot and carries
+    # a broken itag 18 playback path. Bump deliberately when YouTube breaks playback, same rule
+    # as the yt-cipher digest — there is no plugins volume, so a recreate re-downloads this jar.
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.2"
       snapshot: false
   server:
     # Overridden by LAVALINK_SERVER_PASSWORD; the placeholder keeps the file valid standalone.
@@ -54,11 +57,25 @@ plugins:
       url: "http://127.0.0.1:8001/"
     allowDirectVideoIds: true
     allowDirectPlaylistIds: true
+    # Tried top-down. MUSIC is search-only (it serves ytmsearch:), so the first client that can
+    # actually stream is the one that decides whether playback works.
+    #
+    # TVHTML5EMBEDDED used to sit at position two and is not a real client identifier: the plugin
+    # logged "Failed to resolve TVHTML5EMBEDDED into a Client" on every boot and ran with three
+    # clients instead of four. Fixing the spelling to TVHTML5_SIMPLY buys back a client that has
+    # Opus, playback and age-restricted support and needs neither OAuth nor a poToken.
+    #
+    # Do NOT read this as the cure for the 2026-07-29 outage. Every track that day died with
+    # AllClientsFailedException (WEB: "No supported audio streams available", i.e. SABR-only
+    # responses; ANDROID_VR: "This video requires login"), but restoring this exact broken list
+    # afterwards played those same videos fine — so the outage was a transient YouTube-side
+    # condition, not this typo. The depth here is margin, not a fix: with only WEB and ANDROID_VR
+    # live, one bad day at YouTube takes all of playback down, which is what happened.
     clients:
       - MUSIC
-      - TVHTML5EMBEDDED
-      - WEB
+      - TVHTML5_SIMPLY
       - ANDROID_VR
+      - WEB
 
 logging:
   level:

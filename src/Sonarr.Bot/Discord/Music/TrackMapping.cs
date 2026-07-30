@@ -52,9 +52,18 @@ internal static class TrackMapping
     }
 
     /// <summary>
-    /// Rebuilds a queue item from a snapshot row. The identifier is what Lavalink re-resolves,
-    /// so <c>/restore-queue</c> costs one load per track instead of storing encoded blobs.
+    /// Rebuilds a queue item from a snapshot row. Lavalink re-resolves it on play, so a queue
+    /// costs one load per track instead of storing encoded blobs.
+    /// <para>
+    /// The <see cref="TrackInfo.Uri"/> is the handle, not the identifier: outside YouTube an
+    /// identifier is source-internal and not independently resolvable. SoundCloud's is a
+    /// signed HLS media URL, and replaying it returned <c>400 No matches found for identifier</c>
+    /// -- i.e. every <c>/play</c> of a SoundCloud track failed. YouTube worked only because
+    /// <c>allowDirectVideoIds</c> makes a bare video id loadable. Identifier stays as the
+    /// fallback for rows written before this, where it is all we have.
+    /// </para>
     /// </summary>
     public static SonarrQueueItem FromDomain(TrackInfo track)
-        => new(new TrackReference(track.Identifier), track.RequesterId);
+        => new(new TrackReference(string.IsNullOrWhiteSpace(track.Uri) ? track.Identifier : track.Uri),
+            track.RequesterId);
 }
