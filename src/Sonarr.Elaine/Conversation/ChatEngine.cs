@@ -51,7 +51,7 @@ public sealed class ChatEngine(PersonaGraph persona, ISemanticMatcher? semantic 
                 ? Empty(input.Text)
                     ? FromPool(working, composer, EmptyPool, modeId, rng, input)
                     : Fallback(working, composer, modeId, rng, input)
-                : Apply(working, primary, composer, modeId, rng, input);
+                : Apply(working, primary, outcome.SideEffects, composer, modeId, rng, input);
 
         return new TurnResult
         {
@@ -67,9 +67,14 @@ public sealed class ChatEngine(PersonaGraph persona, ISemanticMatcher? semantic 
         };
     }
 
+    /// <param name="sideEffects">
+    /// Lower-scoring matches flagged <c>side_effect</c>: the other things the message did, each
+    /// answered with its own authored line after the primary one.
+    /// </param>
     private (ConversationState, string?, string?) Apply(
         ConversationState state,
         MatchCandidate primary,
+        IReadOnlyList<MatchCandidate> sideEffects,
         ReplyComposer composer,
         string modeId,
         IDeterministicRandom rng,
@@ -122,9 +127,86 @@ public sealed class ChatEngine(PersonaGraph persona, ISemanticMatcher? semantic 
             return Fallback(next, composer, modeId, rng, input);
         }
 
+        (next, text) = AnswerRest(next, sideEffects, intent.Id, text, composer, modeId, rng);
         (next, text) = MarkTierChange(state, next, text, composer, modeId, rng);
         return (next, text, intent.Id);
     }
+
+    /// <summary>
+    /// Appends one authored line per side-effect match, so a message that did two things gets
+    /// two answers instead of only the higher-scoring one.
+    /// </summary>
+    /// <remarks>
+    /// docs/10 promised this — "hi, I'm Sam and why do you hate me" answers both halves — and the
+    /// machinery for it was already here: both matchers fill <see cref="MatchOutcome.SideEffects"/>
+    /// and <see cref="TurnResult.SideEffectIntentIds"/> reports them. Nothing composed their text,
+    /// so the second half of every compound message was silently dropped and no intent in the
+    /// shipped persona had any reason to declare <c>side_effect</c>. This is the line that was
+    /// missing, and it is where multi-clause replies come from: one clause per thing the message
+    /// actually did, each of them still an authored pool line.
+    /// <para>Each side effect's affect and fired-log are applied too. Answering a greeting without
+    /// recording that GREETING fired would let its <c>once</c> and <c>cooldown</c> gates leak,
+    /// and leaving its affect off would have her acknowledge a thank-you without warming to it.
+    /// Slots and pending questions are not touched: those belong to the primary, and a
+    /// side-effect that opened its own question would leave her waiting on an answer to something
+    /// she mentioned in passing.</para>
+    /// <para>Bounded at <see cref="MaxSideEffects"/>. A message that trips five intents is a wall
+    /// of text, and five stacked clauses reads as a monologue rather than an answer.</para>
+    /// </remarks>
+    private (ConversationState, string) AnswerRest(
+        ConversationState state,
+        IReadOnlyList<MatchCandidate> sideEffects,
+        string primaryId,
+        string text,
+        ReplyComposer composer,
+        string modeId,
+        IDeterministicRandom rng)
+    {
+        ConversationState next = state;
+        int said = 0;
+
+        foreach (MatchCandidate candidate in sideEffects)
+        {
+            if (said == MaxSideEffects)
+            {
+                break;
+            }
+
+            // The primary answered already. Not covered by the eligibility check below: an intent
+            // with no `cooldown` is eligible again on the turn it just fired, so a message that
+            // matched one intent twice over would answer itself twice.
+            if (string.Equals(candidate.IntentId, primaryId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            // Checked against the state the primary just wrote, so `once` and `cooldown` hold for
+            // a side-effect clause exactly as they do for a reply of its own.
+            if (!next.Fired.IsEligible(candidate.Intent, next.Turn))
+            {
+                continue;
+            }
+
+            string? line = composer.Clause(candidate, next, modeId, rng);
+            if (line is null)
+            {
+                continue;
+            }
+
+            next = next with
+            {
+                Registers = next.Registers.With(candidate.Intent.Affect),
+                Fired = next.Fired.Record(candidate.Intent.Id, next.Turn),
+            };
+            text = $"{text} {line}";
+            said++;
+        }
+
+        return (next, text);
+    }
+
+    /// <summary>How many side-effect clauses one reply can carry beyond the primary.</summary>
+    public const int MaxSideEffects = 2;
 
     /// <summary>
     /// When this turn's affect crossed a tier boundary, appends the authored moment for the new

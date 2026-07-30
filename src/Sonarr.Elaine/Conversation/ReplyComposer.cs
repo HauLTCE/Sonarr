@@ -111,6 +111,38 @@ public sealed class ReplyComposer(
         ArgumentNullException.ThrowIfNull(rng);
 
         IReadOnlyDictionary<string, string> slots = Hedged(state, modeId, rng);
+        string? core = Core(candidate, slots, modeId, rng);
+        return core is null ? null : Wrap(core, slots, modeId, rng, callback);
+    }
+
+    /// <summary>
+    /// Composes one clause for <paramref name="candidate"/> — the same authored line
+    /// <see cref="Compose"/> would build, without the mood fragment or callback tail.
+    /// </summary>
+    /// <remarks>
+    /// For a side-effect match riding alongside a primary reply. Wrapping would stack a second
+    /// mood opener into the middle of a message that already has one. Unlike
+    /// <see cref="Line"/> this keeps the intent's captures and template, so the clause can carry
+    /// the specific bit — a name heard in passing is still greeted by name.
+    /// </remarks>
+    public string? Clause(
+        MatchCandidate candidate, ConversationState state, string modeId, IDeterministicRandom rng)
+    {
+        ArgumentNullException.ThrowIfNull(candidate);
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(rng);
+        return Core(candidate, Hedged(state, modeId, rng), modeId, rng);
+    }
+
+    /// <summary>
+    /// The authored line for a match: pool draw plus the intent's own template.
+    /// </summary>
+    private string? Core(
+        MatchCandidate candidate,
+        IReadOnlyDictionary<string, string> slots,
+        string modeId,
+        IDeterministicRandom rng)
+    {
         string? core = _picker.Pick(candidate.Intent.Pool, modeId, rng, slots, candidate.Captures);
         if (core is null)
         {
@@ -119,14 +151,10 @@ public sealed class ReplyComposer(
 
         // The intent's own template, when present, is appended to the pool line — that is how
         // a generic pool line ("sure.") carries the specific bit ("nice to meet you, Sam").
-        if (candidate.Intent.Template is { } template
-            && TemplateRenderer.TryRender(
-                template, slots, candidate.Captures, out string rendered))
-        {
-            core = Join(core, rendered);
-        }
-
-        return Wrap(core, slots, modeId, rng, callback);
+        return candidate.Intent.Template is { } template
+            && TemplateRenderer.TryRender(template, slots, candidate.Captures, out string rendered)
+                ? Join(core, rendered)
+                : core;
     }
 
     /// <summary>

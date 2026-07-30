@@ -64,7 +64,6 @@ public class PersonaLoaderTests
             push: argument
             once: true
             cooldown: 3
-            side_effect: true
             affect:
               anger: 2.5
               trust: -1
@@ -72,6 +71,16 @@ public class PersonaLoaderTests
               - kind: min_tier
                 value: regular
                 bonus: 0.25
+          # side_effect lives on its own intent rather than on ANGRY with the rest: a clause that
+          # rides along applies affect and nothing else, so declaring it beside `push` and `topic`
+          # is an error the validator now names. Everything else still round-trips on one intent.
+          - id: ASIDE
+            match:
+              keyword: [aside]
+            pool: filler
+            side_effect: true
+            affect:
+              trust: 0.5
         """;
 
     private static PersonaGraph Load()
@@ -124,7 +133,7 @@ public class PersonaLoaderTests
         Assert.Equal("argument", intent.PushActivity);
         Assert.True(intent.Once);
         Assert.Equal(3, intent.Cooldown);
-        Assert.True(intent.SideEffect);
+        Assert.True(Load().IntentsById["ASIDE"].SideEffect);
         Assert.Contains(intent.Affect, a => a.Register == "anger" && a.Delta == 2.5);
         Assert.Contains(intent.Affect, a => a.Register == "trust" && a.Delta == -1);
 

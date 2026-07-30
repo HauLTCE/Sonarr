@@ -72,6 +72,12 @@ public static class Rules
     /// <summary>A pool that nothing references.</summary>
     public const string OrphanPool = "orphan-pool";
 
+    /// <summary>
+    /// A <c>side_effect</c> intent declares something a side-effect clause does not apply —
+    /// <c>learns</c>, <c>asks</c>, <c>push</c>, <c>pop</c> or <c>topic</c>.
+    /// </summary>
+    public const string SideEffectSideEffects = "side-effect-does-more-than-text";
+
     /// <summary>A mode-coverage pool lacks a variant for some mode.</summary>
     public const string ModeCoverage = "mode-coverage";
 

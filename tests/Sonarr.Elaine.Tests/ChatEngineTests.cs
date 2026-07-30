@@ -289,4 +289,94 @@ public class ChatEngineTests
 
         Assert.True(stutters.Count == 0, string.Join(Environment.NewLine, stutters));
     }
+
+    [Fact]
+    public void Turn_MessageThatDidTwoThings_AnswersBoth()
+    {
+        // A compound message used to get one clause: the question outscores the greeting, so the
+        // greeting was dropped in silence. That is a large part of why a long message got a short
+        // answer -- reply length was flat against input length (a 78-word message got 9 words
+        // back) because a reply had exactly one variable part no matter how much was said.
+        //
+        // Asserting on the reply being longer than either half alone, not on a specific line:
+        // every clause is authored persona data and free to be reworded.
+        string primaryOnly = Longest("why do you hate me");
+        string both = Longest("hey elaine why do you hate me");
+
+        Assert.True(
+            both.Length > primaryOnly.Length,
+            $"greeting clause never rode along: \"{both}\" vs \"{primaryOnly}\"");
+    }
+
+    [Fact]
+    public void Turn_SideEffectClause_IsReportedAndLogged()
+    {
+        // The clause is a real firing, not decoration: its id is reported and its cooldown and
+        // `once` gates are recorded. Without the fired-log write a `once:` side effect would ride
+        // along on every turn forever.
+        TurnResult result = Engine.Turn(Fresh(), Say("hey elaine why do you hate me"));
+
+        Assert.Contains("GREETING", result.SideEffectIntentIds);
+        Assert.NotEqual("GREETING", result.IntentId);
+        Assert.True(result.State.Fired.HasFired("GREETING"));
+    }
+
+    [Fact]
+    public void Turn_GreetingAlone_IsThePrimaryNotAClause()
+    {
+        // side_effect marks an intent that *can* ride along, not one that stops being an answer.
+        // When the greeting is the whole message it is the only candidate, so it is the primary.
+        TurnResult result = Engine.Turn(Fresh(), Say("hello"));
+
+        Assert.Equal("GREETING", result.IntentId);
+        Assert.Empty(result.SideEffectIntentIds);
+    }
+
+    [Fact]
+    public void Turn_NeverStacksMoreClausesThanTheCap()
+    {
+        // Two clauses past the primary is the ceiling. A message tripping every side-effect intent
+        // must read as an answer, not a monologue -- and the cap is the only thing between "answer
+        // both halves" and a paragraph of acknowledgments.
+        List<string> tooMany = [];
+        foreach (string text in new[]
+        {
+            "hey thanks but why do you hate me",
+            "hi hello thanks thank you cheers why do you hate me",
+            "yo sup thanks appreciate it who are you anyway",
+        })
+        {
+            for (ulong salt = 1; salt <= 20; salt++)
+            {
+                TurnResult result = Engine.Turn(Fresh(salt), Say(text));
+
+                // Counted off the fired log, not off SideEffectIntentIds: that field reports every
+                // side-effect intent the message *matched*, which is allowed to exceed the cap.
+                // What must not exceed it is how many actually spoke, and a clause speaks exactly
+                // when it records a firing. The state is fresh, so nothing else is in there.
+                int spoke = result.SideEffectIntentIds
+                    .Distinct(StringComparer.Ordinal)
+                    .Count(id => result.State.Fired.HasFired(id));
+
+                if (spoke > ChatEngine.MaxSideEffects)
+                {
+                    tooMany.Add($"\"{text}\" (salt {salt}) -> {spoke} clauses: {result.Text}");
+                }
+            }
+        }
+
+        Assert.True(tooMany.Count == 0, string.Join(Environment.NewLine, tooMany));
+    }
+
+    /// <summary>
+    /// The longest reply <paramref name="text"/> draws across salts.
+    /// </summary>
+    /// <remarks>
+    /// Pool draws and the one-in-three mood fragment are salt-dependent, so a single salt compares
+    /// two random lines rather than two compositions. The longest over a spread is stable.
+    /// </remarks>
+    private static string Longest(string text) =>
+        Enumerable.Range(1, 40)
+            .Select(i => Engine.Turn(Fresh((ulong)i), Say(text)).Text ?? string.Empty)
+            .MaxBy(r => r.Length) ?? string.Empty;
 }

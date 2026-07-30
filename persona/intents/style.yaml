@@ -35,26 +35,39 @@ intents:
   #
   # Specificity is hand-set so the legacy ordering holds: shouting reads louder than
   # stretching (AHHHHH is yelling, not elongation), and both lose to any real content match.
+  #
+  # All four are `side_effect`, because a remark about how a message was typed is never a reason
+  # not to answer what it said. Low specificity was the old attempt at that and it only demotes:
+  # the losing candidate was still dropped in silence, so "WHY DO YOU HATE ME" got a line about
+  # shouting *instead of* an answer. As a side effect the content answers and the shape remark
+  # rides along after it, which is also where a longer reply to a longer message comes from.
+  #
+  # Still the primary when it is the only match: side_effect marks an intent that *can* ride
+  # along, not one that stops being an answer. A bare "AHHHHH" is only about how it was typed.
   - id: SHOUTING
     match:
       style: [caps]
     specificity: 0.6
     pool: caps_react
+    side_effect: true
 
   - id: DRAWN_OUT
     match:
       style: [elongated]
     specificity: 0.5
     pool: drawn_out_react
+    side_effect: true
 
   - id: WALL_OF_TEXT
     match:
       style: [wall_of_text]
     specificity: 0.4
     pool: long_react
+    side_effect: true
 
   - id: EMOJI_ONLY
     match:
       style: [emoji_flood]
     specificity: 0.4
     pool: emoji_react
+    side_effect: true

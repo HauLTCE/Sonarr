@@ -237,6 +237,55 @@ public class PersonaValidatorContentTests
             .. extra.Select(e => new PersonaFile(e.Path, e.Text)),
         ]));
 
+    /// <summary>
+    /// A side-effect intent may only add text and affect. Anything else it declares would be
+    /// silently dropped when it rides along as a clause.
+    /// </summary>
+    /// <remarks>
+    /// The engine applies a clause's affect and fired-log and nothing else, on purpose: a thing
+    /// mentioned in passing must not open a pending question she then waits on. So an author who
+    /// writes <c>learns</c> here gets a line that says "noted, Sam" while nothing records the
+    /// name — right-looking reply, wrong state, no runtime symptom. Error, not warning.
+    /// </remarks>
+    [Theory]
+    [InlineData("learns:\n      name: nm")]
+    [InlineData("asks: [name]")]
+    [InlineData("push: rps")]
+    [InlineData("pop: true")]
+    [InlineData("topic: feelings")]
+    public void SideEffectIntentThatDoesMoreThanTalk_IsAnError(string extra)
+    {
+        PersonaValidationResult result = Load(("intents/i.yaml", $$"""
+            intents:
+              - id: RPS_ROCK
+                match: { regex: ["rock (?<nm>\\w+)"] }
+                pool: filler
+                side_effect: true
+                {{extra}}
+            """));
+
+        Assert.True(result.Has(Rules.SideEffectSideEffects), result.Report());
+    }
+
+    /// <summary>
+    /// The other half: affect is the one thing a clause does apply, so it must stay legal.
+    /// </summary>
+    [Fact]
+    public void SideEffectIntentWithOnlyAffect_IsFine()
+    {
+        PersonaValidationResult result = Load(("intents/i.yaml", """
+            intents:
+              - id: RPS_ROCK
+                match: { keyword: [rock] }
+                pool: filler
+                side_effect: true
+                affect:
+                  anger: 1.0
+            """));
+
+        Assert.True(result.IsValid, result.Report());
+    }
+
     [Fact]
     public void AffectDeltaOnAnUndeclaredRegister_IsAnError()
     {

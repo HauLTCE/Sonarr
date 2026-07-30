@@ -38,6 +38,14 @@ intents:
   - look who decided to show up in my notifications
   - anyone around in here
   pool: social_greeting
+  # "hey elaine why do you hate me" is two things: an opening and a question. The question scores
+  # higher and became the whole reply, so the greeting was dropped in silence -- and that is a
+  # large part of why a long message got a short answer. As a side effect it rides along after the
+  # primary instead: one clause for the greeting, one for what was actually asked.
+  #
+  # Safe here because a greeting is never the *point* of a longer message. When it is the whole
+  # message it is the only candidate, so it is the primary and this flag does nothing.
+  side_effect: true
 - id: BYE
   match:
     keyword:
@@ -145,6 +153,10 @@ intents:
   - that came out worse than i intended, i take it back
   - i was out of line earlier
   pool: social_apology
+  # "my bad. what do you actually want to talk about?" drew "actions speak louder." and nothing
+  # else -- the apology outscored the question and the question was dropped, so the one thing she
+  # was actually asked went unanswered. An apology attached to a sentence is a preface to it.
+  side_effect: true
 - id: COMPLIMENT
   match:
     keyword:
@@ -196,6 +208,9 @@ intents:
   pool: social_thanks
   affect:
     fondness: 1.0
+  # Same reason as GREETING: "thanks, but how do i undo it" is gratitude plus a question, and the
+  # question is the part she was asked. Riding along keeps the thanks answered instead of eaten.
+  side_effect: true
 # joke_dad had 20 authored lines and nothing that could fire them, so the dad_jokes stance in
 # stances.yaml was an opinion she could never be caught holding. Regexes only: a bare "pun"
 # keyword would eat half the JOKE traffic below, and a regex outranks a keyword on specificity

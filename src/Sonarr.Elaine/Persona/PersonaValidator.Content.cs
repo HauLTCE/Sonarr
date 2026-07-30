@@ -203,6 +203,47 @@ public static partial class PersonaValidator
                     $"intent '{intent.Id}' asks about slot '{slot}', which is not declared",
                     intent.Location));
             }
+
+            CheckSideEffectIsTextOnly(intent, issues);
+        }
+    }
+
+    /// <summary>
+    /// A <c>side_effect</c> intent may only add text. Anything it does to the conversation beyond
+    /// affect would be silently dropped when it rides along as a clause.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Conversation.ChatEngine"/> applies a side effect's affect and fired-log and
+    /// nothing else, deliberately: a clause mentioned in passing must not open a pending question
+    /// she then waits on, and two intents pushing two activities in one turn has no defined
+    /// meaning. So the engine ignores <c>learns</c>, <c>asks</c>, <c>push</c>, <c>pop</c> and
+    /// <c>topic</c> there — and an author who writes one on a side-effect intent would get a line
+    /// that says "noted, Sam" while nothing records the name. An error, because the failure is
+    /// invisible at runtime: the reply looks right and the state is wrong.
+    /// </remarks>
+    private static void CheckSideEffectIsTextOnly(IntentDef intent, List<PersonaIssue> issues)
+    {
+        if (!intent.SideEffect)
+        {
+            return;
+        }
+
+        List<string> ignored =
+        [
+            .. intent.Learns.Count > 0 ? new[] { "learns" } : [],
+            .. intent.Asks.Count > 0 ? new[] { "asks" } : [],
+            .. intent.PushActivity is not null ? new[] { "push" } : [],
+            .. intent.PopActivity ? new[] { "pop" } : [],
+            .. intent.Topic is not null ? new[] { "topic" } : [],
+        ];
+
+        if (ignored.Count > 0)
+        {
+            issues.Add(new PersonaIssue(
+                PersonaIssueSeverity.Error, Rules.SideEffectSideEffects,
+                $"intent '{intent.Id}' is side_effect but also declares "
+                + $"{string.Join(", ", ignored)}, which a side-effect clause does not apply",
+                intent.Location));
         }
     }
 
