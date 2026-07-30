@@ -382,9 +382,20 @@ public class SeedPersonaTests
     // A question is still a question when an agreeing word precedes it. This exact row drew
     // "right. mm. sure." — she nodded along to a direct question about what she accepts, because
     // AFFIRM's "fine" was a keyword and a keyword matches wherever the token sits.
+    //
+    // It now lands on SHOW_ME rather than QUESTION_IN, and that is the better answer, not a
+    // regression: this is a capabilities question, and QUESTION_IN's pool brushes it off
+    // ("bold of you to assume i'd answer that.") while question_capabilities answers it. What
+    // this row was pinned to prove — that a leading "fine." does not make a question an
+    // agreement — is proved either way, and the row below keeps proving it for a question that
+    // has no capabilities route to land on.
     [InlineData(
         "fine. no caps. what inputs do you actually accept from this state?",
-        "QUESTION_IN")]
+        "SHOW_ME")]
+    // The wh- branch is the one with the sentence-boundary opener `(?:^|[.!?]\s+)`; the bare
+    // auxiliaries below it are start-of-message only, on purpose. So this row has to lead with
+    // a wh- word to exercise the leading-"fine." case at all.
+    [InlineData("fine. what is that", "QUESTION_IN")]
     // The other half of that fix: an agreement noise alone is still an agreement noise.
     [InlineData("yes", "AFFIRM")]
     [InlineData("yeah sure", "AFFIRM")]
@@ -452,6 +463,49 @@ public class SeedPersonaTests
     [InlineData("i dare you", "USER_CHALLENGE")]
     [InlineData("wanna bet", "USER_CHALLENGE")]
     [InlineData("come at me", "USER_CHALLENGE")]
+    // Batch 4 of the corpus review. Eight of the ten misses were one missing alternative on an
+    // intent that already owned the right pool, so most of these pin a widening rather than a new
+    // route — and a widening is exactly what a later edit removes without noticing.
+    //
+    // A threat whose object is the demand in front of it: THREAT's other patterns need a verb with
+    // an object, and this one ends at "make you". It matters more than tone, because user_threat
+    // carries the anger and the argument push.
+    [InlineData("Either you speak normal or I'll make you", "THREAT")]
+    // Arithmetic spelled out in words. MATH's two number patterns both want digits.
+    [InlineData("one plus one is two", "MATH")]
+    // A question *about* a die rather than an instruction to roll one. Drew "whatever you say.
+    // i'm not listening." — a brush-off at a message she had plainly read.
+    [InlineData("give you a dice with probability of getting a 6", "DICE")]
+    // The same question as the pinned "do you love someone" above with the auxiliary dropped and
+    // the pronoun typed as `u`, which is how half the corpus types it.
+    [InlineData("u love someone", "Q_REL")]
+    // Devotion is neither a compliment nor a proposition, so none of FLIRT's patterns reached it.
+    [InlineData("U are the only one i need", "FLIRT")]
+    [InlineData("only u", "FLIRT")]
+    // The same joke as the pinned "you're gay", one word over and misspelled.
+    [InlineData("you're bitexual", "GAY_JOKE")]
+    // Periods for spaces is a filter-dodge older than the filter: the normalizer strips
+    // punctuation from the ends of the message and of each token, never the middle, so
+    // INSULT_EXTRA's `\bfuck (?:you|u)\b` has no space to match.
+    [InlineData("fuck.you.", "INSULT_BARE")]
+    // "U broken" was already pinned by the route's own comment; the bare form was not caught.
+    [InlineData("Broken", "INSULT_BARE")]
+    // Remarks about her being broken, wrong or replaceable. user_challenge was the first choice
+    // and is wrong — its lines accept a challenge, and nobody made one.
+    [InlineData("Bro wtf", "BOT_DERISION")]
+    [InlineData("I assume you're having a stroke", "BOT_DERISION")]
+    // "remember" with no slot named reaches none of the RECALL_* intents, each of which owns one.
+    [InlineData("remember", "MEMORY_VAGUE")]
+    [InlineData("Remember who YOU are?", "MEMORY_VAGUE")]
+    // ...and the slot-naming forms stay with the intents that answer with the slot. The unknown
+    // twin and not RECALL_NAME because this theory recognizes against MatchContext.Empty: no name
+    // on file means RECALL_NAME's has_slot guard fails, and a failing guard removes the intent
+    // outright rather than just costing it the bonus (LexicalMatcher.cs:118). Either id proves what
+    // this row is for — that a slot-naming "remember" does not land on MEMORY_VAGUE.
+    [InlineData("do you remember my name", "RECALL_NAME_UNKNOWN")]
+    // Two more agreement noises. "amen" drew a complaint about being interrupted by agreement.
+    [InlineData("fr", "AFFIRM")]
+    [InlineData("amen", "AFFIRM")]
     public void ShippedPersona_RecognizesPinnedBehaviors(string input, string expected)
     {
         IntentRecognizer recognizer = new(SeedPersona.Graph);
@@ -570,13 +624,20 @@ public class SeedPersonaTests
     [Fact]
     public void RecallName_RequiresAStoredName()
     {
-        // v1 expressed this as `when: {has: name}` with a fallthrough. In v2 the has_slot
-        // guard removes RECALL_NAME outright when nothing is stored, so "what's my name"
-        // falls to the generic question handler instead of claiming to remember a name.
+        // v1 expressed this as `when: {has: name}` with a fallthrough. In v2 the has_slot guard
+        // removes RECALL_NAME outright when nothing is stored, so the cold path is a separate,
+        // unguarded intent rather than a fallthrough.
+        //
+        // This used to assert QUESTION_IN on the cold path, and the corpus showed why that was
+        // the wrong thing to pin: the generic question pool answers "i could help. i won't, but i
+        // could." and "i'm not paid enough for this." -- search-engine brush-offs to the one
+        // question only she can answer. RECALL_NAME_UNKNOWN draws recall_empty instead ("my memory
+        // of you is a blank, merciful page."), which is the same honesty this test was written for
+        // and says the true thing out loud.
         IntentRecognizer recognizer = new(SeedPersona.Graph);
 
         MatchOutcome cold = recognizer.Recognize("what's my name", MatchContext.Empty);
-        Assert.Equal("QUESTION_IN", cold.Primary?.IntentId);
+        Assert.Equal("RECALL_NAME_UNKNOWN", cold.Primary?.IntentId);
 
         MatchContext known = MatchContext.Empty with { Slots = new HashSet<string> { "name" } };
         MatchOutcome warm = recognizer.Recognize("what's my name", known);

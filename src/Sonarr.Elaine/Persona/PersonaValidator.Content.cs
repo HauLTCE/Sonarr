@@ -22,6 +22,7 @@ public static partial class PersonaValidator
         // The tier-up moment: one pool per declared tier, drawn by id (ChatEngine). Optional the
         // same way — a tier with no pool just crosses quietly.
         referenced.Add(ChatEngine.NicknamePool);
+        referenced.Add(ChatEngine.EmptyPool);
         foreach (TierDef tier in graph.Root.Tiers)
         {
             referenced.Add($"{ChatEngine.TierMomentPoolPrefix}{tier.Id}");

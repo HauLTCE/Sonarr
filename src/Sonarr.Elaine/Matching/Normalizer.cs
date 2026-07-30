@@ -13,7 +13,15 @@ public static partial class Normalizer
     private const string TrailingPunctuation = ".!?,;:";
 
     /// <summary>Stripped from the ends of each token; interior kept, so "don't" survives.</summary>
-    private const string TokenTrim = ".,!?;:\"'()[]{}<>*_~`";
+    /// <remarks>
+    /// Ends with <see cref="CustomEmojiPlaceholder"/>. Keyword matching runs on the tokens, and a
+    /// custom emoji is not a word anyone typed — leaving it in would have made "nice :kekw: shot"
+    /// three tokens instead of two, and given every keyword list a token it can never match.
+    /// A token that is only the placeholder trims to empty and is dropped, which loses nothing:
+    /// <see cref="Normalized.Cased"/> still holds it, so the style detectors and the regex
+    /// patterns — the two things that are supposed to see an emoji — still do.
+    /// </remarks>
+    private const string TokenTrim = ".,!?;:\"'()[]{}<>*_~`" + CustomEmojiPlaceholder;
 
     /// <summary>Character count above which a message is a wall of text.</summary>
     public const int WallOfTextChars = 170;
@@ -24,9 +32,35 @@ public static partial class Normalizer
     private const int CapsMinLetters = 4;
     private const double CapsMinRatio = 0.7;
 
+    /// <summary>
+    /// What a custom emoji collapses to: U+FFFC OBJECT REPLACEMENT CHARACTER, one per emoji.
+    /// </summary>
+    /// <remarks>
+    /// This was a space, which deleted the emoji outright — and a message that is nothing but
+    /// custom emoji then had no text at all, so it took <c>ChatEngine</c>'s empty path and drew
+    /// "nothing to say? then don't speak." and "i'm an AI, not a mind reader." from
+    /// <c>empty_message</c>. Five corpus rows: she told people who had sent her a reaction that
+    /// they had sent her nothing. A custom emoji is content — <c>emoji_react</c> ("an emoji.
+    /// groundbreaking.", "i don't speak hieroglyphics.") is what answers it, and the persona
+    /// already routes there.
+    ///
+    /// U+FFFC and not some ordinary character because its Unicode category is <c>So</c>, the same
+    /// as a native emoji's. That one property carries the whole fix: <see cref="CountEmoji"/>
+    /// counts it, so four custom emoji flood exactly like four native ones; SINGLE_EMOJI's
+    /// <c>\p{So}</c> class matches it, so one lands on <c>emoji_react</c>; and the text is no
+    /// longer empty, so the empty path is not taken. It is also not a letter, so
+    /// <see cref="IsShouting"/> ignores it, and it is in neither <see cref="TokenTrim"/> nor
+    /// <see cref="TrailingPunctuation"/>, so nothing strips it back out.
+    ///
+    /// One char, so the cased/lower index alignment <see cref="Normalized"/> depends on survives.
+    /// It never reaches a reply: pools are authored text, and this exists only in matcher input.
+    /// </remarks>
+    private const string CustomEmojiPlaceholder = "￼";
+
     public static Normalized Normalize(string? text)
     {
-        string cased = Collapse(CustomEmojiRegex().Replace(text ?? string.Empty, " "));
+        string cased = Collapse(
+            CustomEmojiRegex().Replace(text ?? string.Empty, CustomEmojiPlaceholder));
         cased = cased.TrimEnd(TrailingPunctuation.ToCharArray()).TrimEnd();
         string lower = LowerPreservingLength(cased);
 
@@ -211,7 +245,7 @@ public static partial class Normalizer
     /// A Discord custom emoji, <c>&lt;:name:id&gt;</c> or animated <c>&lt;a:name:id&gt;</c>.
     /// </summary>
     /// <remarks>
-    /// Dropped before anything else looks at the text, because the snowflake is 18 digits and
+    /// Folded before anything else looks at the text, because the snowflake is 18 digits and
     /// repeats: <c>&lt;:pinecone_dumb:1492441226148843560&gt;</c> ends in "555", which trips the
     /// elongation detector, so a single emoji drew "stretching it out doesn't make it
     /// interesting." — she scolded someone for padding a message with no padding in it. Every

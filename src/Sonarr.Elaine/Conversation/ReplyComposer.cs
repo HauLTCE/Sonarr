@@ -53,6 +53,17 @@ public sealed class ReplyComposer(
     /// <summary>Capture name the shaky value is substituted into: <c>{$value}</c>.</summary>
     public const string HedgeCapture = "value";
 
+    /// <summary>
+    /// Slot the resolved mode id is substituted into: <c>{mode}</c>. Declared in
+    /// <c>sonarr.yaml</c>'s <c>slots:</c> whitelist and drawn by <c>mood_report</c>.
+    /// </summary>
+    /// <remarks>
+    /// Not <see cref="GuardDef.Mode"/>: that constant is the name of a guard <em>kind</em> and only
+    /// coincidentally the same string. A slot and a guard kind are different namespaces, so sharing
+    /// the literal would couple two things that are free to diverge.
+    /// </remarks>
+    public const string ModeSlot = "mode";
+
     /// <summary>1-in-N turns carry a mood fragment. Every turn would be a verbal tic.</summary>
     private const int FragmentOdds = 3;
 
@@ -167,12 +178,25 @@ public sealed class ReplyComposer(
     private IReadOnlyDictionary<string, string> Hedged(
         ConversationState state, string modeId, IDeterministicRandom rng)
     {
+        // `{mode}` is a declared slot (sonarr.yaml `slots:`) that nothing ever filled. Every line
+        // in mood_report templates it, so TryRender failed on all five, Pick returned null, and
+        // the reply fell through to the neutral fallback -- which is why "vibe check" and "what's
+        // your mood" (VIBE, topics.yaml) have never once reached the pool written for them. The
+        // value was in hand the whole time: it is this method's own parameter.
+        //
+        // Lowercased because mode ids ship uppercase (sonarr.yaml `modes:` — SEETHING, NEUTRAL)
+        // and every authored line in the persona is lowercase, so the raw id read as shouting in
+        // the middle of a sentence: "right now? NEUTRAL. congrats, i guess."
+        Dictionary<string, string> slots = new(state.RenderSlots, StringComparer.Ordinal)
+        {
+            [ModeSlot] = modeId.ToLowerInvariant(),
+        };
+
         if (_shaky.Count == 0)
         {
-            return state.RenderSlots;
+            return slots;
         }
 
-        Dictionary<string, string> slots = new(state.RenderSlots, StringComparer.Ordinal);
         foreach (string slot in _shaky)
         {
             if (!slots.TryGetValue(slot, out string? value))

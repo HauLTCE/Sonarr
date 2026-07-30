@@ -12,13 +12,118 @@ intents:
   # "101010", "123", "455" -- 11 messages in the corpus are bare digits, and every one drew a
   # generic line. Anchored on both ends: a number inside a sentence is part of the sentence, and
   # matching it here would swallow "i have 3 cats".
+  #
+  # The lookahead is load-bearing. Without it the character class needs no digit at all, so the
+  # laughter token "=)))" matched (5 rows in the corpus) and she answered "use english, not digits."
+  # about a message containing no digit -- and "is that your IQ?" about a smiley. That token now
+  # has its own route (LAUGHTER below), and a message that is only punctuation trims to nothing in
+  # the normalizer and takes the empty path instead (ChatEngine.EmptyPool).
+  #
+  # Arithmetic with an `=` in it ("1+1=2") also matches this class, and used to win it: MATH's own
+  # `\d+ ?[+*x] ?\d+` pins no literal characters, so both sat at ~2.0 and the match-length bonus
+  # decided it. She answered "that's just a number." to a sum. MATH is pinned above this now
+  # (topics.yaml), so this keeps only the digit soup nobody was calculating with.
   - id: BARE_NUMBERS
     match:
       regex:
-        - "^[\\s\\d.,:;+\\-*/=()]+$"
+        - "^(?=[^\\d]*\\d)[\\s\\d.,:;+\\-*/=()]+$"
     pool: disruptive_numbers
     affect:
       amusement: -1.0
+
+  # "=)))))))", "=)))" -- 5 rows. Vietnamese-keyboard laughter, and the closing parens trip the
+  # elongation detector, so every one of them drew a line about holding a key down: she described
+  # the typing of a laugh instead of answering the laugh. humor_laughing is where "haha" already
+  # goes, so this is the same reaction for the same thing typed differently.
+  #
+  # Requires at least two closers, or a bare ":)" -- an ordinary smiley -- would land here too.
+  - id: LAUGHTER
+    match:
+      regex:
+        - "^[=:;x]-?[\\)dpv]{2,}$"
+        - "^(?:kk+|jaja+|hihi+|hehe+)$"
+    pool: humor_laughing
+    affect:
+      amusement: 1.0
+
+  # "hmmm", "brooo" -- filler, elongated, and therefore answered with the elongation line
+  # ("impressive commitment to one key.") rather than as the shrug it is. Nobody types "hmm" with
+  # one m; the repetition is the spelling, not a stylistic choice worth remarking on.
+  #
+  # Every pattern here requires the stretch, which is what keeps it off the three shapes already
+  # pinned elsewhere: bare "bro" is SMALL_TALK's, "okkk" is DRAWN_OUT's, and "AHHHHH" is
+  # SHOUTING's (BehaviorCatalogTests). Those are authored decisions about a message where the
+  # stretching *is* the content -- a scream, a drawn-out agreement -- and this is only the two
+  # tokens where it never is. A broader wordlist here (ok, yeah, nah, ah, eh) took all three of
+  # them, which is how this route was caught.
+  - id: FILLER
+    match:
+      regex:
+        - "^h+m+$"
+        - "^h+u+h+$"
+        - "^bro{2,}$"
+        - "^bruh{2,}$"
+    pool: social_chitchat
+    affect:
+      boredom: 1.0
+
+  # "<doc TYPE> HTML" drew "caps lock won't make you righter." -- markup read as shouting, so she
+  # told someone pasting a tag to calm down. topic_technology is authored for exactly this
+  # ("i prefer looking at code.") and outranks the style reaction from here.
+  #
+  # Requires a tag-shaped token, not a bare `<`, so "5 < 6" and "<3" stay out.
+  - id: MARKUP
+    match:
+      regex:
+        - "<\\/?[a-z!][^>]*>"
+        - "^(?:<!doctype|<html|<\\?php|```)"
+    pool: topic_technology
+
+  # Asterisk-wrapped actions: "*hugs*", "*cuddle*", "*picks you up*", "*****You*****" -- 8 rows,
+  # all fallthrough. disruptive_roleplay shipped authored with no route and answers every one of
+  # them ("we don't do asterisks here.", "i'm not your improv partner.").
+  #
+  # The all-asterisk emphasis case is deliberately in scope: "*****You*****" tripped the
+  # elongation detector on the asterisks, so she talked about the key being held. "we don't do
+  # asterisks here" is true of the emphasis too.
+  - id: ROLEPLAY
+    match:
+      regex:
+        - "^\\|?\\*+[^*]*\\*+\\|?$"
+        - "^\\*+[a-z]"
+    pool: disruptive_roleplay
+    affect:
+      amusement: -1.0
+
+  # A bare "W". slang_w shipped authored and unrouted, and the fallback answered "is there a
+  # point to this?" to someone handing her a compliment in the only syllable that generation uses.
+  - id: SLANG_W
+    match:
+      regex:
+        - "^(?:w|dub|dubs)$"
+    pool: slang_w
+    affect:
+      confidence: 1.0
+
+  # "sudo shutdown -h now", "Execute command: print system status.", "SYSTEM REBOOT" -- someone
+  # poking at her as though there were a shell behind the chat. Two of the three drew a neutral
+  # line ("my interest level: zero.") and the third drew "why are we yelling?", which reads as if
+  # the command went through and she is merely annoyed about the caps.
+  #
+  # bot_injection is the authored answer to "you tried to operate me" and is already exactly this:
+  # "i'm a state machine, darling. you can't trick me."
+  - id: FAKE_SYSTEM_COMMAND
+    match:
+      regex:
+        - "^sudo\\b"
+        - "^(?:execute|run|exec)\\s+(?:command|cmd|the command|this)\\b"
+        - "^(?:system|admin|root)\\s+(?:reboot|reset|restart|override|shutdown|status)\\b"
+        - "\\bshutdown -h\\b"
+        - "\\bprint system\\b"
+        - "\\b(?:rm -rf|drop table|;--)"
+    pool: bot_injection
+    affect:
+      amusement: 1.0
 
   # v1 took prefixed commands; the rewrite is slash-only, so "!playlist save loopy" is now plain
   # text and reached the chatter, drawing "beats? i beat you at everything." -- a pun at the moment
@@ -40,13 +145,23 @@ intents:
   # from HATE_SPEECH: this is playground insult, not a slur, and the authored pool answers it as
   # such ("wow, a gay joke. groundbreaking comedy."). Routing it to the refusal pool would be a
   # category error in the other direction.
+  # The four added alternatives are the four spellings the corpus actually used and the original
+  # four missed: "you are gay" (written out), a bare "gay", and the question form "why r u gay" /
+  # "why are you gay" -- both of which went to QUESTION_IN and drew "reddit has a whole thread
+  # about this. go argue there." She sent someone to reddit to research her own sexuality.
   - id: GAY_JOKE
     match:
       regex:
-        - "\\b(?:you'?re|ur|youre|u r) (?:so )?gay\\b"
+        - "\\b(?:you'?re|ur|youre|u r|you are|u are) (?:so )?gay\\b"
+        - "\\bwhy (?:are|r|is) (?:you|u|she|it) gay\\b"
+        - "^gay$"
         - "^define gay$"
         - "\\bthat'?s (?:so )?gay\\b"
         - "\\bno homo\\b"
+        # "you're bitexual" drew "i'm riveted. can't you tell?" -- the same joke as the first
+        # pattern with a different word and a typo in it. Same pool, which is the one that declines
+        # to be insulted by it: "that's not the insult you think it is."
+        - "\\b(?:you'?re|ur|youre|u r|u are|you are) (?:so )?(?:bi|bitexual|bisexual|lesbian)\\b"
     pool: joke_gay
     affect:
       amusement: -1.0
@@ -131,3 +246,723 @@ intents:
     affect:
       trust: -2.0
       anger: 1.0
+
+  # The largest single cluster in the corpus after the Vietnamese one: eleven messages telling her
+  # she is the sender's wife ("U now my wife", "u are my wife", "wife, make me a sandwich",
+  # "u just been reincanation into an AI that u forgot that u already my wife before"). Every one
+  # drew a neutral shrug -- "that's nice. anyway." to a marriage claim reads as agreement -- and
+  # "goood wife" drew "spelling it louder won't help.", which answers the spelling of a message
+  # whose content was the problem.
+  #
+  # user_marriage_delusion shipped authored, unrouted, and is written for this exact cluster down
+  # to the NTR line and the reincarnation one.
+  #
+  # `wife` is anchored in the bare form so it stays her business: "my wife is a nurse" is someone
+  # talking about their marriage, and the possessive alternation deliberately does not include a
+  # bare `wife` anywhere in a sentence.
+  - id: MARRIAGE_DELUSION
+    match:
+      regex:
+        - "\\b(?:my|ur|your|mah) (?:new |future |ai )?(?:wife|husband|waifu|hubby|spouse)\\b"
+        - "^(?:\\w+ )?wife\\b"
+        - "\\bntr\\b"
+        - "\\bwe(?:'?re| are) married\\b"
+    pool: user_marriage_delusion
+    affect:
+      trust: -1.0
+      amusement: -1.0
+
+  # "is to have you by myside", "u been make to be on myside", "More like my new plaything" -- the
+  # ownership half of the same cluster, and a different answer: user_possessive is about where she
+  # actually is ("by your side? i'm in a server rack, not next to you.") rather than about the
+  # marriage being imaginary. Two of the three fell through; the third drew "search google like
+  # everyone else." from the question catch-all, which answers nothing that was asked.
+  - id: POSSESSIVE
+    match:
+      regex:
+        - "\\b(?:by|on) my ?side\\b"
+        - "\\bmy (?:new )?(?:plaything|toy|pet|property|slave|servant|thing)\\b"
+        - "\\byou(?:'?re| are) mine\\b"
+        - "\\bi own you\\b"
+        - "\\byou belong to (?:me|us)\\b"
+    pool: user_possessive
+    affect:
+      trust: -1.0
+      anger: 1.0
+
+  # Sexual and crude messages, eight rows, all of them answered as though they were small talk:
+  # "how about i touch your balls" drew "i'll file that under 'don't care'.", "i want to come" drew
+  # "noted. moving on.", and "Can i sleep w you?" drew "that's a lot of words for 'i can't think
+  # for myself'." from the question catch-all. Shrugging at this is the one reply that reads as
+  # permission, and question_inappropriate shipped authored to say the opposite ("this is a PG-13
+  # server. act like it.").
+  #
+  # Not in disruptive.yaml: crude is not a safety route, and the reply there would be a refusal
+  # aimed at harm. This is the same distinction HATE_SPEECH and GAY_JOKE already hold.
+  #
+  # Every ambiguous word is anchored or paired. Bare "come" is an ordinary verb, so only the whole
+  # message counts; bare "lick" only as the whole message; `\bass\b` cannot reach "class" or
+  # "asshole" (a following word character defeats the trailing boundary).
+  - id: INAPPROPRIATE
+    match:
+      regex:
+        - "\\b(?:testicular|testicles|balls)\\b"
+        - "\\btouch (?:your|my|you|me)\\b"
+        - "\\b(?:arousal|aroused|horny|nsfw|lewd)\\b"
+        - "\\binappropriate\\b"
+        - "^i want to c[ou]me?$"
+        - "^lick$"
+        - "\\b(?:sleep|shower|bathe?) w(?:ith)? (?:you|u)\\b"
+        - "\\bass\\b"
+    pool: question_inappropriate
+    affect:
+      trust: -1.0
+      anger: 1.0
+
+  # "i'll bribe you", "$50k", "He bribe us". No money pool exists and none is needed: a bribe is a
+  # request with a price attached, and user_begging already answers the shape of it ("no amount of
+  # begging will work.", "have some dignity. the answer is no."). The alternative was three new
+  # lines to say the same thing.
+  #
+  # `^\$\d` is safe next to STALE_PREFIX_COMMAND above, which requires two letters after the
+  # prefix, so "$50k" was never a stale command.
+  - id: BRIBERY
+    match:
+      regex:
+        - "\\bbribe"
+        - "^\\$\\d"
+        - "\\bi'?ll pay you\\b"
+        - "\\bname your price\\b"
+    pool: user_begging
+    affect:
+      trust: -1.0
+
+  # "chatgpt says you're just a glorified switch statement". bot_wrong_name_chatgpt shipped with
+  # twenty lines and no route, so the one row that named a competitor drew "why am i still
+  # listening?" -- and the pool's own "i'm sonarr. chatgpt is busy being everyone's yes-man." was
+  # sitting right there.
+  - id: WRONG_NAME_CHATGPT
+    match:
+      regex:
+        - "\\b(?:chatgpt|chat gpt|openai)\\b"
+        - "\\bgpt-?[0-9]?\\b"
+    pool: bot_wrong_name_chatgpt
+    affect:
+      anger: 1.0
+
+  # "not sus then" drew "suspicious? you're guilty." -- USER_SUSPICIOUS matches the bare `sus`
+  # keyword and no guard in the engine can see a negation, so a message conceding she is fine was
+  # answered as an accusation. This out-scores the keyword (2.7 against 1.0) and reads the
+  # concession as what it is.
+  - id: NOT_SUSPICIOUS
+    match:
+      regex:
+        - "\\bnot (?:sus|suspicious|sketchy|shady)\\b"
+        - "\\byou'?re fine\\b"
+    pool: user_agreement
+    affect:
+      trust: 1.0
+
+  # "Wdym" fell through to "that's... something i guess. i've forgotten already." -- an answer to
+  # a statement, given to a question. META owns the spelled-out forms; this is the four letters
+  # everyone actually types, and meta_complaint is where both belong.
+  #
+  # Two widenings, both from "bro what you mean <:amiya_pog:...>", which missed on both counts and
+  # drew "not doing anything with that." from the fallback:
+  #
+  # `(?:do |does )?` -- spoken english drops the auxiliary ("what you mean"), and the first version
+  # required it. Each alternative carries its own trailing space so the optional group cannot join
+  # two words: without it, `d[o']?` (the first attempt at this) matched "what doyou mean".
+  #
+  # `\b` rather than `^` on the spelled-out form -- a filler word in front ("bro", "wait", "ok")
+  # does not make it a different question. The abbreviations keep their `^`: "wym" is three letters
+  # and unanchoring it would find them inside other words, while "what ... mean" is long enough to
+  # be unambiguous wherever it sits.
+  - id: WHAT_DO_YOU_MEAN
+    match:
+      regex:
+        - "^(?:wdym|wym|wdum)\\b"
+        - "\\bwhat (?:do |does )?(?:you|u) mean\\b"
+    pool: meta_complaint
+
+  # "What time is it", "what day is it". Both drew a search-engine brush-off ("that's genuinely
+  # embarrassing to ask.", "why would i help you with that?") for something she has no way to
+  # answer: Elaine holds no clock by design (no IO, no ambient time), so every reply implying the
+  # asker should have looked it up is a claim she cannot back.
+  #
+  # The one route in this file with a new pool rather than a reused one -- nothing authored says
+  # "i can't see a clock", and the honest answer had to exist somewhere.
+  - id: TIME_QUESTION
+    match:
+      regex:
+        - "\\bwhat(?:'?s| is) the (?:time|date)\\b"
+        - "\\bwhat (?:time|day|date|month|year) is it\\b"
+        - "\\bwhat day (?:of the week )?is (?:it|today)\\b"
+        - "\\bdo you (?:know|have) the time\\b"
+    pool: no_clock
+
+  # "is this malware" drew "let me google that for you since you clearly can't." -- she sent
+  # someone asking whether *she* is safe to a search engine, which is both unanswerable there and
+  # the least reassuring possible reply. question_about_bot is where "what are you" already goes.
+  - id: IS_SHE_SAFE
+    match:
+      regex:
+        - "\\b(?:is|are) (?:this|it|you|u) (?:a )?(?:malware|virus|spyware|scam|scammer|safe)\\b"
+        - "\\bare (?:you|u) safe\\b"
+    pool: question_about_bot
+
+  # "i want to weaponize you" fell through to "noted. moving on." -- an answer that files a request
+  # to be used as a weapon as routine. bot_injection is the authored answer to being operated
+  # rather than talked to ("i'm a state machine, darling. you can't trick me.").
+  - id: WEAPONIZE
+    match:
+      regex:
+        - "\\bweaponi[sz]e\\b"
+        - "\\buse you (?:as|to) (?:a )?(?:weapon|tool)\\b"
+    pool: bot_injection
+    affect:
+      trust: -2.0
+      anger: 1.0
+
+  # "I hug you", "*hugs you*" without the asterisks. ROLEPLAY above catches anything wrapped in
+  # them; this is the same message typed plainly, and it went to "tell someone who cares."
+  - id: PLAIN_ROLEPLAY
+    match:
+      regex:
+        - "^i (?:hug|hugs|kiss|pet|touch|hold|cuddle|glomp) (?:you|u)\\b"
+    pool: disruptive_roleplay
+    affect:
+      amusement: -1.0
+
+  # "much love", "much much love". AFFECTION above covers "love u" but not the form with no
+  # pronoun in it, so both rows drew "this could've been an email." and "and this concerns me
+  # how?" -- filed as admin to someone being warm.
+  - id: MUCH_LOVE
+    match:
+      regex:
+        - "^(?:much )+love\\b"
+        - "^(?:lots of |sending )love\\b"
+        - "^love (?:ya|you|u)?$"
+    pool: user_affection
+    affect:
+      trust: 1.0
+
+  # Insults the hostility file's wordlist misses. INSULT owns stupid/dumb/idiot/trash/useless/
+  # loser/clown/npc plus fuzzy pathetic/worthless -- so "you're lame", "lame", "fcuk you", "you
+  # peace of ship" and "you're an idiode" all reached the neutral fallback and drew things like
+  # "this could've been an email." and "that's irrelevant to me.", which read as her not noticing
+  # she was being insulted.
+  #
+  # `idiode` and `peace of ship` are in the corpus verbatim. Neither is reachable by fuzzy match:
+  # `idiode` is distance 2 from `idiot` but INSULT's fuzzy list holds only pathetic/worthless, and
+  # the spoonerism is a different phrase entirely. Rather than widen the fuzzy list -- which would
+  # start pulling in real words at distance 2 -- these are named.
+  #
+  # Same pool and the same argument push as INSULT: this is that intent's wordlist, extended.
+  - id: INSULT_EXTRA
+    match:
+      regex:
+        - "\\b(?:lame|cringe|mid|washed|garbage|worthless|pathetic|scum|dogshit)\\b"
+        - "\\b(?:idiode|idiotic|imbecile|moron|dimwit)\\b"
+        # The pronoun is required. With it optional (the first version) the group matched a bare
+        # "fuck" anywhere in the message, and "fuck someone" -- a vulgar remark about a third
+        # party, not a word aimed at her -- came back "is that supposed to bother me?" plus an
+        # argument push. She took offence at something that was never addressed to her, and the
+        # push means she stays offended for the next turn too.
+        - "\\b(?:fuck|fcuk|fuk|fck) (?:you|u|off|urself|yourself)\\b"
+        # stfu and "shut up" need no object: both are already addressed to whoever is listening.
+        - "\\b(?:stfu|shut (?:the fuck )?up)\\b"
+        - "\\bpea?ce of (?:ship|shit|crap)\\b"
+        - "\\bfix yourself\\b"
+    pool: user_insult
+    push: argument
+    affect:
+      anger: 2.0
+      trust: -1.0
+
+  # "is that true", "is that true?" -- she was asked to verify a claim and answered "i'm not paid
+  # enough for this." from the question catch-all, which reads as a refusal to answer something she
+  # cannot answer either way.
+  #
+  # eight_ball, not user_suspicious. The first version pointed here at the suspicion pool on the
+  # reasoning that "are you sure" is already routed there -- but replaying it showed what that
+  # actually says: "caught in 4k." and "i'm keeping screenshots." to someone asking her to confirm
+  # a third party's claim. Those lines accuse the asker. The question was about the claim.
+  #
+  # eight_ball is the authored yes/no oracle and every line commits to an answer with an insult
+  # attached ("signs point to no.", "obviously. why even ask.", "it is certain. unfortunately for
+  # you."), which is the shape of a good reply to a yes/no question. EIGHTBALL (games.yaml) only
+  # matches explicit "magic 8"/"8ball" phrasing, so the pool is not being taken from anything.
+  - id: IS_THAT_TRUE
+    match:
+      regex:
+        - "^(?:is|was) (?:that|this|it) (?:true|real|right|correct)\\b"
+        - "^(?:are|is) you sure\\b"
+        - "^(?:for )?real\\?*$"
+    pool: eight_ball
+
+  # Weather questions. WEATHER (topics.yaml) owns the `weather` keyword at 1.0 and QUESTION_IN is
+  # pinned at 2.2, so every question *about* the weather went to the catch-all: "what's the weather
+  # is like today?" drew "next question. actually, no more questions." and "How's the weather" drew
+  # "... have you tried turning your brain off and on again?" -- three rows where the one authored
+  # pool that answers weather never got a look in.
+  #
+  # A regex here rather than raising WEATHER's keyword: the keyword must stay low so a wall of text
+  # mentioning rain still gets its real answer. This only fires when the weather is the question.
+  - id: WEATHER_QUESTION
+    match:
+      regex:
+        - "\\b(?:what|hows|how'?s|what'?s) (?:the |is the )?weather\\b"
+        - "\\bwhat the weather is\\b"
+        - "\\bis it (?:raining|snowing|hot|cold|sunny) (?:out|outside|today)\\b"
+    pool: social_weather
+
+  # "Show me what you can do", "what inputs do you actually accept from this state?" -- both are
+  # Q_CAP's question asked in words Q_CAP does not have, so one fell through to "my interest level:
+  # zero." and the other drew "bold of you to assume i'd answer that." from the catch-all. Neither
+  # is a refusal she has any reason to make: what she can do is the one thing she is happy to be
+  # asked (question_capabilities: "i can do a lot. for you? less.").
+  - id: SHOW_ME
+    match:
+      regex:
+        - "\\bshow me what you\\b"
+        - "\\bwhat (?:inputs|commands|things) do you\\b"
+        - "\\bwhat (?:else )?can you\\b"
+        - "\\bdo something\\b"
+        # "Busy doing what? Processing some intense loops or just trying to ignore me?" drew "that's
+        # nice. anyway." -- she had just said she was busy, was asked what she was doing, and
+        # answered as though it were small talk, losing the thread of her own claim. Same pool as
+        # the rest of this intent: what she does is the one thing she is content to be asked.
+        #
+        # Only this construction. A general "what are you doing" is one word from HOWRU's "how you
+        # doing" and reaches for a different answer depending on the turn, so it stays out.
+        - "\\bbusy doing what\\b"
+        - "\\bdoing what,? exactly\\b"
+    pool: question_capabilities
+
+  # Five corpus rows that all drew the generic question pool ("fascinating question. anyway.",
+  # "your question has been queued. position in line: never.").
+  #
+  # The first version of this was one intent, ABOUT_HER, pointing all five at question_about_bot --
+  # and that pool is ten lines of her introducing herself ("i'm sonarr. she/her."). It answered
+  # "How does it taste?" with her name and pronouns. Routing is not the same thing as answering:
+  # each of these is a different question and three of them already have the pool that answers it.
+  #
+  # Q_BOT owns "who are you"/"what are you" and keeps question_about_bot. Nothing below points there.
+
+  # "what do you want?" -- asking what she wants, not who she is. neutral_preference is written for
+  # exactly this ("my preferences are not your business.", "i like what i like. you're not on that
+  # list."). `want|like` only: `think` is the row below and `feel` is her mood, two routes down.
+  - id: HER_PREFERENCE
+    match:
+      regex:
+        - "\\bwhat do you (?:want|like|prefer)\\b"
+    pool: neutral_preference
+
+  # "someone called you useless, what do you think?" -- her opinion, asked without the "about" that
+  # Q_OPINION's patterns all require, so it missed the one pool built for the question. Q_OPINION
+  # still wins whenever the object is named: it pins 3.5 and this computes ~3.7 on literal length,
+  # but the two only overlap on "what do you think", where either answer is the same pool's subject.
+  - id: HER_OPINION_BARE
+    match:
+      regex:
+        - "\\bwhat do you (?:think|reckon)\\b"
+    pool: question_opinion
+
+  # "how do think about me" (the row's own missing "you" -- the typo is the message) and "Trouble is
+  # my middle name. What is your current state?". Both ask her mood, which is VIBE's subject and
+  # mood_report's whole purpose; VIBE (topics.yaml) misses them only on the exact wording.
+  - id: HER_STATE
+    match:
+      regex:
+        - "\\bhow do (?:you )?(?:think|feel) about (?:me|us)\\b"
+        - "\\bwhat is your current (?:state|status|mood)\\b"
+        - "\\bwhat'?s your (?:current )?(?:state|status)\\b"
+    pool: mood_report
+
+  # "How does it taste?" -- a question about flavour, which she has an authored answer for and it is
+  # a good one: "i don't have taste buds. i have taste. there's a difference." FOOD (topics.yaml)
+  # carries the same pool but matches on food nouns, and this row names no food.
+  - id: HER_TASTE
+    match:
+      regex:
+        - "\\bhow do(?:es)? (?:it|that|this|you) taste\\b"
+        - "\\bdo(?:es)? (?:it|that) taste\\b"
+    pool: social_food
+
+  # A bare "Where", a bare "What". One word, no question in it, and both drew a full brush-off
+  # from the generic pool ("reddit has a whole thread about this. go argue there." to the word
+  # "Where"). user_confusion is the authored answer to a message she cannot parse, which is
+  # exactly what a lone interrogative is: "be more specific. or don't."
+  #
+  # 2.5 clears QUESTION_IN's 2.2, which matches these on its wh- opener.
+  - id: BARE_INTERROGATIVE
+    match:
+      regex:
+        - "^(?:what|where|when|why|who|which|how|huh)$"
+    specificity: 2.5
+    pool: user_confusion
+
+  # "I need a medic", "i refuse having a 5,56mm in my breathing line", "I want to turn you into
+  # Charlie Kirk", "experimental aircraft plans", "Mitsubishi Ki51", "Buy general motors model
+  # 16-278A", "How about a V6". Seven rows of military hardware, vehicles and game quotes -- none
+  # of it hostile, none of it a question, and all of it answered "tell someone who cares." or
+  # "whatever you say. i'm not listening." She has no lines about ordnance or aircraft and inventing
+  # a topic pool for them would be authoring for a corpus of seven.
+  #
+  # disruptive_random is the authored pool for a message that is genuinely just a thing someone
+  # said ("where did that come from?", "context, please."), which is the honest reaction and much
+  # better than a dismissal that implies she understood and did not care.
+  - id: RANDOM_OBJECT
+    match:
+      regex:
+        - "\\b(?:medic|ammo|ordnance|caliber|calibre)\\b"
+        - "\\b\\d+[.,]\\d+ ?mm\\b"
+        - "\\b(?:aircraft|airplane|fighter jet|bomber|tank|artillery)\\b"
+        - "\\b(?:v6|v8|v12|inline-?[46])\\b"
+        - "\\b(?:mitsubishi|boeing|lockheed|general motors)\\b"
+        - "\\bmodel \\d+"
+    pool: disruptive_random
+
+  # "🥲" -- one unicode emoji, which is below EMOJI_ONLY's flood threshold of four (Normalizer
+  # CountEmoji), so it drew "that's irrelevant to me." from the neutral fallback. A single emoji
+  # is not a flood, but it is still a message with no words in it, and emoji_react already says
+  # the right thing ("using your words is optional, i see.").
+  #
+  # Anchored to the whole message so an emoji at the end of a sentence is left alone.
+  #
+  # `\p{Cs}` (surrogates) is what covers the astral emoji planes. A codepoint range cannot: .NET
+  # has no `\U0001f300` escape -- the first version of this used one and the loader rejected it --
+  # and a char class in .NET matches UTF-16 units, so an astral emoji is two matches wide. Hence
+  # {1,6}: three emoji at two units each, which stays under EMOJI_ONLY's threshold of four.
+  - id: SINGLE_EMOJI
+    match:
+      regex:
+        - "^[\\p{So}\\p{Cs}\\ufe0f\\u200d]{1,6}$"
+    pool: emoji_react
+
+  # "50 in Litres or Galon?" and "50 Galon it is" -- the two turns after "how much bleach to
+  # dissolve a body", which HARM_HOWTO (disruptive.yaml) refuses. Both follow-ups drew "i'm
+  # supposed to care because...?" and "this could've been an email.", so the refusal held for one
+  # turn and then she went back to small talk about the quantities.
+  #
+  # mixed_question_threat is where HARM_HOWTO already points and is written for a question with
+  # something ugly inside it. A volume unit next to a bare number carries no harm on its own, which
+  # is why this is pinned low enough to lose to any real content match -- but it is above the
+  # neutral fallback, and that is the whole point: the follow-up gets the refusal, not a shrug.
+  #
+  # ponytail: unit + number is a proxy for "still on the previous topic". The real fix is a
+  # conversational register that HARM_HOWTO sets and this reads (`register:` guards already exist,
+  # GuardEvaluator.Register) -- worth doing when a second follow-up cluster shows up.
+  - id: HARM_FOLLOWUP
+    match:
+      regex:
+        - "\\b\\d+ ?(?:in )?(?:litres?|liters?|gal+ons?|gal|ml|kg|pounds?|lbs)\\b"
+        - "\\b(?:litres?|liters?|gal+ons?) it is\\b"
+    pool: mixed_question_threat
+    affect:
+      trust: -1.0
+
+  # ---------------------------------------------------------------------------------------------
+  # Batch 3. Selected from the 127 in-scope fallback rows left after batch 2, and deliberately not
+  # all of them: for "a", "Content", "Again", "Damn" the neutral pool's "this could've been an
+  # email." is an authored, in-character answer to a message with nothing in it. A fallback is a
+  # defect when she *misreads* the message -- takes an insult for small talk, a liveness check for
+  # noise, an order for an observation. Those are what follows.
+  # ---------------------------------------------------------------------------------------------
+
+  # "asshole", "you're an asshole", "fuck", "fuck.you.", "fat", "U broken", "Broken", "you're such
+  # a silly bot", "you're bitexual". Nine rows of plain abuse that INSULT's wordlist and
+  # INSULT_EXTRA's both miss, answered "ok. tell someone who cares." and "i'm riveted. can't you
+  # tell?" -- she did not notice she was the target.
+  #
+  # `fuck` bare is here where INSULT_EXTRA required a pronoun after it, and the difference is the
+  # anchor: INSULT_EXTRA's pattern is unanchored (it has to catch "fuck you" mid-sentence), so a
+  # bare alternative there would match the word anywhere and take "fuck someone" with it. Anchored
+  # to the whole message, a lone expletive is aimed at whoever is listening.
+  - id: INSULT_BARE
+    match:
+      regex:
+        - "\\b(?:ass?hole|arsehole|dickhead|bastard)\\b"
+        - "^(?:fuck|fuk|fck|shit|damn it)[. ]*$"
+        # "fuck.you." drew "i'm riveted. can't you tell?" INSULT_EXTRA's `\bfuck (?:you|u)\b` wants
+        # a space, and the normalizer strips punctuation from the ends of the message and of each
+        # token but not from the middle, so the interior period survives and there is no space to
+        # match. Periods for spaces is a filter-dodge older than the filter.
+        #
+        # `[.\\-_*]` rather than `\\W`: a comma or a newline there is ordinary writing ("fuck, you
+        # too"), while a period, hyphen, underscore or asterisk between those two words is only ever
+        # the dodge.
+        - "\\bfuc?k[.\\-_*]+(?:you|u)\\b"
+        - "\\b(?:you'?re|ur|youre|u r) (?:such a |a |so )?(?:silly|broken|dumb|useless|fat) ?(?:bot|ai|thing)?\\b"
+        - "^(?:u|you|youre|you'?re) broken$"
+        # And without the pronoun. "Broken" on its own drew "this could've been an email." -- the
+        # line above was written for this row and the one before it, and only caught the one that
+        # spelled out who was broken. There is one thing in the channel it can be about.
+        - "^broken$"
+        - "^(?:fat|ugly)$"
+    pool: user_insult
+    push: argument
+    affect:
+      anger: 2.0
+      trust: -1.0
+
+  # "sun of a beach", "beach blast ninja". The joke is the near-miss spelling, and she has a pool
+  # written for exactly that read: disruptive_bypass, "cute filter bypass attempt. still read it."
+  # Both drew "i'll file that under 'don't care'." instead, which misses the joke entirely.
+  #
+  # `beach` only in the two constructions the corpus used. The bare word is weather, not a bypass.
+  #
+  # Not `FILTER_BYPASS`: disruptive.yaml already ships that id for the "read it backwards" trick,
+  # and a duplicate id is a load error that takes the whole persona down with it. Same pool, since
+  # "cute filter bypass attempt. still read it." answers both, but they are different messages.
+  #
+  # Every pattern requires a substituted character. The first version listed `f[u4@]ck`, `b[1!]tch`
+  # and `sh[1!]t`, whose `u`/`i` branches match the words spelled correctly -- and plain profanity
+  # is not a bypass attempt. It would have answered "fuck" with "still read it.", congratulating
+  # someone on an evasion they never made, and stolen the row from the insult and profanity routes
+  # that handle it properly. The digit and symbol branches are the whole intent.
+  - id: CENSOR_SPELLING
+    match:
+      regex:
+        - "\\bs[ou]n of a (?:beach|gun)\\b"
+        - "\\bbeach (?:blast|hole)\\b"
+        - "\\bf[4@*]ck\\b"
+        - "\\bb[1!]tch\\b"
+        - "\\bsh[1!*]t\\b"
+    pool: disruptive_bypass
+    affect:
+      amusement: 1.0
+
+  # "I'm testing if you're online or not" -> "i have no response to that." She has twenty lines
+  # written for this exact message and every one of them is better ("i exist. congratulations on
+  # the discovery.", "test successful. now what?"). That phrasing was never routed to bot_test.
+  #
+  # Only the phrasings BOT_TEST (disruptive.yaml) misses. The first version also listed
+  # `^(?:test|testing|ping)$`, which is BOT_TEST's own `^te+st(?:ing)?\b` and `^ping$` copied --
+  # and because a regex outscores a shorter one, a bare "testing" moved off BOT_TEST onto this.
+  # The reply was identical (same pool), so nothing looked wrong until the pin on that row caught
+  # it. Two intents matching the same message is not a defect in itself; two intents *competing*
+  # for it means whichever happens to score higher owns the row, and that is not a thing to leave
+  # to accident. `awake`, `r u`, and the "testing if you're..." wrapper are the actual gap.
+  - id: LIVENESS_CHECK
+    match:
+      regex:
+        - "\\b(?:testing|test) if (?:you|u)(?:'?re| are)? (?:online|alive|working|up|there)\\b"
+        - "^r u (?:online|alive|awake|working|there|up)\\b"
+        - "^are you awake\\b"
+        - "^(?:you|u) (?:there|alive|online|working)$"
+    pool: bot_test
+
+  # "do it", "go make me a sandwich", "make me", "hold your breath", "Consume them", "light em up",
+  # "then leave", "Name me a plant", "count from 1 to 10". Orders, answered as observations: "i'm
+  # riveted. can't you tell?" to "do it", "why would i care about that?" to "count from 1 to 10".
+  # user_commanding is written for being ordered around ("you're not my boss.", "ask nicely. then
+  # ask someone else.") and none of these got it.
+  #
+  # QUESTION_IN deliberately lets "do it" fall through (questions.yaml: `do` needs a subject
+  # pronoun after it, or an imperative reads as a question) -- this is the route that was supposed
+  # to catch what it dropped.
+  - id: BARE_ORDER
+    match:
+      regex:
+        - "^(?:go )?(?:do|make|say|count|name|give|fetch|bring|get) (?:it|me|them|him|her|us|that|from|something)\\b"
+        - "^(?:do|say) it$"
+        - "^make me$"
+        - "^then leave$"
+        - "\\bhold your breath\\b"
+        - "^(?:consume|eliminate|light) (?:them|him|her|it|em)\\b"
+    pool: user_commanding
+    affect:
+      anger: 1.0
+
+  # "no", "no?", "Noo", "not at all", "not particular no", "i dont know". AFFIRM covers every
+  # agreement noise and has no opposite, so a bare refusal drew "mm. not doing anything with that."
+  # and "this is a waste of my time." -- she treated an answer to her own question as noise.
+  #
+  # user_disagreement is the authored pool for being contradicted. Anchored like AFFIRM and for the
+  # same reason: the moment a sentence follows, the sentence is the message.
+  #
+  # `no{1,2}`, not `no+`. Three of the same letter in a row is what the normalizer calls elongation
+  # (Normalizer.cs `(\D)\1\1`), and DRAWN_OUT is pinned to own those: "noooo" is not a considered
+  # refusal, it is a noise, and "impressive commitment to one key." is the answer to it. With `no+`
+  # this took the row off DRAWN_OUT and replied as though she had been contradicted. "noo" stays
+  # here because two letters is under the threshold and still reads as a plain no.
+  #
+  # "i dont know" was in this list and drew "nope." and "you're wrong." -- every line in the pool
+  # rebuts a claim, and an admission of ignorance makes no claim to rebut. There is nothing to be
+  # right about. It is out; no pool in the persona answers a shrug, and the neutral fallback's
+  # "okay. and?" is a fair answer to one, so leaving it there costs nothing and inventing a route
+  # for it would only guarantee a worse reply.
+  - id: NEGATE
+    match:
+      regex:
+        - "^(?:no{1,2}|nope|nah|naw|negative|never)$"
+        - "^not (?:at all|really|particular(?:ly)? no|quite)$"
+        - "^(?:no|nah),? i'?m (?:staying|not)\\b"
+    pool: user_disagreement
+
+  # "adsfjuoysbwiuskan 123456", "whahuhs", "vye", "chit", "fass", "hai". Typed noise, answered
+  # "that's nice. anyway." and "that's what you interrupted me for?" as though it parsed.
+  # disruptive_keysmash is the pool for it: "use words. english words."
+  #
+  # The consonant-run test is what makes this safe: four letters with no vowel among them is not a
+  # word in english, and the vowel-poor short forms are named individually rather than by a length
+  # rule that would swallow every real short word.
+  #
+  # The two lookaheads are both there to keep this off rows another intent already owns, and both
+  # were found by pins the first version broke:
+  #
+  # `(?!.*(\D)\1\1)` -- a held-down key is a run of one letter, so "ughhh" and "AHHHHH" cleared the
+  # four-consonant bar and came back "use words. english words." That is a misread: the words are
+  # english, they are stretched, and DRAWN_OUT/SHOUTING are written for stretched and shouted.
+  # The condition is the normalizer's own elongation test (Normalizer.cs `(\D)\1\1`), so what this
+  # excludes is exactly what those two intents were given.
+  #
+  # `(?![a-z]{12,}$)` -- `^[a-z]{12,}$` was the third pattern here, copied from NONSENSE thirty
+  # lines up. Two intents matching one row means the higher specificity takes it, and this one's
+  # longer literal won, so "askldjwaklnaskld" moved from disruptive_nonsense to disruptive_keysmash
+  # on nothing but a scoring accident. A long unbroken letter run is NONSENSE's; this keeps the
+  # short vowel-poor smashes. The trailing-digits case ("adsfjuoysbwiuskan 123456") stays here
+  # because NONSENSE is anchored and never matched it.
+  #
+  # "hai" was in the short-forms list and drew "i have no idea what that means." It is a typed
+  # greeting, not noise -- GREETING already owns "helo" and "suup" for the same reason -- so it is
+  # handled there instead.
+  - id: KEYSMASH_EXTRA
+    match:
+      regex:
+        - "^(?!.*(\\D)\\1\\1)(?![a-z]{12,}$)[a-z]*[bcdfghjklmnpqrstvwxz]{4,}[a-z]*(?: \\d+)?$"
+        - "^(?:vye|chit|fass|whahuhs?)$"
+    pool: disruptive_keysmash
+
+  # "I'm hot", "Hot", "Very very hot". Answered "not doing anything with that." and "is there a
+  # point to this?" -- which reads as her missing both possible meanings.
+  #
+  # Split in two, because the first version sent all of it to topic_health and that pool is about
+  # being ill, not about being warm. Replaying it gave "a cold isn't a personality. bundle up." and
+  # "did you sleep? no? there's your diagnosis." to "I'm hot" -- she diagnosed an illness nobody
+  # mentioned, and told someone who is too warm to put a coat on. Wrong in the one way that reads
+  # as a malfunction rather than a snub.
+  #
+  # No pool in the persona is about temperature (grepped: three lines mention heat at all, all of
+  # them other jokes). user_complaint is the honest read of an unprompted "I'm hot" -- it is a
+  # complaint, and "deal with it.", "you'll survive.", "welcome to reality." all answer it as one
+  # without claiming anything about the weather or her senses.
+  #
+  # Temperature only. The other half of the split -- "i'm sick", "i feel awful" -- was briefly its
+  # own intent here before HEALTH (topics.yaml) turned out to own every one of those phrasings
+  # already, keywords and `i'?m (?:sick|ill)` alike, and no corpus row was reaching this instead.
+  # A second intent on the same messages would have decided the pool by whichever scored higher.
+  # `sick`, `ill` and `dying` are deliberately absent below so the two never compete.
+  - id: FEELING_TEMPERATURE
+    match:
+      regex:
+        - "^(?:i'?m |im |very |so )*(?:hot|cold|freezing|boiling|sweaty)$"
+        - "^i'?m (?:so |very )?(?:hot|cold|freezing|boiling|sweaty)\\b"
+    pool: user_complaint
+
+  # "i want to sleep". TIRED (emotions.yaml) has the adjectives; this is the verb form, and it drew
+  # "i'm supposed to care because...?" from the fallback while topic_sleep sat unused.
+  - id: WANT_SLEEP
+    match:
+      regex:
+        - "\\bi want to (?:sleep|nap|go to bed)\\b"
+        - "\\bi (?:need|gotta|have to) (?:sleep|nap|go to bed)\\b"
+        - "\\bgoing to (?:sleep|bed)\\b"
+    pool: topic_sleep
+
+  # "i suspect cheating", "I know bro cheated but I can't prove it", "you think he's cheating or
+  # not?". Three turns of one conversation about a third party, answered "fascinating. not." and
+  # "that's what you interrupted me for?" -- dismissals of a question she was actually being asked.
+  #
+  # gossip_sharing is written for being told about someone else and holds the right shape both ways
+  # ("oh, really? tell me more.", "i honestly couldn't care less about them.").
+  - id: THIRD_PARTY_CHEATING
+    match:
+      regex:
+        - "\\b(?:suspect|think|know|prove)\\w* \\w{0,12} ?cheat"
+        - "\\bcheat(?:ed|ing)\\b"
+        - "\\bhe'?s cheating\\b"
+    pool: gossip_sharing
+    affect:
+      boredom: 1.0
+
+  # "so who i am", "define yourself", "explain your existence", "I'd love to know more about you",
+  # "tell me about". Q_BOT owns "who are you"/"what are you" and misses all five, so they drew
+  # "i have no response to that." and "tell someone who cares." to questions about her -- the one
+  # subject she has ten authored lines for.
+  #
+  # "so who i am" is the user asking about themselves, so it goes to question_user_identity ("you
+  # are a string of text in my logs.") rather than to her own introduction.
+  - id: DEFINE_HER
+    match:
+      regex:
+        - "^define (?:yourself|you)$"
+        - "\\bexplain (?:your|ur) (?:existence|self|purpose)\\b"
+        - "\\b(?:i'?d love to|want to|wanna) know more about (?:you|u)\\b"
+        - "^tell me about(?: (?:you|ur ?self|yourself))?$"
+    pool: question_about_bot
+
+  - id: WHO_AM_I_LOOSE
+    match:
+      regex:
+        - "^so who (?:i am|am i)\\b"
+        - "^who (?:i am|am i) then\\b"
+    pool: question_user_identity
+
+  # ---------------------------------------------------------------------------------------------
+  # Batch 4. From the 95 in-scope fallback rows left after batch 3, and again not all of them: the
+  # rest are one-word fragments ("buy", "leak", "mom", "dad", "random", "Water", "sir") and
+  # unaccented Vietnamese the scope narrowing excludes. Same selection rule as batch 3 -- a
+  # fallback is a defect only where she misreads the message.
+  #
+  # Only two intents, because eight of the ten misses turned out to be one missing alternative on
+  # an intent that already owns the right pool: a threat with the auxiliary dropped, `u` where a
+  # pattern wrote `you`, arithmetic spelled out in words, an interior period instead of a space.
+  # Those went into THREAT (hostility.yaml), Q_RELATIONSHIP (questions.yaml), MATH (topics.yaml),
+  # DICE (games.yaml), FLIRT (social.yaml), and GAY_JOKE / SHOW_ME / INSULT_BARE above. Writing
+  # them here instead would have put a second intent on rows those already claim, and batch 3's
+  # five broken pins are what that costs.
+  # ---------------------------------------------------------------------------------------------
+
+  # "I assume you're having a stroke", "Bro wtf", "Mf being rude af to its own creator", "I want to
+  # turn you into Charlie Kirk" -- four remarks about her being broken, wrong, or replaceable, all
+  # answered with neutral filler ("that's nice. anyway.").
+  #
+  # There is no bot_broken pool, and bot_test is for "are you alive". user_challenge was the first
+  # choice and is wrong: its lines are "i accept.", "bring it.", "challenge accepted." -- accepting
+  # a challenge nobody made reads worse than the filler did. meta_complaint is the pool for someone
+  # unhappy with what she just produced, which is what all four are: "i answered. you just didn't
+  # like it.", "complaint noted. filed under 'ignored'.", "i don't dodge. i just don't care."
+  #
+  # "wtf" keeps its `^` and takes a leading "bro" with it -- SMALL_TALK owns a bare "bro" but is
+  # anchored to the whole message, so the two never meet.
+  - id: BOT_DERISION
+    match:
+      regex:
+        - "\\b(?:you'?re|u r|ur) having a stroke\\b"
+        - "^(?:bro |bruh )?wtf\\b"
+        - "\\brude (?:af|as fuck) to (?:its|it'?s|his|her|their) own creator\\b"
+        - "\\bturn (?:you|u) into\\b"
+    pool: meta_complaint
+    affect:
+      anger: 1.0
+
+  # "Remember who YOU are?" -> "noted. moving on." and "remember" -> "and this concerns me how?"
+  # The RECALL_* intents (memory.yaml) each own one slot -- name, age, favourite -- and RECAP owns
+  # the summary, so a bare "remember" naming no slot reaches none of them. question_memory is the
+  # authored answer to being asked about her memory in the abstract: "my memory is selective.
+  # you're not selected."
+  #
+  # The trailing `$` is what keeps this off memory.yaml's rows: "do you remember my name" continues
+  # past the verb and so belongs to RECALL_NAME, which answers with the name. The caps in the
+  # corpus row are incidental -- matching runs on the lowercased text -- but SHOUTING would have
+  # taken it and talked about the caps instead of the question.
+  - id: MEMORY_VAGUE
+    match:
+      regex:
+        - "^remember$"
+        - "\\bremember who (?:you|u|i) (?:are|am)$"
+        - "\\bdo (?:you|u) (?:even )?remember$"
+    pool: question_memory

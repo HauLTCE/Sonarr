@@ -26,6 +26,11 @@ intents:
     - \by+o+\b
     - \bs+u+p+\b
     - \bh+e+l+o+\b
+    # "hai" -- a typed "hi", and in the corpus. `h+i+` cannot reach it (the vowel is wrong), so it
+    # read as a vowel-poor nonsense token and drew "i have no idea what that means." from the
+    # keysmash pool. The trailing `\b` is what keeps this off "haiku", "hair" and "hail": all three
+    # continue with a letter where the pattern wants a boundary.
+    - \bh+a+i+\b
     - \bh+i+y+a+\b
     - \bh+e+y+a+\b
     - \bh+o+w+d+y+\b
@@ -88,7 +93,11 @@ intents:
     # "yes." arrives as "yes" and needs no punctuation in the pattern. Interior periods survive,
     # which is exactly what makes the anchor work on the row above.
     regex:
-    - ^(?:yes|yeah|yea|ye|sure|ok|okay|k|kk|yep|yup|fine|alright|aight|right|true|indeed)$
+    # "fr" and "amen" are the same noise typed differently and drew "that's... something i guess."
+    # and "that's what you interrupted me for?" -- the second of which is a complaint about being
+    # interrupted by agreement. Both belong in this list; both keep the anchor, and "fr" needs it
+    # more than any word here, being two letters that start plenty of others.
+    - ^(?:yes|yeah|yea|ye|sure|ok|okay|k|kk|yep|yup|fine|alright|aight|right|true|indeed|fr|frfr|amen|word|facts)$
     # Doubled or stretched, still just noise: "yes yes", "ok ok ok", "yeah sure".
     # Quoted because a plain YAML scalar cannot contain ": " and `(?: ` has one.
     - '^(?:yes|yeah|sure|ok|okay|yep|yup|fine|alright)(?: (?:yes|yeah|sure|ok|okay|yep|yup|fine|alright))+$'
@@ -110,6 +119,16 @@ intents:
     - marry me
     - wanna (?:date|kiss)
     - you'?re my (?:type|crush|bae)
+    # "U are the only one i need", "only u". Devotion rather than a compliment or a proposition, so
+    # none of the patterns above reach it, and it drew "is there a point to this?" -- which reads as
+    # her not having understood it. user_flirting is written for exactly this ("in your dreams.",
+    # "i'm a bot, weirdo.").
+    #
+    # `only (?:you|u)$` is anchored to the whole message: unanchored it would take "i only you"
+    # typos and, worse, "only you can fix this" -- a request, not a declaration.
+    - (?:you|u) (?:are|r) (?:the )?only one i need\b
+    - ^only (?:you|u)$
+    - all i need is (?:you|u)\b
   pool: user_flirting
   affect:
     amusement: 2.0

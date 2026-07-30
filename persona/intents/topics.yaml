@@ -180,6 +180,11 @@ intents:
     - the moon
     - outer space
   pool: topic_science
+# Hand-edited: three consecutive corpus rows walked through display technologies ("cathode ray
+# television", "plasma television", "LCD Television") and all three fell through to a generic
+# line, even though topic_technology already ships TV-aware lines ("a TV? i exist in the cloud.
+# that's a box.", "plasma, LCD, CRT? all inferior to my processing power."). Only the keywords
+# were missing.
 - id: TECH
   match:
     keyword:
@@ -198,9 +203,16 @@ intents:
     - gadget
     - algorithm
     - wifi
+    - television
+    - tv
+    - monitor
+    - screen
+    - plasma
+    - lcd
     regex:
     - my (?:phone|computer|pc|laptop)
     - new (?:phone|tech|laptop|computer)
+    - cathode ray
   pool: topic_technology
 - id: SLEEP
   match:
@@ -364,8 +376,26 @@ intents:
     # keeps "5 - 3" and "5 -3" and gives up bare "5-3"; that is the cheap side of the trade,
     # since a hyphen with no spaces is far more often not arithmetic.
     - \d+ -+ ?\d+
+    # "one plus one is two" drew "fascinating. not." Both patterns above want digits, and the
+    # keywords name the subject rather than doing it, so a sum spelled out in words reaches
+    # neither. The number words are bounded on both sides of the operator: `plus \w+` on its own
+    # would take "add me plus my friend" and any other sentence with the word in it.
+    - \b(?:one|two|three|four|five|six|seven|eight|nine|ten) (?:plus|minus|times) (?:one|two|three|four|five|six|seven|eight|nine|ten)\b
     - do the math
     - solve this
+  # Pinned above two intents that were beating it on a sum.
+  #
+  # "1+1=2" and "2+2=4" drew "that's just a number." and "cool number. i'm still not impressed.":
+  # BARE_NUMBERS (coverage.yaml) matches the whole message including the `=`, this matches only the
+  # three characters of the sum, and neither pins a literal, so both computed 2.0 and the
+  # match-length bonus handed it to the longer match. "What's 1+1" drew "did you even try looking
+  # it up?" from QUESTION_IN at 2.2, which is a brush-off she cannot cash: there is nothing to
+  # look up, and topic_math already answers it in character ("i'm a computer, not a calculator.").
+  #
+  # 2.3 clears both. It also lifts the bare `math`/`algebra` keywords to the same score, which is
+  # the intended read -- a message that names the subject is about the subject, and SCHOOL is the
+  # broader route it now wins against.
+  specificity: 2.3
   pool: topic_math
 - id: NOSTALGIA
   match:

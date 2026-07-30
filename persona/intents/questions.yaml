@@ -40,6 +40,11 @@ intents:
     # Third-party phrasings too. "do you love someone" is a question only she can answer, and it
     # drew "i'm not your personal google assistant." from question_general.
     - do you (?:like|love|hate) (?:someone|anyone|anybody)
+    # "u love someone ?" drew "i'm riveted. can't you tell?" -- the same question as the line above
+    # with the auxiliary dropped and `you` typed as `u`, which is how half the corpus types it. The
+    # auxiliary is optional and the pronoun takes both spellings; the trailing `?` was already gone
+    # before matching (the normalizer strips it), so it needs nothing here.
+    - (?:do )?u (?:like|love|hate) (?:someone|anyone|anybody)
     - do you care
     - are we (?:friends|dating|a thing|cool)
     - am i your

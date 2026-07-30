@@ -91,6 +91,13 @@ intents:
     regex:
     - i'?ll (?:end|destroy|find|beat|kill|hurt) you
     - i'?m (?:gonna|going to) (?:kill|destroy|hurt|end|beat) you
+    # "Either you speak normal or I'll make you" drew "that's what you interrupted me for?" -- a
+    # threat answered as small talk. The verb above needs an object; this one's object is the
+    # demand in front of it, so "make you" ends the clause and the pattern above cannot reach it.
+    # Worth fixing beyond tone: user_threat carries the anger and the argument push, so a threat
+    # she does not recognise also leaves her mood wrong for the turns after it.
+    - (?:or|then) i'?ll make (?:you|u)\b
+    - i'?ll make (?:you|u) (?:talk|behave|listen|stop|regret)\b
     - watch your (?:back|mouth)
     - kick your
     # Declaring the intent to threaten, rather than threatening. Two corpus rows ("i do immensive
@@ -108,11 +115,13 @@ intents:
     anger: 3.0
     trust: -1.0
     grudge: 1.5
+# "You mom fat" reached the fallback: the v1 patterns cover "your mom" and "yo mama" but not the
+# dropped r, which is how the joke is typed at least as often. Same joke, same answer.
 - id: YOURMOM
   match:
     regex:
     - yo+ ?ma(?:ma|mma)
-    - your mom
+    - you'?r? mom
     - ur mom
     - ya mum
   pool: joke_your_mom

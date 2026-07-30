@@ -16,6 +16,12 @@ intents:
     - roll (?:a |the )?(?:dice|die|d6)
     - dice roll
     - roll for
+    # "give you a dice with probability of single chance of getting a 6 what will you think you'll
+    # get" drew "whatever you say. i'm not listening." -- a brush-off at a message she plainly had
+    # read. The patterns above want an instruction to roll, so a question *about* a die misses.
+    # dice_roll answers it the only way she can: roll one and report it.
+    - \b(?:dice|die|d6)\b.{0,40}\bprobability\b
+    - \bprobability\b.{0,40}\b(?:dice|die|d6)\b
   pool: dice_roll
 - id: EIGHTBALL
   match:

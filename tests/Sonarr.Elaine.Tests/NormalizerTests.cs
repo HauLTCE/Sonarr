@@ -99,7 +99,7 @@ public class NormalizerTests
         Assert.Equal(elongated, Normalizer.Normalize(input).Has(TextStyle.Elongated));
 
     [Fact]
-    public void CustomEmoji_IsMarkupAndNeverText()
+    public void CustomEmoji_IsNotWordsButIsStillContent()
     {
         // A snowflake is 18 digits, so it repeats: this one ends in "555", which tripped the
         // elongation detector and drew "stretching it out doesn't make it interesting." at a
@@ -109,9 +109,26 @@ public class NormalizerTests
 
         Assert.False(alone.Has(TextStyle.Elongated));
         Assert.Empty(alone.Tokens);
-        Assert.Equal(string.Empty, alone.Cased);
 
-        // Animated variant, and the surrounding words survive with the emoji cut out.
+        // Not empty, which is the half this test used to assert the other way around. Deleting the
+        // emoji outright left a reaction-only message with no text at all, so it took ChatEngine's
+        // empty path and came back "nothing to say? then don't speak." -- five corpus rows where
+        // she told someone who had sent her an emoji that they had sent her nothing. It folds to
+        // one U+FFFC now, whose category is So, so it counts as an emoji and reaches emoji_react.
+        Assert.False(alone.Has(TextStyle.Empty));
+        Assert.Equal(1, alone.EmojiCount);
+
+        // Four of them flood exactly as four native emoji do -- the placeholder is what makes the
+        // count work, and the count is what EMOJI_ONLY matches on.
+        Normalized flood = Normalizer.Normalize(
+            "<:a:1492441226148843560><:b:1492441226148843561>"
+            + "<:c:1492441226148843562><:d:1492441226148843563>");
+
+        Assert.Equal(Normalizer.EmojiFloodCount, flood.EmojiCount);
+        Assert.True(flood.Has(TextStyle.EmojiFlood));
+
+        // Animated variant, and the surrounding words survive as words -- the placeholder is
+        // trimmed off the tokens, so no keyword list ever sees a token it cannot match.
         Normalized inline = Normalizer.Normalize("nice <a:kekw:1492441226148843560> shot");
 
         Assert.False(inline.Has(TextStyle.Elongated));

@@ -48,7 +48,9 @@ public sealed class ChatEngine(PersonaGraph persona, ISemanticMatcher? semantic 
             _persona, new LinePicker(_persona, input.ActiveOverlays), input.ShakySlots);
         (ConversationState next, string? text, string? intentId) =
             primary is null
-                ? Fallback(working, composer, modeId, rng, input)
+                ? Empty(input.Text)
+                    ? FromPool(working, composer, EmptyPool, modeId, rng, input)
+                    : Fallback(working, composer, modeId, rng, input)
                 : Apply(working, primary, composer, modeId, rng, input);
 
         return new TurnResult
@@ -204,6 +206,9 @@ public sealed class ChatEngine(PersonaGraph persona, ISemanticMatcher? semantic 
     /// <summary>Pool id for a tier's promotion line: <c>tier_up_&lt;tier id&gt;</c>.</summary>
     public const string TierMomentPoolPrefix = "tier_up_";
 
+    /// <summary>Pool for a message with no words in it. See <see cref="Empty"/>.</summary>
+    public const string EmptyPool = "empty_message";
+
     /// <summary>Fired-log key that makes a tier moment once-per-person.</summary>
     public static string TierFiredKey(string tierId) => $"tier:{tierId}";
 
@@ -220,16 +225,43 @@ public sealed class ChatEngine(PersonaGraph persona, ISemanticMatcher? semantic 
     {
         ActivityDef? activity = _persona.Root.Activities
             .FirstOrDefault(a => a.Id == state.Activities.Current);
-        ConversationState next = state with { Topics = state.Topics.Advance(null) };
         if (activity is null)
         {
-            return (next, null, null);
+            return (state with { Topics = state.Topics.Advance(null) }, null, null);
         }
 
-        return (next,
-            composer.ComposeFromPool(activity.FallbackPool, next, modeId, rng, input.Callback),
-            null);
+        return FromPool(state, composer, activity.FallbackPool, modeId, rng, input);
     }
+
+    /// <summary>Answers from a named pool with no intent behind it.</summary>
+    private static (ConversationState, string?, string?) FromPool(
+        ConversationState state,
+        ReplyComposer composer,
+        string pool,
+        string modeId,
+        IDeterministicRandom rng,
+        TurnInput input)
+    {
+        ConversationState next = state with { Topics = state.Topics.Advance(null) };
+        return (next, composer.ComposeFromPool(pool, next, modeId, rng, input.Callback), null);
+    }
+
+    /// <summary>
+    /// True when the message carries no words for any intent to match — blank, whitespace, or
+    /// nothing but custom emoji, which <see cref="Normalizer"/> strips before matching.
+    /// </summary>
+    /// <remarks>
+    /// This has to live here rather than as a <c>style: [empty]</c> intent, and the dead route is
+    /// why: <see cref="LexicalMatcher.Match"/> returns <see cref="MatchOutcome.None"/> the moment
+    /// the input is empty, before any intent is evaluated, so a persona row for it can never fire.
+    /// <para>
+    /// The corpus has six of these — five custom-emoji-only messages and a bare "?" — and every
+    /// one drew a content reply from the activity fallback ("that's irrelevant to me.", "this is a
+    /// waste of my time.") about a message with no content in it. <c>empty_message</c> shipped
+    /// authored with nineteen lines and no way to reach them.
+    /// </para>
+    /// </remarks>
+    private static bool Empty(string? text) => Normalizer.Normalize(text).Has(TextStyle.Empty);
 
     private static Dictionary<string, string> Learned(MatchCandidate candidate)
     {

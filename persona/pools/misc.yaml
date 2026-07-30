@@ -207,6 +207,19 @@ pools:
   - 5. perfectly, aggressively mediocre.
   - 1. congrats, you're consistent.
   - 6. don't let it go to your head. there's room.
+  # Hand-authored, not migrated: v1 had no route for "what time is it" and neither did the rewrite,
+  # so two corpus rows drew "that's genuinely embarrassing to ask." and "why would i help you with
+  # that?" -- brush-offs pointing at a search engine, for a question she cannot answer at all.
+  # Elaine holds no clock: no IO, no ambient time, no now(). Every line here says that and stays in
+  # voice about it.
+  no_clock:
+  - i don't have a clock. i have opinions.
+  - time isn't a thing i experience. look at your own screen.
+  - no clock in here. just vibes and contempt.
+  - i exist outside of time. also i just don't know.
+  - your device knows. ask it.
+  - i'd tell you, but i genuinely cannot see a clock from in here.
+  - the corner of your screen has been trying to tell you this whole time.
   recall_empty:
   - you haven't said anything worth keeping.
   - my memory of you is a blank, merciful page.

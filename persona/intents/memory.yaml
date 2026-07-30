@@ -38,6 +38,25 @@ intents:
         bonus: 0.5
     pool: recall_name
 
+  # The unguarded twin, and the reason it has to exist: a guard is a hard gate even when it
+  # carries a bonus (LexicalMatcher.cs:118 -- a failing guard removes the intent outright), so
+  # with no name on file RECALL_NAME leaves the running entirely and the question falls through
+  # to QUESTION_IN. "what's my name" answered "i could help. i won't, but i could." and
+  # "who am i?" answered "i'm not paid enough for this." -- a search-engine brush-off to a
+  # question only she can answer, and the one case where she genuinely has nothing.
+  #
+  # recall_empty is authored for exactly this ("my memory of you is a blank, merciful page.")
+  # and says the true thing. Same pairing shape as tiers.yaml: cold path unconditional, the
+  # bonus on the guarded twin breaks the tie the shared patterns create.
+  - id: RECALL_NAME_UNKNOWN
+    match:
+      regex:
+        - "what(?:'?s| is) my name"
+        - "who am i"
+        - "do you (?:know|remember) my name"
+        - "say my name"
+    pool: recall_empty
+
   - id: SET_AGE
     match:
       regex:
