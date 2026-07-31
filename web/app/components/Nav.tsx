@@ -14,6 +14,7 @@ import {
 import type { Translate } from "../../lib/strings";
 
 import { GuildPicker } from "./GuildPicker";
+import { Tab } from "./Tab";
 
 /**
  * The navbar: two rows, and the split between them is the point.
@@ -83,16 +84,16 @@ export function Nav({
         {sections.length > 1 ? (
           <nav className="sections" aria-label={t("nav.sections")}>
             {sections.map((s) => (
-              <Link
+              <Tab
                 key={s}
                 className="tab"
                 href={href(sectionHome(s), sectionGuild(s))}
                 // The whole section is current, not just its first page — otherwise opening
                 // Behaviour would leave no tab marked and the visitor loses where they are.
-                aria-current={s === section ? "true" : undefined}
+                current={s === section ? "true" : undefined}
               >
                 {t(SECTION_LABEL[s])}
-              </Link>
+              </Tab>
             ))}
           </nav>
         ) : null}
@@ -121,14 +122,14 @@ export function Nav({
           aria-label={t("nav.inSection", { section: t(SECTION_LABEL[section]) })}
         >
           {pages.map((p) => (
-            <Link
+            <Tab
               key={p.path}
               className="page-tab"
               href={href(p, guild?.guildId)}
-              aria-current={p.path === current ? "page" : undefined}
+              current={p.path === current ? "page" : undefined}
             >
               {t(p.label)}
-            </Link>
+            </Tab>
           ))}
         </nav>
       ) : null}

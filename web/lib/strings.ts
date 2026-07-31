@@ -323,6 +323,10 @@ const en = {
   "stats.activityEmpty": "No activity recorded in this window.",
   // Only ever read aloud: the sparkline's bars carry the shape visually, this carries the numbers.
   "stats.messages": "{n} messages",
+  // The chart's visible scale. Bar heights are relative to the busiest hour, so without the peak
+  // printed somewhere a full-height bar could mean nine messages or nine thousand.
+  "stats.peak": "Peak {n} messages/hour",
+  "stats.span": "{from} to {to}",
   "stats.growth": "New members per day",
   "stats.growthEmpty": "Nobody joined in this window.",
   "stats.joined": "{n} joined",

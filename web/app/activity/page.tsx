@@ -53,9 +53,24 @@ export default async function ActivityPage({ searchParams }: { searchParams: Que
             </div>
 
             <div className="grid">
-              <div className="stat">
+              {/* Level is what this page is for; the other five tiles are context for it. */}
+              <div className="stat stat-hero">
                 <div className="stat-label">{t("activity.level")}</div>
                 <div className="stat-value mono">{count(locale, overview.data.level)}</div>
+                {/* The progress bar lives inside the tile it describes. It used to sit under the
+                    whole grid, five tiles away from the level it was measuring progress toward, so
+                    the bar and its number read as a separate unlabelled thing. */}
+                <div className="progress">
+                  <div className="bar">
+                    <span style={{ width: percent(overview.data.fraction) }} />
+                  </div>
+                  <p className="hint">
+                    {t("activity.toNext", {
+                      n: count(locale, overview.data.xpToNextLevel),
+                      level: count(locale, overview.data.level + 1),
+                    })}
+                  </p>
+                </div>
               </div>
               <div className="stat">
                 <div className="stat-label">{t("activity.rank")}</div>
@@ -81,18 +96,6 @@ export default async function ActivityPage({ searchParams }: { searchParams: Que
                   {when(locale, overview.data.firstSeenAt)}
                 </div>
               </div>
-            </div>
-
-            <div className="progress">
-              <div className="bar">
-                <span style={{ width: percent(overview.data.fraction) }} />
-              </div>
-              <p className="hint">
-                {t("activity.toNext", {
-                  n: count(locale, overview.data.xpToNextLevel),
-                  level: count(locale, overview.data.level + 1),
-                })}
-              </p>
             </div>
           </section>
 

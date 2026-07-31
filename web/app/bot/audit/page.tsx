@@ -95,11 +95,13 @@ export default async function AuditPage({ searchParams }: { searchParams: Query 
           ) : (
             rows.data.map((row) => (
               <div className="row" key={row.auditId}>
+                {/* Neutral, always. Unlike a mod case, an audit action has no severity — a write is a
+                    write — and these come from free-form writer strings rather than a closed enum, so
+                    there is nothing to key a tint off. The badge here is only doing the scanning job:
+                    one column of verbs down the left edge instead of 50 sentences. */}
+                <span className="badge">{row.action}</span>
                 <div className="row-main">
-                  <div className="row-title">
-                    {row.action}
-                    {row.target ? ` · ${row.target}` : ""}
-                  </div>
+                  {row.target ? <div className="row-title">{row.target}</div> : null}
                   {describe(row.detail) ? (
                     <div className="row-sub">{describe(row.detail)}</div>
                   ) : null}

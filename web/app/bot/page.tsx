@@ -62,7 +62,10 @@ export default async function HealthPage({ searchParams }: { searchParams: Query
             </div>
 
             <div className="grid">
-              <div className="stat">
+              {/* The hero: this page exists to answer "is she up", and that answer used to be one of
+                  four identical tiles. The verdict is a word either way, so the colour stays a
+                  second signal rather than the only one. */}
+              <div className="stat stat-hero">
                 <div className="stat-label">{t("health.status")}</div>
                 <div
                   className={

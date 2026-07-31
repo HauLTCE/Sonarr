@@ -2,6 +2,12 @@
  * One dark palette. Not a theme with a dark variant — there is no light mode to fall back to, so
  * every colour here is chosen against #0c0e10 rather than inverted from a light set.
  *
+ * The 2026-07-30 pass changed the *design* and kept the palette: every token below was already
+ * measured against all three surfaces (docs/checklist-v2.md A3), so building the new look out of the
+ * existing colours means those recorded ratios are still true. The three surfaces that are new — the
+ * card's gradient top, the raised control, the badge tints — were measured before they were used, and
+ * the numbers are in the comments beside them.
+ *
  * Registered with @property where it needs to interpolate: a plain custom property is a string to
  * the animation engine, so a bare `--accent` transition snaps instead of blending. And a var() with
  * no fallback pointing at an unregistered property invalidates the whole declaration, which is why
@@ -15,17 +21,31 @@
 }
 
 :root {
-  /* Depth by elevation, not by borders alone: three surfaces and one hairline. */
+  /* Depth by elevation, not by borders alone: four surfaces and one hairline. */
   --bg: #0c0e10;
   --surface: #14171a;
   --surface-2: #1b1f23;
+  /* The lit top edge of a card. A card is a flat rectangle when its fill is one colour; two stops a
+     few percent apart read as a surface catching light from above, which is what makes a stack of
+     them look like objects rather than like table rows. Measured on it, because text lands here:
+     --text 14.63:1, --muted 6.89:1, --faint 4.83:1. All clear AA. */
+  --surface-hi: #16191d;
+  /* Where a control goes when you hover it. Named because it is a state in the elevation scale, not
+     because it has many call sites — .btn:hover is the only one, and a literal there would be the
+     same number with none of the meaning.
+     --text 12.49:1 and --muted 5.88:1 on it, which is what lands there. --faint is 4.12 and --edge is
+     2.76 — both short, so this fill takes neither: no small grey label and no hairline ring on a
+     hovered control. A control's own boundary is measured against the surface *behind* it (3.30 on
+     --surface), not against its fill, so hovering does not move that number. */
+  --raise: #22272c;
   /* Decorative separators only — 1.37:1 on --bg, which is fine for a hairline between two surfaces
      that already differ, and nowhere near enough for the edge of a control. */
   --line: #262c31;
   /* The edge of anything you can click or type in. WCAG 1.4.11 wants 3:1 against the adjacent
      colour, and a button is only discoverable if its boundary is visible before it is focused:
-     3.30:1 on --surface, 3.04:1 on --surface-2, 3.55:1 on --bg. Every one of those is a real
-     adjacency in this layout — a button inside a card, a switch track, an input on the page. */
+     3.30:1 on --surface, 3.04:1 on --surface-2, 3.55:1 on --bg, 3.24:1 on --surface-hi. Every one of
+     those is a real adjacency in this layout — a button inside a card, a switch track, an input on
+     the page, a control on a card's lit edge. */
   --edge: #606b74;
 
   /* Measured, not estimated: 16.04:1 on --bg, 14.93 on --surface, 13.75 on --surface-2. Body text is
@@ -53,6 +73,15 @@
 
   --radius: 10px;
   --radius-sm: 6px;
+  /* Cards and the page's own containers. A 10px corner on a 20px chip and on a 600px card are not
+     the same corner: the big one reads as square. */
+  --radius-lg: 14px;
+
+  /* Elevation as one shadow pair, so everything raised is raised by the same light. Nearly black
+     rather than a tinted shadow — on a #0c0e10 background a grey shadow is a grey halo. There is no
+     --lift-lg: nothing in this panel opens a modal or a menu, so a second elevation step would be a
+     token with no call site. */
+  --lift: 0 1px 2px rgb(0 0 0 / 0.4), 0 2px 8px rgb(0 0 0 / 0.24);
 
   /* One duration for every transition in the app, so hovers and tab changes feel like one thing.
      Named --slide until the slider was removed; the name outlived the thing it described. */
@@ -210,6 +239,7 @@ a {
 .tab {
   display: flex;
   align-items: center;
+  gap: 6px;
   /* 2.5.8: a 24px minimum target, and the padding here already clears it. */
   min-height: 34px;
   padding: 6px 12px;
@@ -270,10 +300,49 @@ a {
   color: var(--text);
 }
 
+.page-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .page-tab[aria-current="page"] {
   color: var(--text);
   border-bottom-color: var(--accent);
   font-weight: 550;
+}
+
+/*
+ * The dot a tab grows while its navigation is in flight.
+ *
+ * Every page here is a server component reading the API with `cache: "no-store"`, so a tab click is a
+ * round trip to Kestrel before anything on screen changes. Until this existed there was no feedback
+ * at all — the old tab stayed marked, the new one stayed unmarked — and on a slow read the only
+ * honest reading of the screen was that the click had missed, so people clicked again and started a
+ * second navigation.
+ *
+ * The dot is `aria-hidden` in Tab.tsx: Next announces route changes to assistive tech itself, so a
+ * second announcement here would be one interruption per click carrying no new information.
+ *
+ * On --accent because it has to be visible on three different backgrounds — the bare topbar
+ * (10.77:1), a hovered tab's --surface (10.02), and the current tab's --surface-2 (9.23). It is
+ * decorative, so none of those are required ratios; they are why it is legible anyway. The pulse
+ * carries "still working", so under reduced motion the dot stays put rather than disappearing: the
+ * signal is the dot, the animation is only the reassurance.
+ */
+.tab-pending {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pending 1s var(--ease) infinite;
+}
+
+@keyframes pending {
+  50% {
+    opacity: 0.25;
+  }
 }
 
 .stage {
@@ -339,6 +408,16 @@ a {
   .page-tab {
     transition: none;
   }
+
+  /* The dot stays — it is the signal. Only the pulse goes. */
+  .tab-pending {
+    animation: none;
+  }
+
+  /* The row tint still appears on hover; it just arrives instantly. */
+  .row {
+    transition: none;
+  }
 }
 
 /* The server picker: label beside the control, not above, because it sits in a one-line header. */
@@ -398,23 +477,42 @@ a {
 
 /* ------------------------------------------------------------------ cards */
 
+/*
+ * A card is an object on the page, not a region of the page.
+ *
+ * It was a flat --surface rectangle with a --line hairline, and a column of those reads as one long
+ * table with gaps in it — nothing tells you where a section starts except the gap, and a gap is also
+ * what separates two rows inside a section. Three cheap changes fix that without a new token:
+ * a two-stop fill so the top edge catches light, a shadow so it sits above the page, and a bigger
+ * corner, because 10px on a 900px-wide box reads as square.
+ *
+ * The hairline stays --line (1.37:1). That is deliberate and it is not a 1.4.11 failure: a card is
+ * not a control and its edge carries no state. What makes it findable is the elevation, and the
+ * shadow does not have to be resolvable to work — the gradient does that job on its own for anyone
+ * who cannot see the shadow.
+ */
 .card {
-  background: var(--surface);
+  background: linear-gradient(var(--surface-hi), var(--surface));
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   padding: 18px 20px;
+  box-shadow: var(--lift);
 }
 
 .card + .card {
   margin-top: 14px;
 }
 
+/* The card's title line. A hairline under it, so a card with a long row list still shows where the
+   heading ends and the content begins once you have scrolled the top edge away. */
 .card-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
 }
 
 .card-note {
@@ -429,12 +527,17 @@ a {
 }
 
 /* A number and what it means. The label is above the value because a bare figure is not
-   information. */
+   information.
+ *
+ * Same fill treatment as a card, half the shadow: a stat tile inside a card would be raised as far
+ * as the thing containing it otherwise, which flattens both. Elevation only means something if the
+ * levels differ. */
 .stat {
-  background: var(--surface);
+  background: linear-gradient(var(--surface-hi), var(--surface));
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 14px 16px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
 }
 
 .stat-label {
@@ -450,6 +553,26 @@ a {
   font-weight: 650;
   letter-spacing: -0.02em;
   margin-top: 4px;
+}
+
+/*
+ * The one tile on a page that answers the question the page exists to answer.
+ *
+ * Health is the case that made this necessary: "is she up" was one of four identical 200px tiles,
+ * sitting in reading order beside uptime and a guild count, so the page's entire point had the same
+ * visual weight as trivia. It spans the grid's full width and doubles the figure — nothing else
+ * changes, and no page is required to have one.
+ *
+ * `1/-1` rather than a column count: the grid is auto-fit, so its track count depends on viewport
+ * width and there is no fixed number to span.
+ */
+.stat-hero {
+  grid-column: 1 / -1;
+}
+
+.stat-hero .stat-value {
+  font-size: 2.25rem;
+  line-height: 1.15;
 }
 
 /* For a value that is a timestamp rather than a number — same slot, less shouting. */
@@ -476,20 +599,40 @@ a {
 
 /* ------------------------------------------------------------------ rows */
 
+/*
+ * A row in a list. Padded out to the card's gutter and back so its hover tint reaches the full width
+ * of the card rather than stopping short in a way that looks like a rendering bug.
+ *
+ * The hover is not decoration. These lists run 25 rows on moderation and 50 on the audit log, and
+ * tracking a single row's values across a wide card is exactly where the eye slips a line. Nothing
+ * here is clickable, so the tint says "this row" and not "you can click this".
+ */
 .row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 11px 0;
+  /* ponytail: the -20px assumes a .card parent (padding 18px 20px), which is true for all 13 rows in
+     the app today and is not enforced anywhere. If a row ever needs a different container, give the
+     card `--pad: 20px` and read it here instead of hardcoding the pair. */
+  padding: 11px 20px;
+  margin: 0 -20px;
   border-bottom: 1px solid var(--line);
+  transition: background var(--quick) var(--ease);
+}
+
+.row:hover {
+  background: var(--surface-2);
 }
 
 .row:last-child {
   border-bottom: 0;
 }
 
+/* Takes the slack, so the badge stays pinned left and .row-value stays pinned right. Without the
+   grow, `space-between` on a three-child row pushes the middle cell against the right-hand one. */
 .row-main {
+  flex: 1;
   min-width: 0;
 }
 
@@ -511,6 +654,46 @@ a {
   margin-top: 1px;
 }
 
+/*
+ * The action verb on a moderation case or an audit entry, pulled out of the sentence it was buried
+ * in. "warn", "timeout", "config.set" — the one word that tells you what happened, at the front of
+ * the row where you can scan a column of them instead of reading 25 sentences.
+ *
+ * The tint is a background, not a boundary, and that distinction is the whole reason this is safe.
+ * Measured at 14% over --surface: accent mix #23312d, danger #332627, warn #312e26, neutral #272b2e.
+ * Each tint colour on its own mix clears AA for text (7.55 / 5.69 / 7.27 / 5.57). But those mixes are
+ * only 1.33-1.43 against --bg and --edge reaches just 2.49-2.66 on them, all under 1.4.11's 3:1 — so
+ * the badge's colour cannot be what identifies it and no ring on it may be claimed as a signal. The
+ * word inside is the signal, which is why the badge always renders text and never an icon alone.
+ */
+.badge {
+  flex: none;
+  align-self: flex-start;
+  font-family: var(--font-mono, ui-monospace), monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  background: #272b2e;
+  color: var(--muted);
+}
+
+.badge-danger {
+  background: #332627;
+  color: var(--danger);
+}
+
+.badge-warn {
+  background: #312e26;
+  color: var(--warn);
+}
+
+.badge-ok {
+  background: #23312d;
+  color: var(--accent);
+}
+
 /* ------------------------------------------------------------------ controls */
 
 .btn {
@@ -527,7 +710,7 @@ a {
 }
 
 .btn:hover:not(:disabled) {
-  background: #22272c;
+  background: var(--raise);
   border-color: var(--faint);
 }
 
@@ -829,6 +1012,12 @@ select:focus {
   margin-top: 18px;
 }
 
+/* Tighter inside a tile than under a card: 18px was a gap between sections, and here the bar belongs
+   to the number directly above it. */
+.stat-hero .progress {
+  margin-top: 10px;
+}
+
 /* Previous/next for a paged list. Only the directions that exist are rendered, so there is no
    disabled button at either end of the list. */
 .pager {
@@ -867,6 +1056,19 @@ select:focus {
   min-height: 2px;
   border-radius: 2px 2px 0 0;
   background: color-mix(in oklab, var(--accent) 65%, transparent);
+}
+
+/* The chart's axis, in words: peak on the left, time span on the right. Sits under the bars with a
+   hairline above it so it reads as belonging to the chart rather than as the next thing in the card. */
+.spark-scale {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: 0.75rem;
+  color: var(--faint);
 }
 
 /* Text for assistive tech only. Not `display: none` and not `visibility: hidden` — both remove the
@@ -939,5 +1141,17 @@ select:focus {
   .topbar-row {
     flex-wrap: wrap;
     gap: 10px 14px;
+  }
+
+  /* A moderation row is a badge, a case, and a value. Three cells in 320px squeeze the middle one to
+     about eight characters, so the trailing value drops to its own line and the badge keeps the top
+     line with the title it labels. */
+  .row {
+    flex-wrap: wrap;
+    gap: 4px 10px;
+  }
+
+  .row-value {
+    margin-left: auto;
   }
 }

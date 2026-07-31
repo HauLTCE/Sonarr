@@ -99,25 +99,42 @@ export default async function StatsPage({ searchParams }: { searchParams: Query 
             {stats.data.activity.length === 0 ? (
               <p className="empty">{t("stats.activityEmpty")}</p>
             ) : (
-              // The bar heights are the only thing a sighted visitor needs; the numbers were in
-              // `title`, which screen readers do not reliably announce, so this list read as 24
-              // empty items. Each item now carries its hour and count as real text, hidden
-              // visually. The growth section below is the same data shape rendered as rows, which
-              // is what this now sounds like.
-              <ol className="spark" aria-label={t("stats.activity")}>
-                {stats.data.activity.map((a) => (
-                  <li key={a.at}>
-                    <span
-                      className="spark-bar"
-                      style={{ height: percent(a.messages / busiest) }}
-                      aria-hidden="true"
-                    />
-                    <span className="at-only">
-                      {hour(locale, a.at)}: {t("stats.messages", { n: count(locale, a.messages) })}
-                    </span>
-                  </li>
-                ))}
-              </ol>
+              // Two audiences, two renderings of one series. The numbers used to live in `title`,
+              // which screen readers do not reliably announce, so this read as 24 empty items; each
+              // item now carries its hour and count as real text, hidden visually, and the growth
+              // section below is the same data as rows, which is what this now sounds like. The
+              // scale under the bars is the other half: heights alone are a shape without a
+              // magnitude, so the peak and the span are printed where they can be seen.
+              <>
+                <ol className="spark" aria-label={t("stats.activity")}>
+                  {stats.data.activity.map((a) => (
+                    <li key={a.at}>
+                      <span
+                        className="spark-bar"
+                        style={{ height: percent(a.messages / busiest) }}
+                        aria-hidden="true"
+                      />
+                      <span className="at-only">
+                        {hour(locale, a.at)}: {t("stats.messages", { n: count(locale, a.messages) })}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                {/* The chart's axis, in words. Bar heights are fractions of the busiest hour, so a
+                    sighted visitor got a shape with no magnitude and no time range — the numbers were
+                    all in the .at-only spans above, which is to say available to screen readers only.
+                    aria-hidden because that is exactly the data the list already announces per bar;
+                    without it every read of this card ends in a duplicate of its own contents. */}
+                <div className="spark-scale mono" aria-hidden="true">
+                  <span>{t("stats.peak", { n: count(locale, busiest) })}</span>
+                  <span>
+                    {t("stats.span", {
+                      from: hour(locale, stats.data.activity[0]!.at),
+                      to: hour(locale, stats.data.activity.at(-1)!.at),
+                    })}
+                  </span>
+                </div>
+              </>
             )}
           </section>
 

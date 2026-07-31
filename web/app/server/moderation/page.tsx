@@ -43,6 +43,27 @@ function Who({ id, name }: { id: string; name: string | null }) {
 }
 
 /**
+ * How severe each action is, for the badge tint only.
+ *
+ * The API sends `CaseAction.ToString()`, so these are the enum's own names — see
+ * Sonarr.Domain/Moderation/CaseRecord.cs. Anything missing from this map, including a member added to
+ * that enum later, falls through to the neutral badge, which is the right failure: a new action shows
+ * up uncoloured and still perfectly readable, because the badge prints the action's name either way.
+ * That is also why the tint is allowed to be approximate — it is a scanning aid, not the information.
+ */
+const TONE: Record<string, string> = {
+  Ban: "badge-danger",
+  TempBan: "badge-danger",
+  Kick: "badge-danger",
+  Warn: "badge-warn",
+  Timeout: "badge-warn",
+  Purge: "badge-warn",
+  Slowmode: "badge-warn",
+  Unban: "badge-ok",
+  Untimeout: "badge-ok",
+};
+
+/**
  * The moderation record for one server. Read-only: actions are taken on Discord, where the person
  * being actioned can see it happen, and this page is the log rather than a second set of controls.
  */
@@ -106,10 +127,9 @@ export default async function ModerationPage({ searchParams }: { searchParams: Q
           ) : (
             cases.data.cases.map((c) => (
               <div className="row" key={c.caseId}>
+                <span className={`badge ${TONE[c.action] ?? ""}`}>{c.action}</span>
                 <div className="row-main">
-                  <div className="row-title">
-                    {c.action} · {t("moderation.case", { id: c.caseId })}
-                  </div>
+                  <div className="row-title">{t("moderation.case", { id: c.caseId })}</div>
                   <div className="row-sub">{c.reason ?? t("moderation.noReason")}</div>
                   {/* Not `mono` any more: this line is mostly names now, and a name set in a
                       typewriter face reads as data rather than as a person. The ids that remain

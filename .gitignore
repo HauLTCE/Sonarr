@@ -94,3 +94,7 @@ docs/
 
 # ONNX embedding model — 90MB of weights, fetched by scripts/fetch-model.sh (docs/03-stack.md)
 models/
+
+
+.claude/
+.github/
