@@ -50,6 +50,10 @@ public static partial class PersonaValidator
         foreach (IntentDef intent in graph.Intents)
         {
             referenced.Add(intent.Pool);
+            if (intent.SideEffect)
+            {
+                referenced.Add(intent.Pool + ReplyComposer.SideEffectPoolSuffix);
+            }
         }
 
         foreach (ActivityDef activity in graph.Root.Activities)

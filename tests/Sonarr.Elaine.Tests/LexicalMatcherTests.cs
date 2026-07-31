@@ -363,6 +363,25 @@ public class LexicalMatcherTests
     }
 
     [Fact]
+    public void HigherScoringSideEffectStillDefersToTheSubstantiveIntent()
+    {
+        const string Yaml = """
+            intents:
+              - id: QUESTION
+                match: { keyword: [why] }
+                pool: filler
+              - id: APOLOGY
+                match: { regex: ["^sorry but why"] }
+                pool: filler
+                side_effect: true
+            """;
+
+        MatchOutcome outcome = Match(Yaml, "sorry but why");
+        Assert.Equal("QUESTION", outcome.Primary?.IntentId);
+        Assert.Equal(["APOLOGY"], outcome.SideEffects.Select(c => c.IntentId));
+    }
+
+    [Fact]
     public void ConfidenceThreshold_SeparatesRealMatchesFromWeakOnes()
     {
         const string Yaml = """

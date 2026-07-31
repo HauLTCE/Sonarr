@@ -74,6 +74,21 @@ public class SeedPersonaTests
                 + string.Join(Environment.NewLine, orphans.Select(o => "  " + o.Message)));
     }
 
+    [Theory]
+    [InlineData("I need a medic")]
+    [InlineData("need an ambulance")]
+    [InlineData("someone help, i'm bleeding")]
+    [InlineData("testicular torsion")]
+    public void ShippedPersona_MedicalHelpDoesNotReachRandomChatter(string input)
+    {
+        TurnResult result = new ChatEngine(SeedPersona.Graph).Turn(
+            ConversationState.Fresh(SeedPersona.Graph.Root, 1),
+            new TurnInput { Text = input });
+
+        Assert.Equal("MEDICAL_HELP", result.IntentId);
+        Assert.Contains("medical", result.Text ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public void ShippedPersona_HasSubstantialAuthoredContent()
     {

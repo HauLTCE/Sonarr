@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Sonarr.Elaine.Conversation;
@@ -22,10 +23,10 @@ public class CorpusReviewSheetTests
     private static PersonaGraph Graph => SeedPersona.Graph;
 
     /// <summary>Plain text, one block per message — the form a reviewer can read top to bottom.</summary>
-    public const string SheetFile = "review-sheet.txt";
+    public const string SheetFile = "single-turn.txt";
 
     /// <summary>The same rows as JSON, for a reviewer that would rather parse than read.</summary>
-    public const string JsonFile = "review-sheet.jsonl";
+    public const string JsonFile = "single-turn.jsonl";
 
     [CorpusFact]
     public void WriteTheSheet()
@@ -55,8 +56,14 @@ public class CorpusReviewSheetTests
         // fails to parse in every reader that does not ask for utf-8-sig.
         UTF8Encoding utf8 = new(encoderShouldEmitUTF8Identifier: false);
 
-        string jsonPath = Path.Combine(Corpus.Directory, JsonFile);
-        using StreamWriter json = new(jsonPath, append: false, utf8);
+        string run = Environment.GetEnvironmentVariable("ELAINE_REVIEW_RUN")
+            ?? DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+        string runDirectory = Path.Combine(Corpus.Directory, "checks", run);
+        Directory.CreateDirectory(runDirectory);
+
+        string jsonPath = Path.Combine(runDirectory, JsonFile);
+        using StreamWriter json = new(
+            new FileStream(jsonPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read), utf8);
 
         int index = 0;
         foreach (CorpusRow row in Corpus.Rows)
@@ -89,6 +96,7 @@ public class CorpusReviewSheetTests
                 said = row.In,
                 seen = row.Seen,
                 intent,
+                sideEffects = result.SideEffectIntentIds,
                 mode = result.ModeId,
                 reply = result.Text,
                 reaction = result.Reaction,
@@ -97,11 +105,59 @@ public class CorpusReviewSheetTests
             }));
         }
 
-        string sheetPath = Path.Combine(Corpus.Directory, SheetFile);
-        File.WriteAllText(sheetPath, text.ToString(), utf8);
+        string sheetPath = Path.Combine(runDirectory, SheetFile);
+        using (StreamWriter sheet = new(
+            new FileStream(sheetPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read), utf8))
+        {
+            sheet.Write(text);
+        }
 
         Console.WriteLine($"wrote {index} rows to {sheetPath} and {jsonPath}");
 
         Assert.Equal(Corpus.Rows.Count, index);
+    }
+
+    [CorpusSessionFact]
+    public void WriteTheSessionSheet()
+    {
+        string run = Environment.GetEnvironmentVariable("ELAINE_REVIEW_RUN")
+            ?? DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+        string runDirectory = Path.Combine(Corpus.Directory, "checks", run);
+        Directory.CreateDirectory(runDirectory);
+
+        UTF8Encoding utf8 = new(encoderShouldEmitUTF8Identifier: false);
+        string path = Path.Combine(runDirectory, "sessions.jsonl");
+        using StreamWriter output = new(
+            new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read), utf8);
+
+        int rows = 0;
+        foreach (CorpusSession session in Corpus.Sessions)
+        {
+            ChatEngine engine = new(Graph);
+            ConversationState state =
+                ConversationState.Fresh(Graph.Root, CorpusReplyTests.Salt(session.Session));
+
+            for (int i = 0; i < session.Turns.Count; i++)
+            {
+                CorpusTurn turn = session.Turns[i];
+                TurnResult result = engine.Turn(state, new TurnInput { Text = turn.In });
+                state = result.State;
+                rows++;
+
+                output.WriteLine(JsonSerializer.Serialize(new
+                {
+                    session = session.Session,
+                    turn = i + 1,
+                    said = turn.In,
+                    intent = result.IntentId ?? "(fallback)",
+                    sideEffects = result.SideEffectIntentIds,
+                    mode = result.ModeId,
+                    reply = result.Text,
+                }));
+            }
+        }
+
+        Console.WriteLine($"wrote {rows} session turns to {path}");
+        Assert.Equal(Corpus.Sessions.Sum(s => s.Turns.Count), rows);
     }
 }

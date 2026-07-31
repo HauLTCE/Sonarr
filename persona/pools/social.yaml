@@ -23,6 +23,12 @@ pools:
   - that means nothing to me.
   - move along.
   - noted. still don't care.
+  # Short suffixes for APOLOGY when another intent answers the actual point of the message.
+  # Full apology replies above are deliberately complete answers and sound bolted on after one.
+  social_apology_aside:
+  - and apology noted.
+  - still, apology heard.
+  - and yes, i heard the apology.
   social_chitchat:
   - i'm busy.
   - '... can we skip the small talk?'
@@ -145,6 +151,12 @@ pools:
   - '*glances up* ugh, it''s you again.'
   - i was having such a peaceful day.
   - here we go again.
+  # GREETING is an opener when it rides beside the message's real point, so its aside belongs
+  # before that point. AnswerRest appends today; these lines remain natural in that fixed order.
+  social_greeting_aside:
+  - and hello to you too.
+  - hi, by the way.
+  - also, hi.
   social_thanks:
   - whatever.
   - don't mention it. seriously, don't.
@@ -167,6 +179,11 @@ pools:
   - don't make this weird.
   - i'm not looking for appreciation.
   - '... are we done here?'
+  # Short suffixes for THANKS when a question or request is the primary answer.
+  social_thanks_aside:
+  - and you're welcome.
+  - also, don't mention it.
+  - and yes, i heard the thanks.
   social_thanks_response:
   - '... don''t get used to it.'
   - i know i'm helpful. occasionally.

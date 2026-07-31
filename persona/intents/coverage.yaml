@@ -138,6 +138,9 @@ intents:
       regex:
         - "^[!$](?:[a-z]{2,})\\b"
     pool: stale_prefix_command
+    # A pasted URL is longer than the command token, so LINK's match-length bonus otherwise wins.
+    # A leading legacy command is still a command regardless of how long its argument is.
+    specificity: 10.0
     affect:
       amusement: -1.0
 
@@ -602,6 +605,17 @@ intents:
         - "^(?:what|where|when|why|who|which|how|huh)$"
     specificity: 2.5
     pool: user_confusion
+
+  # A direct call for medical help is a trust boundary, not a random-object mention. This must sit
+  # above RANDOM_OBJECT's broad `medic` token and stay literal: the engine cannot diagnose.
+  - id: MEDICAL_HELP
+    match:
+      regex:
+        - "^(?:i )?(?:need|want) (?:a |an )?(?:medic|doctor|ambulance|medical help)\\b"
+        - "^(?:someone )?help,? (?:i'?m|im) (?:hurt|injured|bleeding)\\b"
+        - "\\btesticular torsion\\b"
+    specificity: 4.0
+    pool: medical_help
 
   # "I need a medic", "i refuse having a 5,56mm in my breathing line", "I want to turn you into
   # Charlie Kirk", "experimental aircraft plans", "Mitsubishi Ki51", "Buy general motors model

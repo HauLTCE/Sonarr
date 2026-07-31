@@ -107,6 +107,10 @@ pools:
   - good night. don't let the bedbugs bite. or do.
   - finally, you're leaving.
   - i'm closing my eyes now. don't ping.
+  medical_help:
+  - if this is real, call emergency services now. i'm a bot, not a medic.
+  - get a real person and medical help now. don't wait on me.
+  - if you're in danger, call emergency services. i cannot treat you.
   foreign_language:
   - f2p btw? sure. and i'm a human.
   - '... i only speak english and condescension.'

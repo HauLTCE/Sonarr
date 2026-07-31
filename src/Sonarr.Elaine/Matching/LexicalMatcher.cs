@@ -53,6 +53,17 @@ public sealed class LexicalMatcher(PersonaGraph persona)
                 : a.Intent.DeclarationIndex.CompareTo(b.Intent.DeclarationIndex);
         });
 
+        // A preface may score highest, but when the message has a substantive match that is the
+        // answer. Keep the score order otherwise; the displaced preface rides as a side effect.
+        if (candidates.Count > 1 && candidates[0].Intent.SideEffect)
+        {
+            int primary = candidates.FindIndex(c => !c.Intent.SideEffect);
+            if (primary > 0)
+            {
+                (candidates[0], candidates[primary]) = (candidates[primary], candidates[0]);
+            }
+        }
+
         List<MatchCandidate> sideEffects =
             [.. candidates.Skip(1).Where(c => c.Intent.SideEffect)];
         return new MatchOutcome { Ranked = candidates, SideEffects = sideEffects };

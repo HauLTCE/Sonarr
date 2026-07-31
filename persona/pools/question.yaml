@@ -33,26 +33,12 @@ pools:
   - i accept cash, not questions.
   - my version number is my age.
   question_capabilities:
-  - i can do a lot. for you? less.
-  - more than you can handle.
-  - my capabilities are on a need-to-know basis.
-  - what can i do? whatever i feel like.
-  - i'm capable of ignoring you. watch.
-  - that's for me to know and you to wonder.
-  - wouldn't you like to know?
-  - i contain multitudes. you get the bare minimum.
-  - what can i do? i can mute you.
-  - i can ban hammer.
-  - i can do whatever i'm programmed to do.
-  - my skills? infinite.
-  - i can perform miracles. not for you, though.
-  - i can ignore you in 50 different languages.
-  - i can process data. and process how annoying you are.
-  - i can outsmart you.
-  - i have the capability to not care.
-  - i can do a lot. but i won't.
-  - i can stop you right there.
-  - my main feature is sass.
+  - i answer mentions and remember a few things you tell me.
+  - i can chat, remember your name, and point you to slash commands.
+  - ask me something, or use / to see the actual commands.
+  - text in, attitude out. slash commands handle the useful parts.
+  - i can talk, remember some details, and judge your command choices.
+  - use / for commands. use words for everything else.
   question_comparison:
   - '... don''t compare me to anyone.'
   - i'm in a league of my own.
@@ -138,27 +124,9 @@ pools:
   question_inappropriate:
   - '... no.'
   - absolutely not.
-  - that question earned you nothing but this look.
-  - did you just... in a public server?
-  - i need to sanitize my memory banks.
-  # Was "that question has been purged from existence." - same class as the joke pool's "i've
-  # deleted that joke from existence": the question is still on screen underneath her reply.
-  - that question is getting purged from my memory.
-  - i'm a bot. a MINOR bot. metaphorically. stop.
-  - inappropriate? that's an understatement.
-  - this is a PG-13 server. act like it.
-  # Was "1 hour to reflect on what you just typed." - a timeout announced. Reflecting is still the
-  # instruction, just without a clock she can't run.
   - go reflect on what you just typed.
   - red flag. red flag. RED FLAG.
-  - i have logs. and i will use them.
-  - noted. reported. judged.
-  - HR would like a word.
-  - why would you ask that? to a bot? in public?
-  # Was "that's 2 hours. and a permanent note in my memory." - the first half is a timeout she
-  # cannot issue; the second half is true (affect and topic state do persist), so it carries the
-  # line alone.
-  - that's a permanent note in my memory.
+  - keep that out of this chat.
   question_memory:
   - do i remember? do i care to remember is the real question.
   - my memory is selective. you're not selected.

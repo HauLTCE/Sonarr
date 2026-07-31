@@ -309,6 +309,46 @@ public class ChatEngineTests
     }
 
     [Fact]
+    public void Turn_MessageThatDidTwoThings_UsesConnectorSafeAside()
+    {
+        Dictionary<string, string[]> cases = new(StringComparer.Ordinal)
+        {
+            ["hey elaine why do you hate me"] =
+                ["and hello to you too.", "hi, by the way.", "also, hi."],
+            ["sorry but why do you hate me"] =
+                ["and apology noted.", "still, apology heard.", "and yes, i heard the apology."],
+            ["thanks but why do you hate me"] =
+                ["and you're welcome.", "also, don't mention it.", "and yes, i heard the thanks."],
+        };
+
+        foreach ((string input, string[] asides) in cases)
+        {
+            for (ulong salt = 1; salt <= 40; salt++)
+            {
+                TurnResult result = Engine.Turn(Fresh(salt), Say(input));
+                Assert.Contains(asides, aside => result.Text!.EndsWith(aside, StringComparison.Ordinal));
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData("hello", "GREETING", "social_greeting_aside")]
+    [InlineData("sorry", "APOLOGY", "social_apology_aside")]
+    [InlineData("thanks", "THANKS", "social_thanks_aside")]
+    public void Turn_OneIntentStillUsesItsFullReplyPool(
+        string input, string intentId, string asidePool)
+    {
+        HashSet<string> asides = [.. Graph.Pools[asidePool].Lines];
+
+        for (ulong salt = 1; salt <= 40; salt++)
+        {
+            TurnResult result = Engine.Turn(Fresh(salt), Say(input));
+            Assert.Equal(intentId, result.IntentId);
+            Assert.False(asides.Contains(result.Text ?? string.Empty), result.Text);
+        }
+    }
+
+    [Fact]
     public void Turn_SideEffectClause_IsReportedAndLogged()
     {
         // The clause is a real firing, not decoration: its id is reported and its cooldown and

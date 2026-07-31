@@ -116,8 +116,9 @@ public sealed class ReplyComposer(
     }
 
     /// <summary>
-    /// Composes one clause for <paramref name="candidate"/> — the same authored line
-    /// <see cref="Compose"/> would build, without the mood fragment or callback tail.
+    /// Composes one clause for <paramref name="candidate"/> — a short aside pool when one is
+    /// authored, otherwise the same line <see cref="Compose"/> would build, without the mood
+    /// fragment or callback tail.
     /// </summary>
     /// <remarks>
     /// For a side-effect match riding alongside a primary reply. Wrapping would stack a second
@@ -131,8 +132,20 @@ public sealed class ReplyComposer(
         ArgumentNullException.ThrowIfNull(candidate);
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(rng);
-        return Core(candidate, Hedged(state, modeId, rng), modeId, rng);
+
+        // Primary = highest eligible score. Side effects retain score order, but use a suffix-safe
+        // pool when one exists: reply = primary + up to two distinct side-effect clauses.
+        // ponytail: `_aside` only models suffix placement; add explicit persona metadata if a real
+        // second placement or composition role appears.
+        string aside = candidate.Intent.Pool + SideEffectPoolSuffix;
+        IntentDef intent = _persona.Pools.ContainsKey(aside)
+            ? candidate.Intent with { Pool = aside, Template = null }
+            : candidate.Intent;
+        return Core(candidate with { Intent = intent }, Hedged(state, modeId, rng), modeId, rng);
     }
+
+    /// <summary>Optional suffix for a pool's connector-safe side-effect lines.</summary>
+    public const string SideEffectPoolSuffix = "_aside";
 
     /// <summary>
     /// The authored line for a match: pool draw plus the intent's own template.
