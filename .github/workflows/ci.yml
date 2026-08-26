@@ -42,41 +42,10 @@ jobs:
       # that breaks an intent fails here, on the same run, with the validator's own report.
       - run: dotnet test Sonarr.slnx --no-build --verbosity minimal
 
-  web:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: web
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          # 24, not 22: `npm test` runs the type-stripping test runner directly on .ts, which needs
-          # no flag from 23 on. On 22 it errors out with "Unknown file extension .ts".
-          node-version: '24'
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-
-      - run: npm ci
-
-      # tsc separately from the build: Turbopack does not typecheck, so a type error would
-      # otherwise ship.
-      - run: npx tsc --noEmit
-
-      - run: npm run lint
-
-      # Before the build, because it is the faster failure. These cover the formatters, whose Intl
-      # options are only validated when a row renders — `hour()` mixed `dateStyle` with `hour`, which
-      # throws, and tsc/eslint/next build all passed while the Stats page 500'd in production.
-      - run: npm test
-
-      - run: npm run build
-
   # Images publish only from a real push to a tracked branch — a PR from a fork must not be
   # able to write to the registry.
   images:
-    needs: [dotnet, web]
+    needs: [dotnet]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
@@ -88,9 +57,6 @@ jobs:
           - name: sonarr-bot
             context: .
             dockerfile: src/Sonarr.Bot/Dockerfile
-          - name: sonarr-web
-            context: web
-            dockerfile: web/Dockerfile
     steps:
       - uses: actions/checkout@v7
 
@@ -120,6 +86,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           # GitHub's own cache, so a rebuild after a one-line change does not redo
-          # `npm ci` or `dotnet restore`.
+          # `dotnet restore`.
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,scope=${{ matrix.name }},mode=max

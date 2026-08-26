@@ -2,10 +2,10 @@
 # Manual deploy (docs/11-deployment.md "CI"): sync the compose dir, build or pull, up -d,
 # wait for health.
 #
-# CI (.github/workflows/ci.yml) now publishes both images to GHCR on every push, so the
-# short path is: set BOT_IMAGE/WEB_IMAGE in the server's .env to the ghcr.io tags and run
-# with --pull. --build stays the default because it needs no registry auth and still works
-# when GitHub is having a day.
+# CI (.github/workflows/ci.yml) publishes the bot image to GHCR on every push, so the short
+# path is: set BOT_IMAGE in the server's .env to the ghcr.io tag and run with --pull. --build
+# stays the default because it needs no registry auth and still works when GitHub is having
+# a day.
 #
 # Run FROM THE REPO ROOT on your dev box:
 #     DEPLOY_HOST=your.server DEPLOY_USER=root sh deploy/deploy.sh
@@ -25,8 +25,8 @@ usage() {
 Usage: deploy.sh [--local] [--build|--pull] [--prune] [--no-wait]
 
   --local     run against the compose file in the current directory (you are on the server)
-  --build     build the bot + web images from source on the target (default)
-  --pull      pull the images CI published to GHCR (needs BOT_IMAGE/WEB_IMAGE in .env)
+  --build     build the bot image from source on the target (default)
+  --pull      pull the image CI published to GHCR (needs BOT_IMAGE in .env)
   --prune     ALSO remove dangling images afterwards (destructive, opt-in)
   --no-wait   do not block waiting for healthchecks
 EOF
@@ -64,7 +64,7 @@ done
 if [ "$MODE" = unpack ]; then
     rm -rf repo.new
     tar x
-    for p in repo.new/src repo.new/web/Dockerfile; do
+    for p in repo.new/src repo.new/Sonarr.slnx; do
         [ -e "$p" ] || { echo "!! $p missing after transfer — keeping old tree" >&2; exit 1; }
     done
     rm -rf repo.old
@@ -132,23 +132,21 @@ if [ "$MODE" = remote ]; then
 
     # Uncommitted work would be silently left behind, and the deploy would look like it worked.
     # Warn rather than abort: deploying HEAD while mid-edit is a legitimate thing to want.
-    if [ -n "$(git status --porcelain -- persona src tests web deploy Directory.Build.props \
+    if [ -n "$(git status --porcelain -- persona src tests deploy Directory.Build.props \
                                           Directory.Packages.props Sonarr.slnx)" ]; then
         echo "!!  uncommitted changes in the deployed paths — shipping HEAD, not your worktree:" >&2
-        git status --short -- persona src tests web deploy >&2
+        git status --short -- persona src tests deploy >&2
     fi
     echo "==> ${TARGET}:${DEPLOY_REMOTE_DIR}  (HEAD $(git rev-parse --short HEAD))"
 
     ssh -o BatchMode=yes "$TARGET" "mkdir -p '${DEPLOY_REMOTE_DIR}'"
 
-    # Compose file + both scripts. The remote .env is NOT overwritten — it holds the
+    # Compose file + this script. The remote .env is NOT overwritten — it holds the
     # only copy of the prod secrets. --strip-components=1 drops the leading deploy/.
     #
-    # tier-check.sh ships too, because it asserts against rendered markup and so it is only
-    # valid against the panel it was written for. It was left out at first, and the copy on the
-    # server went on pinning `class="rail"` for a day after the navbar rewrite deleted that
-    # element — a post-deploy check that fails on every run teaches you to stop running it.
-    git archive HEAD deploy/docker-compose.yml deploy/deploy.sh deploy/tier-check.sh \
+    # tier-check.sh used to ship alongside them; it asserted against the panel's rendered
+    # markup, and the panel is gone (docs/06), so the script went with it.
+    git archive HEAD deploy/docker-compose.yml deploy/deploy.sh \
         | ssh -o BatchMode=yes "$TARGET" \
               "tar x --strip-components=1 -C '${DEPLOY_REMOTE_DIR}'"
 
@@ -169,7 +167,7 @@ if [ "$MODE" = remote ]; then
         # in this file (see the --unpack block above) rather than in a string passed to ssh — the
         # step above already put this file on the server, so it is always there to call.
         git archive --prefix=repo.new/ HEAD \
-                Directory.Build.props Directory.Packages.props Sonarr.slnx src tests web \
+                Directory.Build.props Directory.Packages.props Sonarr.slnx src tests \
             | ssh -o BatchMode=yes "$TARGET" \
                   "cd '${DEPLOY_REMOTE_DIR}' && sh deploy.sh --unpack"
     fi
@@ -200,35 +198,36 @@ echo "==> validating compose file"
 docker compose -f "$COMPOSE_FILE" config -q
 
 if [ "$ACTION" = build ]; then
-    # BuildKit's cache is never reclaimed on its own. On this 20G disk one bot+web build grows it
-    # from nothing to ~8G, so the second or third deploy dies inside `npm ci` with
-    # "TAR_ENTRY_ERROR ENOSPC: no space left on device" — which reads like a broken dependency,
-    # not a full volume, and sent me looking at the Dockerfile the first time.
+    # BuildKit's cache is never reclaimed on its own. On this 20G disk repeated builds grew it
+    # from nothing to ~8G, so the second or third deploy died with ENOSPC — which reads like a
+    # broken dependency, not a full volume, and sent me looking at the Dockerfile the first time.
+    # (The measurement was taken while the web image still existed and `npm ci` was the step
+    # that hit the wall; the bot image alone is smaller, but the cache still never self-trims.)
     #
     # Capped before the build rather than pruned after, so the space is there when it is needed.
     # 2G keeps the layer cache useful (base images and the restore layer survive) while leaving
     # room for a full build. --keep-storage only trims the cache; images, containers and volumes
     # are untouched, which is why this is not behind --prune. Adjust down if / ever gets smaller.
-    echo "==> capping build cache at 2G (it grows ~8G per build and never self-trims)"
+    echo "==> capping build cache at 2G (it grows and never self-trims)"
     docker builder prune -f --keep-storage 2g >/dev/null 2>&1 || true
     avail=$(df -Pk . | awk 'NR==2 {print $4}')
     if [ "$avail" -lt 3145728 ]; then
-        echo "!! only $((avail / 1024))MB free — a build needs ~3G and will fail inside npm ci." >&2
+        echo "!! only $((avail / 1024))MB free — a build needs ~3G and will fail partway." >&2
         echo "   Reclaim first: docker image prune -f  (then check du -sh /var/lib/docker)" >&2
         exit 1
     fi
-    echo "==> building bot + web images"
-    docker compose -f "$COMPOSE_FILE" build bot web
+    echo "==> building the bot image"
+    docker compose -f "$COMPOSE_FILE" build bot
 else
-    # Without these the compose defaults are `sonarr-bot:local`, and `pull` would go ask
+    # Without this the compose default is `sonarr-bot:local`, and `pull` would go ask
     # Docker Hub for an image that only ever existed on this box. Fail with the reason
     # instead of with a 404.
-    if ! grep -qE '^BOT_IMAGE=.+' .env || ! grep -qE '^WEB_IMAGE=.+' .env; then
-        echo "!! --pull needs BOT_IMAGE and WEB_IMAGE set in .env (see .env.example)" >&2
+    if ! grep -qE '^BOT_IMAGE=.+' .env; then
+        echo "!! --pull needs BOT_IMAGE set in .env (see .env.example)" >&2
         echo "   or use --build to build from source on this box." >&2
         exit 1
     fi
-    # Every service, not just bot+web: postgres, redis and lavalink are pinned tags and
+    # Every service, not just the bot: postgres, redis and lavalink are pinned tags and
     # yt-cipher is pinned by digest, so this is a no-op for them unless a pin moved, and
     # then it should move here too.
     echo "==> pulling images"

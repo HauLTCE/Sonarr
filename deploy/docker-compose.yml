@@ -1,11 +1,11 @@
 # Prod stack — lives at /root/sonarr-net/docker-compose.yml on the server (docs/11-deployment.md).
 #
-# Everything in one bucket as of 2026-07-28: bot, panel, Postgres, Redis, Lavalink and
-# yt-cipher. Music used to be deliberately excluded (Lavalink ran as systemd
-# `lavalink.service` out of /root/lavalink, yt-cipher as a hand-started container) so a
-# rewrite deploy could never take music down. That trade is over — one `compose up` now
-# brings up or tears down the whole thing, and the node config lives in git at
-# deploy/lavalink/application.yml instead of only on the box.
+# Everything in one bucket as of 2026-07-28: bot, Postgres, Redis, Lavalink and yt-cipher.
+# Music used to be deliberately excluded (Lavalink ran as systemd `lavalink.service` out of
+# /root/lavalink, yt-cipher as a hand-started container) so a rewrite deploy could never take
+# music down. That trade is over — one `compose up` now brings up or tears down the whole
+# thing, and the node config lives in git at deploy/lavalink/application.yml instead of only
+# on the box.
 #
 # Every service uses `network_mode: host`, so they reach each other on 127.0.0.1 and the
 # published ports below are informational for the host, not container-to-container plumbing.
@@ -19,9 +19,13 @@ services:
       context: ./repo
       dockerfile: src/Sonarr.Bot/Dockerfile
     # Host networking: same reachability the old systemd bot had (Lavalink on 127.0.0.1:2333).
-    # Side effect: the API listens on the host's :5088 directly — no port mapping applies.
+    # The bot listens on no port of its own — Discord is the only surface (docs/06).
     network_mode: host
     env_file: .env
+    environment:
+      # Without this the container is UTC while the host is +07, and every log line and every
+      # "10PM" sleep-window boundary is seven hours off (goal 1).
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
     volumes:
       - ./persona:/app/persona          # hot-reloadable persona (docs/10)
       - ./models:/app/models:ro         # ONNX embedder, fetched by scripts/fetch-model.sh (docs/03)
@@ -36,31 +40,6 @@ services:
       # would only delay the gateway coming up.
       lavalink:
         condition: service_started
-    restart: unless-stopped
-
-  web:
-    image: ${WEB_IMAGE:-sonarr-web:local}
-    # Same ./repo tree deploy.sh rsyncs for the bot image; web/ rides along.
-    build:
-      context: ./repo/web
-      dockerfile: Dockerfile
-    # Host networking, like the bot: that is what makes 127.0.0.1:5088 below the API rather
-    # than this container talking to itself. No port mapping applies as a result — HOSTNAME
-    # is the only thing that decides who can reach :3000.
-    network_mode: host
-    environment:
-      # Server-side calls only; the panel never gets DB creds or the Discord token (docs/06).
-      SONARR_API_URL: http://127.0.0.1:5088
-      # 0.0.0.0, not 127.0.0.1: the panel is meant to be reachable from the LAN, and the
-      # tunnel that serves sonarr.hault.io.vn does not run on this box — with the old
-      # loopback bind it could not reach the origin either, which is what the 502 was.
-      # The CT has no host firewall (INPUT ACCEPT), so this is genuinely open on the LAN:
-      # every page is behind the DM-token session (307 to /login) and every API route
-      # behind the cookie (401), so an unauthenticated visitor gets the login form and
-      # nothing else. That is the whole of the access control — there is no IP allow-list.
-      HOSTNAME: 0.0.0.0
-      PORT: 3000
-    depends_on: [bot]
     restart: unless-stopped
 
   postgres:

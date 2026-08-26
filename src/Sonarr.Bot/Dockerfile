@@ -1,4 +1,5 @@
-# sonarr-bot — Discord gateway + panel API in one process (docs/02-architecture.md).
+# sonarr-bot — the Discord gateway (docs/02-architecture.md). No HTTP surface: the panel and
+# its API are gone (docs/06), so this image listens on nothing.
 # Build from the REPO ROOT: docker build -f src/Sonarr.Bot/Dockerfile .
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
@@ -29,8 +30,11 @@ RUN dotnet publish src/Sonarr.Bot/Sonarr.Bot.csproj -c Release --no-restore -o /
 # shared-runtime assemblies; a second image would cost 200MB and drift from the bot.
 RUN dotnet publish src/Sonarr.Migrator/Sonarr.Migrator.csproj -c Release --no-restore -o /app/migrator
 
-# --- runtime: aspnet only, no SDK ---
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+# --- runtime: the plain .NET runtime, no SDK and no ASP.NET Core ---
+# Was `aspnet:10.0`, which carries the ASP.NET Core shared framework (~20 MB) for a Kestrel
+# that no longer exists. `runtime:10.0` is the same Ubuntu 24.04 base with the same tzdata and
+# the same `app` uid 1654, so nothing below changes.
+FROM mcr.microsoft.com/dotnet/runtime:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app ./
 
@@ -76,7 +80,7 @@ RUN echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.as
     && rm -rf /var/lib/apt/lists/* \
     && pg_dump --version | grep -qE ' 1[7-9]| [2-9][0-9]'
 
-# `app` (uid 1654) ships with the aspnet image. Mounted dirs must be writable by it:
+# `app` (uid 1654) ships with the runtime image. Mounted dirs must be writable by it:
 # /backups (pg_dump output) is created here so a fresh host bind mount has sane ownership.
 RUN mkdir -p /backups /app/persona && chown -R app:app /backups /app/persona
 USER app
@@ -91,17 +95,11 @@ USER app
 # PredefinedCulturesOnly=false is also set. It is (same props file) — don't remove one without
 # the other, or GUILD_AVAILABLE starts failing and guilds silently never populate.
 
-ENV ASPNETCORE_URLS=http://0.0.0.0:5088 \
-    DOTNET_gcServer=0 \
-    ASPNETCORE_HTTP_PORTS=
-# ^ blanked, not ours: the aspnet base image sets ASPNETCORE_HTTP_PORTS=8080, and having both
-# that and ASPNETCORE_URLS makes Kestrel log a warning at every startup about overriding it.
-# URLS wins either way, so this only removes the noise — but the noise is the point: two of the
-# three cutover bugs were found by reading warning lines, and a log with a standing warning in
-# it trains you to skim past the next one.
-
-# Dev convenience only. Prod uses `network_mode: host` (docs/11) so this mapping is
-# ignored there and the process binds :5088 on the host directly.
-EXPOSE 5088
+ENV DOTNET_gcServer=0 \
+    TZ=Asia/Ho_Chi_Minh
+# ^ TZ, because the container is otherwise UTC under a +07 host and every log line plus every
+# sleep-window boundary reads seven hours off. compose can override it; this is the default so
+# a bare `docker run` is right too. It resolves out of /usr/share/zoneinfo (tzdata, above) —
+# ICU is stripped, and that only affects cultures, not zones.
 
 ENTRYPOINT ["dotnet", "Sonarr.Bot.dll"]
