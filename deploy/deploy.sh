@@ -184,11 +184,38 @@ COMPOSE_FILE=docker-compose.yml
 [ -f "$COMPOSE_FILE" ] || { echo "no $COMPOSE_FILE here (expected /root/sonarr-net)" >&2; exit 1; }
 [ -f .env ] || { echo ".env missing — copy .env.example and fill it in" >&2; exit 1; }
 
+# The bot runs as sonarr.service now (deploy/install-host.sh). Discord allows ONE gateway
+# session per token, so bringing the container up alongside it disconnects whichever connected
+# first — and the symptom is the bot going quiet at random, nowhere near this command.
+#
+# Refusing outright rather than skipping the bot service: `up -d` here is also how the data
+# services get started, and silently doing four fifths of what was asked is worse than saying
+# no. The rollback is spelled out because that is the only reason to want this.
+if command -v systemctl >/dev/null 2>&1 \
+    && [ "$(systemctl is-enabled sonarr 2>/dev/null || true)" = enabled ]; then
+    cat >&2 <<'EOF'
+!! sonarr.service is enabled — the bot is a host service, not a container (goal 5).
+   Bringing the container up too would give Discord two sessions on one token and it
+   disconnects one of them.
+
+   Upgrade the host bot:   sh deploy/install-host.sh   (from the repo root, on your dev box)
+   Data services only:     docker compose up -d postgres redis lavalink yt-cipher
+   Roll back to Docker:    systemctl disable --now sonarr && docker compose up -d bot
+EOF
+    exit 1
+fi
+
 # The bot image runs as uid 1654, and a bind mount carries host ownership straight through.
 # Left root-owned, every nightly pg_dump fails with EACCES at 03:30 while the container
 # itself looks perfectly healthy — the only way to catch it is to probe the mount as that
 # user. 0700: a dump holds every user's data, and the weekly config archive holds the token.
 # Done here rather than in the remote branch so `deploy.sh --local` gets it too.
+#
+# install-host.sh chowns this same directory to the `sonarr` service user, so the two disagree
+# by design: whichever way the bot is running owns the dumps. Only one of them can run at a
+# time (the guard above), so the ownership is never ambiguous — but it does mean rolling back
+# to the container needs this line to run again, which `deploy.sh` doing it unconditionally
+# already guarantees.
 echo "==> backup dir ownership"
 mkdir -p /root/backups/sonarr
 chown 1654:1654 /root/backups/sonarr

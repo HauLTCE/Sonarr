@@ -1,0 +1,86 @@
+# sonarr-bot as a host service (goal 5: "not in docker unless docker is really needed").
+#
+# Installed to /etc/systemd/system/sonarr.service by deploy/install-host.sh. The bot is a
+# gateway client with no listening socket, so the isolation an image bought it was never
+# network isolation — it was a pinned runtime, and `dotnet-runtime-10.0` from
+# packages.microsoft.com is the same pin without the 880 MB image or the rebuild-to-ship-a-
+# one-line-change loop that filled a 20 GB disk twice.
+#
+# What stays in Docker, and why that is "really needed": Postgres (pgvector is a compiled
+# extension matched to the server major, and the data is in a named volume), Redis, Lavalink
+# (a JVM app that downloads its own plugin tree at boot — the retired host install was a
+# 100 MB jar in a directory nobody could rebuild) and yt-cipher (published only as an image;
+# there is no host artifact to install). Those four are pinned third-party services. This is
+# our own code, and it is the only part that was being rebuilt on every deploy.
+
+[Unit]
+Description=Sonarr Discord bot
+After=network-online.target docker.service
+Wants=network-online.target
+# After=, not Requires=: Postgres and Redis are containers, the bot retries both and reconnects
+# to Lavalink on its own, and a hard dependency would take the bot down every time the docker
+# daemon restarted for an unrelated reason. Ordering only.
+
+[Service]
+Type=simple
+User=sonarr
+Group=sonarr
+
+# Load-bearing rather than tidiness: Serilog writes `logs/sonarr-.log` relative to the working
+# directory (Program.cs), and that file sink is what the training-data extraction reads.
+WorkingDirectory=/opt/sonarr
+ExecStart=/usr/bin/dotnet /opt/sonarr/app/Sonarr.Bot.dll
+
+# --- configuration ---
+# .env is read by the app itself from ContentRootPath (Program.cs), which is WorkingDirectory
+# above. The three paths below are NOT in it: .env is shared with the compose stack and holds
+# the container's view (/app/persona, /app/models/...), which does not exist out here. Real
+# environment variables are added after the .env file, so these win — that ordering is the
+# whole mechanism, and reversing it in Program.cs would silently point the bot at nothing.
+Environment=PERSONA_PATH=/opt/sonarr/persona
+Environment=MODEL_PATH=/opt/sonarr/models/minilm-l6-v2
+# Unchanged from the container, and deliberately still under /root: RESTORE.md's drill and the
+# weekly config archive both name this path, and a restore procedure that points at a directory
+# that moved is a restore procedure that fails on the day it matters.
+Environment=BACKUP_PATH=/root/backups/sonarr
+
+# The container set this and the reason has not changed: the bot is one of five processes on a
+# 4 GB box, mostly waiting on a socket, and server GC reserves a heap per core.
+Environment=DOTNET_gcServer=0
+# Explicit even though this host is already +07 — a box whose zone was never set would log and
+# evaluate every sleep-window boundary in UTC, seven hours off (goal 1).
+Environment=TZ=Asia/Ho_Chi_Minh
+
+Restart=always
+RestartSec=5
+# Five failures in a minute means it is not coming up. Stop and stay failed, so `systemctl
+# status` says so instead of hiding a crashloop behind a service that looks like it is running.
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# `journalctl -u sonarr -f` is what `docker logs -f` was. The file sink keeps writing
+# logs/sonarr-*.log with its 14-day retention, so scripted log reads are unaffected.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sonarr
+
+# --- isolation ---
+# Not security theatre for a process with no inbound socket: it holds the bot token and the
+# database password, so the question this answers is what a bug in it can reach.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# read-only rather than true: BACKUP_PATH is under /root and ProtectHome=true would make it
+# inaccessible and empty — pg_dump would write into a masked tmpfs and the nightly dump would
+# "succeed" into nothing. ReadWritePaths below punches the one hole that is needed.
+ProtectHome=read-only
+# ProtectSystem=strict makes the whole filesystem read-only, so every path written is listed:
+# logs/ is Serilog's, and the backup directory is BackupRunner's pg_dump output.
+ReadWritePaths=/opt/sonarr/logs /root/backups/sonarr
+
+[Install]
+WantedBy=multi-user.target

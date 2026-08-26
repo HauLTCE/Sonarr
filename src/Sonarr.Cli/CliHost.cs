@@ -41,22 +41,47 @@ public static class CliHost
     /// The .env plus real environment variables, resolved the same way the bot resolves them.
     /// </summary>
     /// <remarks>
-    /// Searched upwards from the working directory rather than read from a fixed path: the bot is
-    /// started from its own directory by its service unit, a person running <c>sonarr</c> is
-    /// standing wherever they are standing (<see cref="DotEnv.FindUpwards"/>).
+    /// <c>SONARR_ENV</c> names the file outright; without it the search walks upwards from the
+    /// working directory (<see cref="DotEnv.FindUpwards"/>), which is what makes the CLI work from
+    /// anywhere inside the deployment tree. The explicit variable is what makes it work from
+    /// <em>outside</em> it: the installed <c>/usr/local/bin/sonarr</c> exports it, so a person
+    /// standing in their home directory gets the same answers as one standing in /opt/sonarr.
     /// </remarks>
     public static IConfiguration Configuration => _configuration ??= BuildConfiguration();
 
     private static IConfiguration BuildConfiguration()
     {
         ConfigurationBuilder builder = new();
-        if (DotEnv.FindUpwards(Directory.GetCurrentDirectory()) is { } envFile)
+        if (EnvFile() is { } envFile)
         {
             builder.AddDotEnvFile(envFile);
         }
 
         builder.AddEnvironmentVariables();
         return builder.Build();
+    }
+
+    /// <summary>
+    /// The .env this process should read, or null when there is none to find.
+    /// </summary>
+    /// <remarks>
+    /// A <c>SONARR_ENV</c> that points at nothing is an error rather than a silent fall back to the
+    /// upward search: somebody set it deliberately, and quietly reading a different file than the
+    /// one they named is how you spend an afternoon wondering why a write went to the wrong
+    /// database. <see cref="DotEnv.AddDotEnvFile"/> ignores a missing path, so the check has to be
+    /// here.
+    /// </remarks>
+    private static string? EnvFile()
+    {
+        string? named = Environment.GetEnvironmentVariable("SONARR_ENV");
+        if (string.IsNullOrWhiteSpace(named))
+        {
+            return DotEnv.FindUpwards(Directory.GetCurrentDirectory());
+        }
+
+        return File.Exists(named)
+            ? named
+            : throw new CliError($"SONARR_ENV points at '{named}', which is not a file.", 2);
     }
 
     /// <summary>A scope to resolve services from. One per command; the command owns its lifetime.</summary>
