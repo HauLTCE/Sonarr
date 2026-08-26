@@ -86,7 +86,7 @@ query). Small deltas are expected — the dump is from 03:30, live has moved on.
 ## 4. Point a bot at the restored DB
 
 Do **not** use the real Discord token: a second gateway connection on the same bot user
-fights the live one. Use a scratch test-app token, or run only the migrator/API.
+fights the live one. Use a scratch test-app token, or run only the migrator.
 
 ```sh
 cd /root/sonarr-net
@@ -95,16 +95,17 @@ cp .env /tmp/.env.restore
 #   PG_CONNECTION=Host=127.0.0.1;Port=55432;Database=sonarr_restore;Username=sonarr;Password=<the one from step 1>
 #   DISCORD_TOKEN=<scratch test-app token>
 #   DISCORD_DEV_GUILD_ID=<test guild>
-#   API_PORT=5089
 #   REDIS_CONNECTION=127.0.0.1:6379   # fine to share; keys are TTL'd and namespaced by guild
 
-docker run --rm --network host --env-file /tmp/.env.restore \
+docker run --rm --name sonarr-restore-test --network host --env-file /tmp/.env.restore \
   -v /root/sonarr-net/persona:/app/persona \
   "$(grep -E '^BOT_IMAGE=' .env | cut -d= -f2- || echo sonarr-bot:local)"
 ```
 
-Pass if: boot config validation passes, the startup self-test reports Postgres green,
-and `curl -s http://127.0.0.1:5089/health` answers. Then `/status` on the test guild.
+Pass if: boot config validation passes and the startup self-test reports Postgres green —
+`Self-test GREEN` in the container's own output, since the bot serves no health endpoint
+(Discord is its only surface). Then `/status` on the test guild, which reports the same
+self-test summary.
 
 ## 5. Tear down
 

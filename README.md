@@ -1,8 +1,8 @@
 # Sonarr
 
 A Discord bot for one community: authored personality chat with long-term memory, a full
-Lavalink music player, levels, moderation, and a web panel. This is the **C# / .NET 10**
-rewrite of a Python bot that worked but lost its state on every restart.
+Lavalink music player, levels, and moderation. This is the **C# / .NET 10** rewrite of a
+Python bot that worked but lost its state on every restart.
 
 **No LLM anywhere.** Every reply Sonarr sends was written by a person and picked by
 deterministic rules. Embeddings are used for understanding and recall — matching what you
@@ -20,21 +20,20 @@ ten-year-old Pentium.
 | **Levels** | XP with anti-spam cooldowns, streaks, role rewards, leaderboards. |
 | **Moderation** | Warn/mute/kick/ban with a case log, tempbans that survive restarts, purge, audit trail, a permission preflight (`/checkperms`), and private mod threads via `/ticket`. |
 | **Utility** | Reminders, birthdays, events with RSVP, time capsules, quote board, milestones, `/ship`. |
-| **Panel** | Next.js, dark, twelve pages behind a two-row navbar: the first row is which side you are on, the second is the pages inside it. **You** (your data, memory, music, activity), **your server** if you manage one (behaviour, moderation, stats), **the bot** if you own it (health, audit). A side you cannot reach is absent, not greyed out, and each side carries only the servers it accepts — so the server picker lists what you manage, not everything you are in. Channels and roles show their names. Login is a token DM'd by the bot — no passwords, no OAuth redirect. |
-| **Privacy** | `/privacy` and a My Data page: see what's stored, export it, delete it. No general message-content logging — counts and timestamps only, enforced by a test that reflects over every column in the schema. |
+| **Privacy** | `/privacy`: see what's stored, export it, delete it, all in Discord. No general message-content logging — counts and timestamps only, enforced by a test that reflects over every column in the schema. |
 
 97 slash commands (85 distinct names — the rest are subcommands like `list` and `set` reused
-across groups) across 28 interaction modules.
+across groups) across 28 interaction modules. Discord is the only surface: there is no HTTP
+API and no web UI, and `ArchitectureTests` keeps it that way
+(`No_project_builds_an_http_surface`, `No_frontend_tree_exists`).
 
 ## Layout
 
-Two processes:
+One process:
 
 - **sonarr-bot** — one .NET 10 process: Discord gateway (Discord.Net), chat engine
-  (`Sonarr.Elaine`), music (Lavalink4NET), background services, and the panel REST API on
-  Kestrel `:5088`.
-- **sonarr-web** — Next.js, the only Node process. Serves both panels, holds no state,
-  talks to the bot's API.
+  (`Sonarr.Elaine`), music (Lavalink4NET) and background services. A worker host, not a web
+  host — it listens on no port.
 
 Plus Postgres 17 (+pgvector), Redis 7, Lavalink and yt-cipher — all compose services in
 one stack.
@@ -44,13 +43,12 @@ src/Sonarr.Domain          entities, domain models, IService/IRepository contrac
 src/Sonarr.Elaine          chat engine — pure logic, no Discord/DB/HTTP
 src/Sonarr.Application     service implementations, one folder per module
 src/Sonarr.Infrastructure  repositories, SonarrDbContext, Redis, ONNX, Lavalink wiring
-src/Sonarr.Bot             host: gateway, interaction modules, minimal-API endpoints
+src/Sonarr.Bot             host: gateway, interaction modules, background services
 src/Sonarr.Migrator        one-shot: old SQLite/JSON -> Postgres
 persona/                   authored YAML the engine loads; LIMITS.md is what it deliberately
                            does not check, and why
 tests/                     xUnit — engine behavior catalog + service tests
 deploy/                    prod compose stack, deploy script, restore drill
-web/                       the Next.js panel — three sides (you / server / bot) behind one navbar
 ```
 
 Dependencies point one way: `Bot → Application → Domain ← Infrastructure`. `Sonarr.Elaine`
@@ -75,9 +73,9 @@ of waiting on Discord's global propagation.
 dotnet test                   # the engine behavior catalog is the regression floor
 ```
 
-Deploying is `deploy/deploy.sh` (`--build` on the box, or `--pull` from GHCR). CI builds,
-tests, typechecks the panel and publishes both images. `deploy/RESTORE.md` is the backup
-restore drill — run it before trusting a backup, then quarterly.
+Deploying is `deploy/deploy.sh` (`--build` on the box, or `--pull` from GHCR). CI builds and
+tests, then publishes the image. `deploy/RESTORE.md` is the backup restore drill — run it
+before trusting a backup, then quarterly.
 
 ## The legacy Python bot
 
@@ -102,7 +100,7 @@ git show python-bot-final:_bot_legacy/tests/test_logical_response.py
 These gate every change:
 
 1. **Users only ever see "Sonarr."** Elaine is the internal name of the chat module; it
-   never appears in a command, a reply, or the web UI.
+   never appears in a command or a reply.
 2. **No generative AI.** Every reply is authored.
 3. **Everything runs on the target box** — Pentium J2900, 4C/4T, 8GB RAM, no AVX. Anything
    that can't gets redesigned, not excused.
