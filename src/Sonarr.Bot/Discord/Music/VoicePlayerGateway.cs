@@ -36,22 +36,56 @@ public sealed class VoicePlayerGateway(
             .ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Humans in the channel, or <see cref="IVoicePlayerGateway.UnknownListeners"/> when the socket
+    /// cache cannot answer.
+    /// </summary>
+    /// <remarks>
+    /// The wrapper reads Discord.Net's socket cache, and a cache that has not caught up returns an
+    /// empty list for a channel full of people — indistinguishable from a channel that really is
+    /// empty, and "empty" is what pauses the music and arms the leave timer. That is half of why a
+    /// freshly started track went silent (see <c>VoiceMoveCoordinator</c>).
+    ///
+    /// So an empty result is cross-examined: we are bound to this channel, therefore the cache
+    /// must at minimum see <em>us</em> in it. Asking again with bots included and still getting
+    /// nothing means the cache does not know the channel at all, not that the channel is empty.
+    /// Only the second call distinguishes the two, and it only runs on the empty path.
+    /// </remarks>
     public async ValueTask<int> CountListenersAsync(
         ulong guildId, ulong voiceChannelId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var users = await client
+            var humans = await client
                 .GetChannelUsersAsync(guildId, voiceChannelId, includeBots: false, cancellationToken)
                 .ConfigureAwait(false);
 
-            return users.Length;
+            if (humans.Length > 0)
+            {
+                return humans.Length;
+            }
+
+            var everyone = await client
+                .GetChannelUsersAsync(guildId, voiceChannelId, includeBots: true, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (everyone.Length == 0)
+            {
+                logger.LogDebug(
+                    "Voice channel {ChannelId} in guild {GuildId} is not in the member cache — "
+                    + "occupancy unknown, not empty.",
+                    voiceChannelId, guildId);
+                return IVoicePlayerGateway.UnknownListeners;
+            }
+
+            return 0;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            // Unknown occupancy must not pause the music: treat it as "someone is there".
+            // Not "someone is there" and not "nobody is there" — we genuinely do not know, and the
+            // coordinator is the one that decides what to do with that.
             logger.LogDebug(ex, "Could not count listeners in {ChannelId}", voiceChannelId);
-            return 1;
+            return IVoicePlayerGateway.UnknownListeners;
         }
     }
 

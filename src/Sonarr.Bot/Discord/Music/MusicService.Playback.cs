@@ -1,6 +1,7 @@
 using Lavalink4NET.Filters;
 using Lavalink4NET.Players;
 using Lavalink4NET.Players.Queued;
+using Sonarr.Application.Music;
 using Sonarr.Domain.Music;
 
 namespace Sonarr.Bot.Discord.Music;
@@ -129,7 +130,13 @@ public sealed partial class MusicService
             .ConfigureAwait(false);
 
         var requester = TrackMapping.Required(current).RequesterId;
-        var solo = listeners <= 1 || requester == context.UserId;
+
+        // Unknown occupancy is not solo. `listeners <= 1` reads the -1 sentinel as "you are alone
+        // in here", and while the vote is skipped either way here — the -1 also fails the
+        // threshold test below — a sentinel that means "alone" is a bug waiting for the next
+        // person to add a branch. Your own track still skips freely; that needs no headcount.
+        var solo = requester == context.UserId
+            || (listeners != IVoicePlayerGateway.UnknownListeners && listeners <= 1);
 
         if (!context.IsDj && !solo && listeners >= MusicRules.VoteSkipThreshold)
         {

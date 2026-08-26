@@ -130,4 +130,99 @@ public sealed class VoiceMoveCoordinatorTests
         Assert.Equal(VoiceMoveAction.None, outcome.Action);
         Assert.Equal(0, gateway.Pauses);
     }
+
+    /// <summary>
+    /// The <c>/play</c> → kick → <c>/play</c> bug. Sonarr's own join arrives as a bot move with no
+    /// old channel; treating it as a drag re-sent the voice update on a channel Lavalink had
+    /// already handshaked (voice close 4006, silent audio) and then judged occupancy on a member
+    /// cache that had not caught up, pausing the track that had just started.
+    /// </summary>
+    /// <remarks>
+    /// <c>listeners: 0</c> on purpose: with the guard removed this reconnects AND pauses, so all
+    /// three assertions below fail rather than only the first. A test that passes because the fake
+    /// happened to report somebody present would not be testing the guard at all.
+    /// </remarks>
+    [Fact]
+    public async Task Our_own_join_is_not_a_drag_and_touches_nothing()
+    {
+        (VoiceMoveCoordinator coordinator, FakeVoiceGateway gateway) = Build.Coordinator(listeners: 0);
+
+        VoiceMoveOutcome outcome = await coordinator.HandleAsync(
+            new VoiceMove(Build.Guild, Build.Bot, null, Build.Lobby, IsBot: true));
+
+        Assert.Equal(VoiceMoveAction.None, outcome.Action);
+        Assert.Empty(gateway.Reconnects);
+        Assert.Equal(0, gateway.Pauses);
+        Assert.Null(gateway.ScheduledDelay);
+    }
+
+    /// <summary>
+    /// A cache miss is not an empty channel. Pausing on a guess costs a silent track, and the
+    /// gateway now says so with <see cref="IVoicePlayerGateway.UnknownListeners"/> instead of zero.
+    /// </summary>
+    /// <remarks>
+    /// <c>Paused = true</c> is what makes this bite: without the unknown branch, −1 is neither zero
+    /// nor a reason to keep quiet, so the coordinator falls through to the resume half and undoes a
+    /// deliberate <c>/pause</c> — which the <c>Resumes</c> and <c>Cancels</c> assertions catch.
+    /// </remarks>
+    [Fact]
+    public async Task Unknown_occupancy_decides_nothing()
+    {
+        (VoiceMoveCoordinator coordinator, FakeVoiceGateway gateway) =
+            Build.Coordinator(listeners: IVoicePlayerGateway.UnknownListeners);
+        gateway.Paused = true;
+
+        VoiceMoveOutcome outcome = await coordinator.HandleAsync(
+            new VoiceMove(Build.Guild, Build.Member, null, Build.Lobby, IsBot: false));
+
+        Assert.Equal(VoiceMoveAction.None, outcome.Action);
+        Assert.Equal(0, gateway.Resumes);
+        Assert.Equal(0, gateway.Pauses);
+        Assert.Equal(0, gateway.Cancels);
+        Assert.Null(gateway.ScheduledDelay);
+        Assert.True(gateway.Paused);
+    }
+
+    /// <summary>
+    /// Same rule on the drag path: reconnect, then leave playback exactly as it was.
+    /// </summary>
+    /// <remarks>
+    /// <c>Paused = true</c> again, and for the same reason — an unknown count that falls through to
+    /// the occupancy rules resumes a deliberately paused player and reports
+    /// <c>ResumedOccupied</c> instead of <c>Reconnected</c>, so the first assertion catches it too.
+    /// </remarks>
+    [Fact]
+    public async Task Dragged_into_a_channel_we_cannot_see_reconnects_but_leaves_playback_alone()
+    {
+        (VoiceMoveCoordinator coordinator, FakeVoiceGateway gateway) =
+            Build.Coordinator(listeners: IVoicePlayerGateway.UnknownListeners);
+        gateway.Paused = true;
+
+        VoiceMoveOutcome outcome = await coordinator.HandleAsync(
+            new VoiceMove(Build.Guild, Build.Bot, Build.Lobby, Build.Stage, IsBot: true));
+
+        Assert.Equal(VoiceMoveAction.Reconnected, outcome.Action);
+        Assert.Equal([Build.Stage], gateway.Reconnects);
+        Assert.Equal(0, gateway.Pauses);
+        Assert.Equal(0, gateway.Resumes);
+        Assert.True(gateway.Paused);
+        Assert.Null(gateway.ScheduledDelay);
+    }
+
+    /// <summary>
+    /// A drag that finds no player disarms the timer on the way out — a leave that armed one and
+    /// then lost its player would otherwise fire <c>DisconnectAsync</c> against nothing forever.
+    /// </summary>
+    [Fact]
+    public async Task A_drag_with_no_player_disarms_the_leave_timer()
+    {
+        (VoiceMoveCoordinator coordinator, FakeVoiceGateway gateway) = Build.Coordinator(playerChannel: null);
+
+        VoiceMoveOutcome outcome = await coordinator.HandleAsync(
+            new VoiceMove(Build.Guild, Build.Bot, Build.Lobby, Build.Stage, IsBot: true));
+
+        Assert.Equal(VoiceMoveAction.None, outcome.Action);
+        Assert.Equal(1, gateway.Cancels);
+        Assert.Equal(0, gateway.Disconnects);
+    }
 }

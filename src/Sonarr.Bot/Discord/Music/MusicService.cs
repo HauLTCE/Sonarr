@@ -105,6 +105,14 @@ public sealed partial class MusicService(
         {
             await player.PlayAsync(items[0], enqueue: false, cancellationToken: ct).ConfigureAwait(false);
             items.RemoveAt(0);
+
+            // PlayAsync does not clear IsPaused, so a player that was paused — by /pause, or by
+            // the empty-channel auto-pause — starts the new track already stopped, and the reply
+            // still says "Queued". Resuming after the play call is what makes /play mean play.
+            if (player.IsPaused)
+            {
+                await player.ResumeAsync(ct).ConfigureAwait(false);
+            }
         }
         else if (front)
         {

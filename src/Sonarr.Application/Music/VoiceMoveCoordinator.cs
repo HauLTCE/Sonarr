@@ -17,6 +17,11 @@ namespace Sonarr.Application.Music;
 /// every gateway call is wrapped: a failed reconnect is a log line and
 /// <see cref="VoiceMoveAction.ReconnectFailed"/>, not an exception.
 /// </para>
+/// <para>
+/// <b>A join is not a move.</b> Sonarr's own join arrives here as a bot move with no old channel,
+/// and acting on it — re-sending the voice update, or judging occupancy — is what made <c>/play</c>
+/// silent until you kicked her and ran it again. See <c>HandleBotMoveAsync</c> for the mechanism.
+/// </para>
 /// </remarks>
 public sealed class VoiceMoveCoordinator(IVoicePlayerGateway gateway, ILogger<VoiceMoveCoordinator> logger)
 {
@@ -52,9 +57,29 @@ public sealed class VoiceMoveCoordinator(IVoicePlayerGateway gateway, ILogger<Vo
     /// <summary>Sonarr itself moved: dragged to another channel, or disconnected.</summary>
     private async Task<VoiceMoveOutcome> HandleBotMoveAsync(VoiceMove move, CancellationToken ct)
     {
+        if (move.OldChannelId is null)
+        {
+            // We just joined. This is not a drag, and treating it as one is what broke /play.
+            //
+            // Every join emits a bot voice-state event with OldChannelId null, and this method used
+            // to fall straight through to ReconnectAsync — a second op4 for a channel Lavalink4NET
+            // had already completed the handshake on. The node answers the new session id and token
+            // with a voice websocket close 4006 (session no longer valid) and stops sending audio,
+            // while the player object stays happily "playing". Then ApplyOccupancyAsync ran on the
+            // same event and paused the brand-new player if the member cache had not caught up yet.
+            //
+            // That is the /play → kick → /play dance: the kick disposed the wrecked player, and the
+            // second /play got a clean one because by then the member cache was warm and the stale
+            // session was gone. Nothing to rescue on a join, so nothing to do.
+            return VoiceMoveOutcome.None;
+        }
+
         if (await gateway.GetPlayerChannelAsync(move.GuildId, ct).ConfigureAwait(false) is null)
         {
-            // No player: we are not playing anything, so there is nothing to rescue.
+            // No player: we are not playing anything, so there is nothing to rescue. The timer is
+            // still disarmed, because a leave that armed one and then lost its player would keep
+            // firing DisconnectAsync against nothing every five minutes.
+            gateway.CancelIdleDisconnect(move.GuildId);
             return VoiceMoveOutcome.None;
         }
 
@@ -109,6 +134,18 @@ public sealed class VoiceMoveCoordinator(IVoicePlayerGateway gateway, ILogger<Vo
     private async Task<VoiceMoveOutcome> ApplyOccupancyAsync(ulong guildId, ulong channelId, CancellationToken ct)
     {
         var listeners = await gateway.CountListenersAsync(guildId, channelId, ct).ConfigureAwait(false);
+
+        if (listeners == IVoicePlayerGateway.UnknownListeners)
+        {
+            // Occupancy is a guess and pausing on a guess costs a silent track, so an unknown
+            // count decides nothing at all — not even the resume half, because "somebody is
+            // probably there" is not a reason to undo a deliberate /pause.
+            logger.LogDebug(
+                "Occupancy unknown for {ChannelId} in guild {GuildId}; leaving playback alone.",
+                channelId, guildId);
+            return VoiceMoveOutcome.None;
+        }
+
         var paused = await gateway.IsPausedAsync(guildId, ct).ConfigureAwait(false);
 
         if (listeners == 0)

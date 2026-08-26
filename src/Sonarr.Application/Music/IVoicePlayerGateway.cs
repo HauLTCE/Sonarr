@@ -8,13 +8,25 @@ namespace Sonarr.Application.Music;
 /// </summary>
 public interface IVoicePlayerGateway
 {
+    /// <summary>
+    /// What <see cref="CountListenersAsync"/> returns when occupancy is genuinely unknown — the
+    /// gateway cache has no such channel, or the lookup failed. Distinct from zero on purpose:
+    /// zero pauses the music and arms the leave timer, and doing that on a cache miss is what made
+    /// a freshly started track silent (see <see cref="VoiceMoveCoordinator"/>).
+    /// </summary>
+    const int UnknownListeners = -1;
+
     /// <summary>The channel the player is bound to, or <c>null</c> when there is no player.</summary>
     ValueTask<ulong?> GetPlayerChannelAsync(ulong guildId, CancellationToken cancellationToken = default);
 
     /// <summary>Re-establishes the voice connection on <paramref name="voiceChannelId"/>, keeping playback.</summary>
     ValueTask ReconnectAsync(ulong guildId, ulong voiceChannelId, CancellationToken cancellationToken = default);
 
-    /// <summary>Humans in the channel, bots excluded.</summary>
+    /// <summary>
+    /// Humans in the channel, bots excluded, or <see cref="UnknownListeners"/> when the
+    /// implementation cannot tell. Zero means "verified empty" and nothing else, because zero is
+    /// what pauses the music and arms the leave timer.
+    /// </summary>
     ValueTask<int> CountListenersAsync(
         ulong guildId, ulong voiceChannelId, CancellationToken cancellationToken = default);
 
