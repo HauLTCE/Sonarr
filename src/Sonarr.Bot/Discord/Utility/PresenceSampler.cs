@@ -6,8 +6,8 @@ namespace Sonarr.Bot.Discord.Utility;
 
 /// <summary>
 /// Samples every guild's online and in-voice counts every 5 minutes into <c>stats.activity_sample</c>
-/// (docs/08-background-services.md), so the panel can draw an activity graph without polling
-/// Discord.
+/// (docs/08-background-services.md), so the activity series exists without asking Discord for
+/// history it does not keep.
 /// </summary>
 public sealed class PresenceSampler(
     DiscordSocketClient client,

@@ -112,7 +112,7 @@ internal sealed class SchedulerJobRepository : IJobRepository
             job.Status = JobStatus.Pending;
             job.RunAt = runAt;
             job.Payload = payload;
-            // Kept, unlike CompleteAsync: the panel needs to show why the last attempt failed.
+            // Kept, unlike CompleteAsync: why the last attempt failed is the only record of a retry.
             job.Error = error;
         }
 

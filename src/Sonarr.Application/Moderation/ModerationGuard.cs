@@ -8,8 +8,8 @@ namespace Sonarr.Application.Moderation;
 /// </summary>
 /// <remarks>
 /// Discord's own preconditions already stop most of this at the controller. This exists because
-/// "checked in the module" is not a guarantee: the web panel calls the same service, and a role
-/// can change between the precondition and the API call. Deny-by-default — an unknown target
+/// "checked in the module" is not a guarantee: the service is the enforcement point, and a role can
+/// change between the precondition and the API call. Deny-by-default — an unknown target
 /// role position means "not below me", not "fine".
 /// </remarks>
 public static class ModerationGuard
@@ -76,7 +76,8 @@ public static class ModerationGuard
             : ModerationDenial.None;
     }
 
-    /// <summary>The user-facing sentence for a denial. One place, so Discord and the panel agree.</summary>
+    /// <summary>The user-facing sentence for a denial. One place, so a denial reads the same
+    /// wherever it surfaces.</summary>
     public static string Explain(ModerationDenial denial) => denial switch
     {
         ModerationDenial.ActorMissingPermission => "You don't have the permission for that.",

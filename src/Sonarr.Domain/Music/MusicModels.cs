@@ -65,7 +65,7 @@ public sealed record MusicContext(
 
 /// <summary>
 /// The standard answer: did it work, and the one sentence the user reads. Controllers do not
-/// compose music prose — the service owns the wording so Discord and the panel agree.
+/// compose music prose — the service owns the wording, so a caller cannot reword a refusal.
 /// </summary>
 public sealed record MusicResult(bool Success, string Message)
 {

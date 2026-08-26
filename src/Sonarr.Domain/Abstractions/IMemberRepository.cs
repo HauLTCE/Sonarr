@@ -11,7 +11,7 @@ public interface IMemberRepository
     /// Batched write: bump message_count and last_active_at, and <b>create the row if it is not
     /// there yet</b>. This is the only path that inserts into <c>core.member</c> — every other
     /// write here is an UPDATE, so a member Sonarr has never seen speak has no row for
-    /// <c>/birthday</c>, <c>/timezone</c> or panel login to land on.
+    /// <c>/birthday</c> or <c>/timezone</c> to land on.
     /// </summary>
     Task ApplyActivityAsync(IReadOnlyCollection<MemberActivityDelta> deltas, CancellationToken ct = default);
 
@@ -30,20 +30,20 @@ public interface IMemberRepository
         long guildId, int month, int day, CancellationToken ct = default);
 
     /// <summary>
-    /// The guilds this user is a member of, for the panel's server picker. Named rather than just
-    /// ids: every panel page is guild-scoped, and a dropdown of snowflakes is not a picker.
+    /// The guilds this user is a member of, named rather than just ids. Unused by the current
+    /// surface.
     /// </summary>
     Task<IReadOnlyList<MemberGuild>> GetGuildsAsync(long userId, CancellationToken ct = default);
 
     /// <summary>
-    /// Panel login: the user id behind a Discord handle, or null when nobody here has it.
-    /// Case-insensitive, and null when two rows disagree — the cached username is not unique
-    /// across guilds, and DMing the wrong person is worse than a failed login.
+    /// The user id behind a Discord handle, or null when nobody here has it. Case-insensitive, and
+    /// null when two rows disagree — the cached username is not unique across guilds, and DMing the
+    /// wrong person is worse than answering nobody. Unused by the current surface.
     /// </summary>
     Task<long?> FindUserIdByUsernameAsync(string username, CancellationToken ct = default);
 }
 
-/// <summary>One entry in the panel's server picker.</summary>
+/// <summary>One guild a user belongs to, with its name.</summary>
 public sealed record MemberGuild(long GuildId, string Name);
 
 /// <summary>

@@ -51,8 +51,8 @@ public static class DiscordServiceCollectionExtensions
             sp.GetRequiredService<InteractionServiceConfig>()));
 
         // Channel/role/member names off the gateway cache. Used by GuildConfigService to check a
-        // snowflake is the kind of thing its key asks for — it lived in the panel slice until that
-        // was deleted, and losing the registration makes every `/config set` throw at resolution.
+        // snowflake is the kind of thing its key asks for, so losing the registration makes every
+        // `/config set` throw at resolution.
         services.AddSingleton<IGuildDirectory, GatewayGuildDirectory>();
 
         // The error pipeline's user-facing half: the same friendly line the user saw, kept per user

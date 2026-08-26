@@ -46,9 +46,9 @@ public static class LevelsConfigKeys
 
     /// <summary>
     /// The accepted percent range for one channel weight. Named because three places need it: this
-    /// parser, the catalog entry's bounds (and so the error text), and the panel's number input. It
-    /// was a bare <c>0 and &lt;= 500</c> here, which meant the web editor had to hardcode the same
-    /// pair and would have gone on offering 500 after the day someone loosened it.
+    /// parser, the catalog entry's bounds (and so the error text), and the <c>/config levels</c>
+    /// slash-command bound. It was a bare <c>0 and &lt;= 500</c> here, which meant each of the
+    /// others hardcoded the same pair and would have drifted the day someone loosened it.
     /// </summary>
     public const int MinWeightPercent = 0;
 

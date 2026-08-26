@@ -4,8 +4,8 @@ using Sonarr.Domain.Jobs;
 namespace Sonarr.Bot.Discord.Jobs;
 
 /// <summary>
-/// The nightly retention sweep (docs/08, 04:00): the <c>chat.episode</c> cap, dead login tokens
-/// and web sessions, and stats past their window.
+/// The nightly retention sweep (docs/08, 04:00): the <c>chat.episode</c> cap and stats past their
+/// window.
 /// </summary>
 /// <remarks>
 /// <para>A plain daily timer rather than a <c>core.job</c> row, unlike everything the

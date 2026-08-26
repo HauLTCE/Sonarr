@@ -132,8 +132,8 @@ public sealed class JobRepository(SonarrDbContext db) : IJobRepository
         ArgumentNullException.ThrowIfNull(payload);
         string? trimmed = error is null ? null : error.Length <= 2000 ? error : error[..2000];
 
-        // Error text is kept while the job is pending again: the panel needs to show why the
-        // last attempt failed, and CompleteAsync clears it on the next success.
+        // Error text is kept while the job is pending again: why the last attempt failed is the only
+        // record of a retry, and CompleteAsync clears it on the next success.
         return db.Jobs
             .Where(j => j.JobId == jobId)
             .ExecuteUpdateAsync(

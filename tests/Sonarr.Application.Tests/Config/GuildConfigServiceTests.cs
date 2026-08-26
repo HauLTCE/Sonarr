@@ -126,9 +126,9 @@ public sealed class GuildConfigServiceTests
 
     // -----------------------------------------------------------------------------------------
     // A snowflake carries no type, so TryValidate can only prove a value is *a* snowflake. That is
-    // what made the panel's wrong-kind bug silent: a channel id landed in dj_role and the write
-    // reported success. The panel now sends the right control, but /config set and /config import
-    // still went through, so the check lives in the service where all three surfaces cross it.
+    // what made the wrong-kind bug silent: a channel id landed in dj_role and the write reported
+    // success. /config set and /config import both went through, so the check lives in the service
+    // where every write path crosses it.
     // -----------------------------------------------------------------------------------------
     [Fact]
     public async Task SetAsync_rejects_a_channel_id_handed_to_a_role_key()

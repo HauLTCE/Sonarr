@@ -16,7 +16,7 @@ namespace Sonarr.Bot.Discord.Jobs;
 /// <para>
 /// <b>A throwing handler never kills the poller.</b> Each job runs inside its own try/catch; on
 /// failure the row is re-armed with a backoff for <see cref="MaxAttempts"/> tries and then marked
-/// <c>failed</c> with the error text kept for the panel.
+/// <c>failed</c> with the error text kept on the row for a human to read.
 /// </para>
 /// <para>
 /// <b>Cheap by design</b> — the box is a Pentium J2900. One indexed query per tick against
@@ -64,7 +64,7 @@ public sealed class JobScheduler(IServiceScopeFactory scopes, ILogger<JobSchedul
 
     /// <summary>
     /// One poll cycle. Public so a test can drive it deterministically instead of waiting on the
-    /// timer, and so a future "run due jobs now" panel button has something to call.
+    /// timer.
     /// </summary>
     public async Task PollOnceAsync(CancellationToken ct)
     {

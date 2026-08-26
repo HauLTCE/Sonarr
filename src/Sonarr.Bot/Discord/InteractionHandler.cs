@@ -84,8 +84,8 @@ public sealed class InteractionHandler(
 
         var friendly = $"Something broke on my end. Reference `{caseId}` if you want someone to look at it.";
 
-        // Same line, kept for the panel's "My errors" page — the reason a user does not need an
-        // errors channel on Discord (docs/09). The exception itself stays in the log.
+        // Same line, recorded per user so a failure can be recalled without an errors channel
+        // everyone else scrolls past. The exception itself stays in the log.
         errors.Record(
             interaction.User?.Id ?? 0,
             new UserError(caseId, what, friendly, DateTimeOffset.UtcNow));

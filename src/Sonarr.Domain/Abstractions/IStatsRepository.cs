@@ -31,8 +31,8 @@ public interface IStatsRepository
         CancellationToken ct = default);
 
     /// <summary>
-    /// The admin Stats page (docs/09): command usage, the activity series and member growth for one
-    /// guild over a window. One call rather than three, because the page is one screen.
+    /// Command usage, the activity series and member growth for one guild over a window. One call
+    /// rather than three — the three are always read together. No caller on the current surface.
     /// </summary>
     /// <param name="days">Window length, clamped by the implementation.</param>
     Task<GuildStats> GetStatsAsync(long guildId, int days, CancellationToken ct = default);

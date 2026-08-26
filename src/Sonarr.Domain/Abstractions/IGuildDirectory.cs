@@ -1,8 +1,8 @@
 namespace Sonarr.Domain.Abstractions;
 
 /// <summary>One channel or role, as a person reads it plus the id the API stores.</summary>
-/// <param name="Id">The snowflake, as a string — JSON numbers lose precision in JavaScript.</param>
-/// <param name="Name">No leading <c>#</c> or <c>@</c>; the panel adds the sigil it wants.</param>
+/// <param name="Id">The snowflake, as a string — config values are stored and compared as text.</param>
+/// <param name="Name">No leading <c>#</c> or <c>@</c>; the caller adds the sigil it wants.</param>
 public sealed record NamedEntity(string Id, string Name);
 
 /// <param name="Channels">Text channels, in the order they appear in Discord's sidebar.</param>
@@ -12,14 +12,14 @@ public sealed record GuildDirectory(
     IReadOnlyList<NamedEntity> Roles);
 
 /// <summary>
-/// Turns snowflakes into names for the panel. A settings page that asks for a channel id is asking
-/// the admin to go and fetch something Discord already knows.
+/// Turns snowflakes into names. A setting that reports a channel id is asking the admin to go and
+/// fetch something Discord already knows.
 /// </summary>
 /// <remarks>
 /// Read-only and cache-only on purpose. The gateway runs in the same process with
 /// <c>AlwaysDownloadUsers</c>, so a name is a dictionary lookup; falling back to REST would turn one
-/// page of thirty moderation cases into thirty HTTP requests. Unknown resolves to null and the panel
-/// shows the id, which is strictly what it used to show anyway.
+/// page of thirty moderation cases into thirty HTTP requests. Unknown resolves to null and the
+/// caller falls back to the id.
 /// </remarks>
 public interface IGuildDirectory
 {

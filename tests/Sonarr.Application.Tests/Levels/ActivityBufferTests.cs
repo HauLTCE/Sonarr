@@ -6,11 +6,11 @@ namespace Sonarr.Application.Tests.Levels;
 /// <summary>
 /// The activity buffer is the only path that creates <c>core.member</c> rows, so it has to carry
 /// the identity fields that row needs — every other write to that table is an UPDATE that silently
-/// no-ops without one (<c>/birthday</c>, <c>/timezone</c>, panel login).
+/// no-ops without one (<c>/birthday</c>, <c>/timezone</c>).
 /// </summary>
 /// <remarks>
 /// These are about the carrying, not the writing: the SQL upsert itself is one statement against
-/// Postgres and there are no database-backed tests here (docs/09-testing.md).
+/// Postgres and there are no database-backed tests here.
 /// </remarks>
 public sealed class ActivityBufferTests
 {

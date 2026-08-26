@@ -2,7 +2,7 @@ namespace Sonarr.Domain.Moderation;
 
 /// <summary>
 /// Why a moderation action was refused. The controller maps this to a sentence; the service
-/// decides it, so the web panel gets the same verdict for the same reason.
+/// decides it — the verdict belongs to the service, not to whichever caller phrases it.
 /// </summary>
 public enum ModerationDenial
 {

@@ -4,7 +4,7 @@ namespace Sonarr.Domain.Abstractions;
 
 /// <summary>
 /// mod.case + mod.infraction_summary access. Returns domain records, never EF entities,
-/// so the service and the panel share one shape.
+/// so the persistence shape stops at this boundary.
 /// </summary>
 public interface IModCaseRepository
 {

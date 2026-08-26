@@ -9,7 +9,7 @@ namespace Sonarr.Bot.Modules;
 /// <summary>
 /// <c>/config</c> — the one config surface (docs/07-commands.md#server-management). Thin
 /// translator: parse, call <see cref="IGuildConfigService"/>, format. All validation lives in
-/// the service, so the panel and Discord reject the same values for the same reasons.
+/// the service, which is the enforcement point — this module is not what makes a value legal.
 /// </summary>
 /// <remarks>
 /// Two permission attributes, on purpose. <see cref="DefaultMemberPermissionsAttribute"/> is only a

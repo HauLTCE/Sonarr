@@ -4,8 +4,8 @@ namespace Sonarr.Domain.Abstractions;
 
 /// <summary>
 /// Moderation business rules: the hierarchy guard, the case-numbered audit trail, the
-/// durable tempban lift. Takes and returns domain models only, so Discord and the web
-/// panel get the same verdicts (docs/02-architecture.md).
+/// durable tempban lift. Takes and returns domain models only, so the verdicts live here
+/// rather than in a controller (docs/02-architecture.md).
 /// </summary>
 /// <remarks>
 /// <para>
@@ -17,7 +17,7 @@ namespace Sonarr.Domain.Abstractions;
 /// </para>
 /// <para>
 /// <b>The guard runs here, not only in the module.</b> The interaction precondition is the fast
-/// path; this is the one that cannot be bypassed by a web-panel call or a future entry point.
+/// path; this is the enforcement point, so no caller can reach the effect without it.
 /// </para>
 /// </remarks>
 public interface IModerationService

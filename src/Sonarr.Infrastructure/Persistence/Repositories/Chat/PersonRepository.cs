@@ -78,9 +78,9 @@ public sealed class PersonRepository(SonarrDbContext db) : IPersonRepository
     /// </summary>
     /// <remarks>
     /// The opinion itself is authored in <c>persona/stances.yaml</c>; this table exists so the
-    /// agreement has a foreign key and so the panels can read the registry. Upserting it here
-    /// rather than syncing it at startup means a reworded opinion corrects itself the next time it
-    /// comes up, and there is no service to forget to run.
+    /// agreement has a foreign key to point at. Upserting it here rather than syncing it at startup
+    /// means a reworded opinion corrects itself the next time it comes up, and there is no service
+    /// to forget to run.
     /// <para>Inside the caller's transaction — the agreement and the opinion it points at commit
     /// together or not at all, since half of that pair is a FK violation.</para>
     /// </remarks>

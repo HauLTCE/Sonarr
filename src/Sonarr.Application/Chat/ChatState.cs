@@ -82,8 +82,8 @@ public static class ChatState
         person.ActivityStack = new JsonArray([.. state.Activities.Layers.Select(l => JsonValue.Create(l))]);
         person.AssignedNickname = state.AssignedNickname;
 
-        // Tier is derived from trust, so it is only stored to let SQL read it (/relationship,
-        // the admin panel) — the engine always recomputes it from the registers.
+        // Tier is derived from trust, so it is only stored to let SQL read it (/relationship) — the
+        // engine always recomputes it from the registers.
         person.RelationshipTier =
             ModeSelector.SelectTier(root, state.Registers[Registers.Names.Trust])?.Id ?? string.Empty;
     }

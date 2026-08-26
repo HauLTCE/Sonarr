@@ -17,7 +17,7 @@ internal sealed class ModCaseConfiguration : IEntityTypeConfiguration<ModCase>
         builder.Property(c => c.Context).IsJsonb();
         builder.HasAuditTimestamps();
 
-        // /cases @user and the panel's per-user history.
+        // /cases @user — per-user history in one guild.
         builder.HasIndex(c => new { c.GuildId, c.TargetId });
 
         builder.HasOne<Guild>()

@@ -5,7 +5,7 @@ namespace Sonarr.Domain.Abstractions;
 /// <summary>
 /// The one config system (docs/04-database.md#coreguild_config). Owns validation against the
 /// closed key catalog and Redis invalidation, so a write applies immediately everywhere.
-/// Takes and returns domain types only — usable from Discord and the web panel alike.
+/// Takes and returns domain types only — no caller's transport shape leaks in.
 /// </summary>
 public interface IGuildConfigService
 {

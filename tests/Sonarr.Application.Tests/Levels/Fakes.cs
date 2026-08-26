@@ -296,7 +296,7 @@ internal sealed class FakeMemberRepository : IMemberRepository
             [.. _rows.Values.Where(m => m.GuildId == guildId
                 && m.FirstSeenAt.Month == month && m.FirstSeenAt.Day == day)]);
 
-    /// <summary>Names a seeded row, so the panel-login lookup has something to find.</summary>
+    /// <summary>Names a seeded row, so the username lookup has something to find.</summary>
     public FakeMemberRepository Named(long guildId, long userId, string username)
     {
         Member row = _rows.TryGetValue((guildId, userId), out Member? existing)
@@ -319,8 +319,8 @@ internal sealed class FakeMemberRepository : IMemberRepository
 
     public Task<IReadOnlyList<MemberGuild>> GetGuildsAsync(long userId, CancellationToken ct = default)
     {
-        // No guild names in this fake — the picker's wording is the panel's problem, not the
-        // repository's, so the id doubles as the name.
+        // No guild names in this fake — naming is the caller's problem, not the repository's, so
+        // the id doubles as the name.
         IReadOnlyList<MemberGuild> guilds = [.. _rows.Values
             .Where(m => m.UserId == userId)
             .Select(m => new MemberGuild(m.GuildId, m.GuildId.ToString(CultureInfo.InvariantCulture)))];

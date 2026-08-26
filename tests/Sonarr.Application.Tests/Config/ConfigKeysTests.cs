@@ -4,8 +4,8 @@ using Sonarr.Domain.Levels;
 namespace Sonarr.Application.Tests.Config;
 
 /// <summary>
-/// The closed key catalog is the trust boundary for <c>/config</c> and the panel: a value that
-/// gets past here becomes a jsonb row, so every kind is checked good and bad.
+/// The closed key catalog is the trust boundary for <c>/config</c>: a value that gets past here
+/// becomes a jsonb row, so every kind is checked good and bad.
 /// </summary>
 public sealed class ConfigKeysTests
 {

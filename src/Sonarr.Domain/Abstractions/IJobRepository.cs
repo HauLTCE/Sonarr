@@ -27,7 +27,7 @@ public interface IJobRepository
     /// <summary>Mark done. For recurring kinds, pass the next occurrence to re-arm in one step.</summary>
     Task CompleteAsync(long jobId, DateTimeOffset? nextRunAt = null, CancellationToken ct = default);
 
-    /// <summary>Mark failed with the error text kept for the panel.</summary>
+    /// <summary>Mark failed, with the error text kept on the row for a human to read.</summary>
     Task FailAsync(long jobId, string error, CancellationToken ct = default);
 
     /// <summary>

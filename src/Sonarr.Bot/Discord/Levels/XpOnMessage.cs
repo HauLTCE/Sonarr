@@ -61,13 +61,13 @@ public sealed class XpOnMessage(
     {
         try
         {
-            // Message counts keep accruing even with levels switched off — /userstats and the
-            // panel read them, and they are not XP.
+            // Message counts keep accruing even with levels switched off — /userstats reads them,
+            // and they are not XP.
             //
             // The names and join date ride along because this flush is the only thing that
-            // creates core.member rows: /birthday, /timezone and panel login are all UPDATEs
-            // that no-op without one. GetUser is the local cache, never a REST call — null on a
-            // cache miss, and the flush falls back to the message time for first_seen_at.
+            // creates core.member rows: /birthday and /timezone are both UPDATEs that no-op
+            // without one. GetUser is the local cache, never a REST call — null on a cache miss,
+            // and the flush falls back to the message time for first_seen_at.
             SocketGuildUser? cached = guild.GetUser(userId);
             activity.Record(
                 guild.Id,

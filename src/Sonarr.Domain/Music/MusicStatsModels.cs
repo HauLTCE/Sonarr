@@ -13,7 +13,7 @@ public sealed record RatedTrack(string Title, string Uri, int Likes, int Dislike
 }
 
 /// <summary>
-/// One of the user's own votes, with the guild's tally beside it — the panel's "my ratings".
+/// One of the user's own votes, with the guild's tally beside it. Unused by the current surface.
 /// </summary>
 /// <param name="Vote">+1 or -1: what this user said.</param>
 public sealed record MyRating(string Title, string Uri, short Vote, int Likes, int Dislikes, DateTimeOffset At)

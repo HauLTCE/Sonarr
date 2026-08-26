@@ -92,7 +92,7 @@ public sealed class JobSchedulerTests
     {
         SchedulerJobRepository jobs = new();
 
-        // core.job.payload is jsonb a human can edit through the panel or psql.
+        // core.job.payload is jsonb a human can edit through psql.
         Job job = jobs.Add(JobKinds.Reminder, new JsonObject { [JobScheduler.AttemptsField] = "lots" });
         ProbeHandler handler = new(JobKinds.Reminder) { Throws = new InvalidOperationException("nope") };
 

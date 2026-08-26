@@ -4,8 +4,8 @@ using Sonarr.Domain.Levels;
 namespace Sonarr.Domain.Abstractions;
 
 /// <summary>
-/// The levels module's business rules (docs/07-commands.md#levels). Domain types only: the
-/// Discord handler and the web panel both call this.
+/// The levels module's business rules (docs/07-commands.md#levels). Domain types only — the rules
+/// belong here, not in the Discord handler that calls them.
 /// </summary>
 public interface ILevelService
 {

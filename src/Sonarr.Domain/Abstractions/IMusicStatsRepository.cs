@@ -34,8 +34,8 @@ public interface IMusicStatsRepository
     Task<RatedTrack?> GetRatingAsync(ulong guildId, string uri, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// One user's own votes, newest first — the panel's "my ratings" (docs/09). The tally is the
-    /// whole guild's, so the row reads "you liked this, the room is +3".
+    /// One user's own votes, newest first. The tally is the whole guild's, so the row reads "you
+    /// liked this, the room is +3". No caller on the current surface.
     /// </summary>
     Task<IReadOnlyList<MyRating>> GetUserRatingsAsync(
         ulong guildId, ulong userId, int limit, CancellationToken cancellationToken = default);

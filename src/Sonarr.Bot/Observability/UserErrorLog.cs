@@ -3,20 +3,20 @@ using System.Collections.Concurrent;
 namespace Sonarr.Bot.Observability;
 
 /// <summary>
-/// The last few command failures per user, so "My errors" can replace an errors channel on Discord
-/// (docs/09-web-panels.md).
+/// The last few command failures per user, so a member can be shown their own failures rather than
+/// a shared errors channel. Only the write path has a caller on the current surface.
 /// </summary>
 /// <remarks>
 /// Stores the case id, the command name and the friendly line — never the exception, never the
 /// arguments. A user's command text is not logged anywhere else (docs/06) and this is not the place
-/// to start; the case id is what correlates the panel row with the Serilog entry an admin reads.
+/// to start; the case id is what correlates the user-facing line with the Serilog entry an admin reads.
 /// </remarks>
 // ponytail: in-memory and per-process, so a restart clears the list and only the last 10 per user
-// are kept. Upgrade path is a Redis list per user (`web:errors:{user}`, same shape, 7 d TTL) — the
+// are kept. Upgrade path is a Redis list per user (`errors:{user}`, same shape, 7 d TTL) — the
 // interface here is already "append, read newest first", so the swap is one class.
 public sealed class UserErrorLog
 {
-    /// <summary>Kept per user. Ten is what the page shows; there is no "older" link to feed.</summary>
+    /// <summary>Kept per user. Ten is a screenful; nothing pages past it.</summary>
     public const int PerUser = 10;
 
     /// <summary>
@@ -56,7 +56,7 @@ public sealed class UserErrorLog
         }
     }
 
-    /// <summary>Newest first — what the panel shows.</summary>
+    /// <summary>Newest first. No caller on the current surface reads it back.</summary>
     public IReadOnlyList<UserError> Recent(ulong userId)
     {
         if (!_byUser.TryGetValue(userId, out Queue<UserError>? queue))

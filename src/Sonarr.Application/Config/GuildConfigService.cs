@@ -93,9 +93,9 @@ public sealed class GuildConfigService(
     /// <remarks>
     /// <see cref="ConfigKeys.TryValidate"/> cannot do this: it is pure, it is also what the Migrator
     /// calls against guilds the bot may not be in, and a snowflake carries no type. So it proves the
-    /// value is <em>a</em> snowflake and stops. That gap is what made the panel's wrong-kind bug
-    /// silent — a channel id saved into <c>dj_role</c> and reported success — and while the panel now
-    /// sends the right control, <c>/config set dj_role #general</c> in Discord still went through.
+    /// value is <em>a</em> snowflake and stops. That gap is what made the wrong-kind bug silent — a
+    /// channel id saved into <c>dj_role</c> and reported success — and Discord is now the only write
+    /// path, so <c>/config set dj_role #general</c> is the case this check has to catch.
     ///
     /// A null <paramref name="guild"/> is a pass, not a failure: the gateway cache is the only source
     /// here, so "not cached" and "does not exist" are indistinguishable from this side. Rejecting on

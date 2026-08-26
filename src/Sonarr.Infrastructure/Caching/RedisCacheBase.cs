@@ -16,8 +16,8 @@ namespace Sonarr.Infrastructure.Caching;
 /// durable (docs/05), so an outage must degrade features, not stop the bot.
 /// </para>
 /// <para>
-/// Rate limits and cooldowns FAIL CLOSED: see <see cref="RedisCooldownStore"/>. Those calls
-/// gate the web DM-token endpoint, so "Redis is down" must mean "denied", never "allowed".
+/// Rate limits and cooldowns FAIL CLOSED: see <see cref="RedisCooldownStore"/>. A limit that
+/// cannot be recorded cannot be enforced, so "Redis is down" must mean "denied", never "allowed".
 /// That is why they do not use <see cref="ReadAsync"/> — the helper's miss semantics would
 /// silently open the gate.
 /// </para>
