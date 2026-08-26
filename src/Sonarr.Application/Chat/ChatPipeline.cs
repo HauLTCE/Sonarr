@@ -28,7 +28,7 @@ public sealed class ChatPipeline(
     ISessionCache cache,
     IFeatureGate features,
     IClock clock,
-    IGuildConfigService config,
+    ChatQuietHours quietHours,
     ILogger<ChatPipeline> log,
     SemanticIntentIndex? semantic = null,
     CallbackRetriever? callbacks = null,
@@ -72,6 +72,25 @@ public sealed class ChatPipeline(
             return ChatDecision.Skip(ChatDecision.SkipReasons.BudgetSpent);
         }
 
+        // Her calendar is the room's, not the container's: 3–6 am and "the mood of the day" are
+        // about when the people talking to her are awake. Config is Redis-cached, so this is a
+        // dictionary lookup on the warm path, and an unset or unresolvable zone lands on UTC —
+        // the same fallback reminders use, and a dev box without ICU can only ever get that one.
+        //
+        // Resolved here rather than at ClockSignals below because quiet hours need the same local
+        // time and a turn is allowed exactly one timezone read (ChatCalendarTests). It sits after
+        // the two cache gates so an ambient message and a spent budget still cost nothing.
+        DateTimeOffset local = TimeZoneInfo.ConvertTime(
+            now, await quietHours.ZoneAsync(request.GuildId, ct).ConfigureAwait(false));
+
+        // Sleep mode and the midday break, restored as global config. Before the database on
+        // purpose: "she is asleep" must not cost a person row, and it is the last gate that can
+        // be decided without one.
+        if (await quietHours.SkipReasonAsync(request.GuildId, local, ct).ConfigureAwait(false) is { } quiet)
+        {
+            return ChatDecision.Skip(quiet);
+        }
+
         PersonaGraph graph = persona.Current;
         long guildId = (long)request.GuildId;
         long userId = (long)request.UserId;
@@ -82,13 +101,9 @@ public sealed class ChatPipeline(
         ChatSessionState? session = await cache.GetSessionAsync(request.GuildId, request.UserId, ct)
             .ConfigureAwait(false);
 
-        // Her calendar is the room's, not the container's: 3–6 am and "the mood of the day" are
-        // about when the people talking to her are awake. Config is Redis-cached, so this is a
-        // dictionary lookup on the warm path, and an unset or unresolvable zone lands on UTC —
-        // the same fallback reminders use, and a dev box without ICU can only ever get that one.
         ClockSignals signals = ClockSignals.From(
             graph,
-            TimeZoneInfo.ConvertTime(now, await GuildZoneAsync(request.GuildId, ct).ConfigureAwait(false)),
+            local,
             session?.LastTurnAt ?? person.UpdatedAt);
 
         // Salt mixes the person with the day so two people on the same turn hear different
@@ -172,27 +187,6 @@ public sealed class ChatPipeline(
         await cache.MarkRepliedAsync(request.ChannelId, request.MessageId, hash, ct).ConfigureAwait(false);
 
         return new ChatDecision(result.Text, reaction, TypingDelayFor(result.Text), hash, null);
-    }
-
-    /// <summary>
-    /// The zone whose calendar decides her overlays and mood of the day, UTC when the guild has
-    /// not set one.
-    /// </summary>
-    /// <remarks>
-    /// Deliberately the guild's zone and never the speaker's: an overlay replaces a pool for the
-    /// whole room, so if it followed whoever happened to be typing she would be in October for
-    /// one person and not for the next. <c>InvariantGlobalization</c> means IANA ids only resolve
-    /// where tzdata exists (see ZoneResolver) — hence the UTC fallback rather than a throw.
-    /// </remarks>
-    private async Task<TimeZoneInfo> GuildZoneAsync(ulong guildId, CancellationToken ct)
-    {
-        ConfigValue? configured = await config.GetAsync(guildId, ConfigKeys.Timezone, ct)
-            .ConfigureAwait(false);
-
-        return configured?.Raw is { } id
-               && TimeZoneInfo.TryFindSystemTimeZoneById(id.Trim(), out TimeZoneInfo? zone)
-            ? zone
-            : TimeZoneInfo.Utc;
     }
 
     /// <summary>

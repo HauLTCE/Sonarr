@@ -30,6 +30,10 @@ public static class ChatServiceCollectionExtensions
 
         // Server-event memory: written by PresenceSampler, read when she brings a record up.
         services.AddScoped<IGuildStateRepository, GuildStateRepository>();
+
+        // The guild's clock plus sleep_mode / midday_break, shared by the two reply paths so a
+        // turn resolves the timezone once.
+        services.AddScoped<ChatQuietHours>();
         services.AddScoped<IChatPipeline, ChatPipeline>();
         services.AddScoped<ChatEditWatcher>();
 

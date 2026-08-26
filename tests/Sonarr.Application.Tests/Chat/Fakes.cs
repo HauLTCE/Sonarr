@@ -313,7 +313,15 @@ internal sealed class FakeSessionCache : ISessionCache
     private static string Key(ulong a, ulong b) => $"{a}:{b}";
 }
 
-/// <summary>Every feature on unless a test turns one off.</summary>
+/// <summary>
+/// Every module on and every restriction off unless a test says otherwise — the same polarity
+/// <see cref="FeatureNames.DefaultState"/> gives a guild with no rows.
+/// </summary>
+/// <remarks>
+/// Defaulting <em>everything</em> to true would put <c>Build.Now</c> (12:00 UTC) inside an enabled
+/// midday break and quietly skip most of the pipeline suite. A test double that disagrees with the
+/// real default does not test the product.
+/// </remarks>
 internal sealed class FakeFeatureGate : IFeatureGate
 {
     private readonly Dictionary<string, bool> _states = new(StringComparer.Ordinal);
@@ -324,8 +332,17 @@ internal sealed class FakeFeatureGate : IFeatureGate
         return this;
     }
 
+    /// <summary>Turns a restriction on — the half <see cref="Off"/> cannot express.</summary>
+    public FakeFeatureGate On(string feature)
+    {
+        _states[feature] = true;
+        return this;
+    }
+
     public Task<bool> IsEnabledAsync(string feature, ulong guildId, CancellationToken ct = default)
-        => Task.FromResult(_states.GetValueOrDefault(feature, true));
+        => Task.FromResult(_states.TryGetValue(feature, out bool state)
+            ? state
+            : FeatureNames.DefaultState(feature));
 
     public Task<IReadOnlyList<FeatureState>> GetAllAsync(ulong guildId, CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<FeatureState>>(
@@ -402,17 +419,22 @@ internal static class Build
         DateTimeOffset? now = null,
         FakeChatConfig? config = null,
         FakeQuoteRepository? quotes = null)
-        => new(
+    {
+        FakeFeatureGate gate = features ?? new FakeFeatureGate();
+        FakeChatConfig cfg = config ?? new FakeChatConfig(null);
+
+        return new(
             Persona(),
             people ?? new FakePersonRepository(),
             cache ?? new FakeSessionCache(),
-            features ?? new FakeFeatureGate(),
+            gate,
             new FixedClock(now ?? Now),
-            config ?? new FakeChatConfig(null),
+            new ChatQuietHours(gate, cfg),
             NullLogger<ChatPipeline>.Instance,
             quotes: quotes is null
                 ? null
                 : new QuoteBoardRecall(quotes, NullLogger<QuoteBoardRecall>.Instance));
+    }
 
     public static ChatIntrospection Introspection(
         FakePersonRepository people, DateTimeOffset? now = null)
@@ -420,8 +442,20 @@ internal static class Build
 
     public static ChatEditWatcher EditWatcher(
         FakeSessionCache cache,
-        FakeFeatureGate? features = null)
-        => new(Persona(), cache, features ?? new FakeFeatureGate(), NullLogger<ChatEditWatcher>.Instance);
+        FakeFeatureGate? features = null,
+        DateTimeOffset? now = null,
+        FakeChatConfig? config = null)
+    {
+        FakeFeatureGate gate = features ?? new FakeFeatureGate();
+
+        return new(
+            Persona(),
+            cache,
+            gate,
+            new FixedClock(now ?? Now),
+            new ChatQuietHours(gate, config ?? new FakeChatConfig(null)),
+            NullLogger<ChatEditWatcher>.Instance);
+    }
 
     public static ChatRequest Request(string text, bool addressed = true, ulong message = Message)
         => new(Guild, Channel, User, message, text, addressed);

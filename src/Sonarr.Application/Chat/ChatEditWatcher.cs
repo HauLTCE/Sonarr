@@ -25,6 +25,8 @@ public sealed class ChatEditWatcher(
     PersonaHolder persona,
     ISessionCache cache,
     IFeatureGate features,
+    IClock clock,
+    ChatQuietHours quietHours,
     ILogger<ChatEditWatcher> log)
 {
     /// <summary>The authored pool the call-out is drawn from ("nice try editing that. too slow.").</summary>
@@ -58,6 +60,17 @@ public sealed class ChatEditWatcher(
         if (!await features.IsEnabledAsync(FeatureNames.Chat, edit.GuildId, ct).ConfigureAwait(false))
         {
             return ChatDecision.Skip(ChatDecision.SkipReasons.FeatureOff);
+        }
+
+        // A call-out is still her talking, so the quiet windows apply here too — otherwise she
+        // sleeps through mentions and then snarks at an edit at three in the morning. Last of the
+        // gates because the two hash checks above are free and reject nearly every edit event.
+        DateTimeOffset local = TimeZoneInfo.ConvertTime(
+            clock.UtcNow, await quietHours.ZoneAsync(edit.GuildId, ct).ConfigureAwait(false));
+
+        if (await quietHours.SkipReasonAsync(edit.GuildId, local, ct).ConfigureAwait(false) is { } quiet)
+        {
+            return ChatDecision.Skip(quiet);
         }
 
         PersonaGraph graph = persona.Current;

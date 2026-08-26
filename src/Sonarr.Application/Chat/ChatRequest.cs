@@ -62,5 +62,11 @@ public sealed record ChatDecision(
         public const string NothingToSay = "nothing_to_say";
         public const string NotReplied = "not_replied";
         public const string Unedited = "unedited";
+
+        /// <summary>Inside the sleep window with <c>sleep_mode</c> on.</summary>
+        public const string Asleep = "asleep";
+
+        /// <summary>Inside the midday hour with <c>midday_break</c> on.</summary>
+        public const string MiddayBreak = "midday_break";
     }
 }

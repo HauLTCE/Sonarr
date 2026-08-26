@@ -38,7 +38,9 @@ public sealed class FeatureGate(
     public async Task<ConfigWriteResult> SetAsync(
         string feature, ulong guildId, bool enabled, ulong actorId, CancellationToken cancellationToken = default)
     {
-        var normalized = feature?.Trim().ToLowerInvariant() ?? string.Empty;
+        // Resolve first so `sonarr set sleep false` writes the sleep_mode row rather than
+        // creating a second, never-read one under the alias.
+        var normalized = FeatureNames.Resolve(feature);
         if (!FeatureNames.IsKnown(normalized))
         {
             return ConfigWriteResult.Rejected($"`{feature}` isn't one of my modules.");
@@ -55,7 +57,7 @@ public sealed class FeatureGate(
 
     private static FeatureState Resolve(FlagCache cached, string feature, ulong guildId)
     {
-        var normalized = feature.Trim().ToLowerInvariant();
+        var normalized = FeatureNames.Resolve(feature);
 
         if (cached.Flags.TryGetValue(FlagKey(guildId, normalized), out var guildState))
         {
@@ -67,8 +69,10 @@ public sealed class FeatureGate(
             return new FeatureState(normalized, globalState, FeatureStateSource.Global);
         }
 
-        // Default-on: a guild that has never touched /feature gets the whole bot.
-        return new FeatureState(normalized, true, FeatureStateSource.Default);
+        // No row anywhere. A module defaults on — a guild that has never touched /feature gets the
+        // whole bot — but a restriction defaults off, because "enabled" for sleep_mode means the bot
+        // goes quiet at 22:00, and nobody asked it to. See FeatureNames.Restrictions.
+        return new FeatureState(normalized, FeatureNames.DefaultState(normalized), FeatureStateSource.Default);
     }
 
     private async Task<FlagCache> LoadAsync(ulong guildId, CancellationToken cancellationToken)

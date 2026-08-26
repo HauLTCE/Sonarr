@@ -44,7 +44,10 @@ public sealed record ConfigImportResult(bool Applied, int KeyCount, IReadOnlyLis
 /// <summary>Where a kill-switch state came from — shown by <c>/feature list</c>.</summary>
 public enum FeatureStateSource
 {
-    /// <summary>No row anywhere: features are on unless someone turns them off.</summary>
+    /// <summary>
+    /// No row anywhere: a module is on and a restriction is off
+    /// (<see cref="FeatureNames.DefaultState"/>).
+    /// </summary>
     Default,
 
     /// <summary>The global (guild_id = 0) row.</summary>
