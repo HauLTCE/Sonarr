@@ -41,30 +41,12 @@ public static class RedisKeys
 
     public static string RateLimitSpam(ulong guildId, ulong userId) => $"{Prefix}:rl:spam:{guildId}:{userId}";
 
-    /// <summary>Callers pass either an IP or a username — the doc limits both, same window.</summary>
-    public static string RateLimitLogin(string identifier) => $"{Prefix}:rl:login:{identifier}";
-
-    /// <summary>Wrong-code attempts against one outstanding token (5, expires with the token).</summary>
-    public static string RateLimitLoginVerify(string identifier) => $"{Prefix}:rl:login:verify:{identifier}";
-
     public static string RateLimitXp(ulong guildId, ulong userId) => $"{Prefix}:rl:xp:{guildId}:{userId}";
 
     // ---- area: presence -----------------------------------------------------------
     public static string PresenceVoice(ulong guildId, ulong userId) => $"{Prefix}:presence:voice:{guildId}:{userId}";
 
     public static string PresenceOnlineSample(ulong guildId) => $"{Prefix}:presence:online_sample:{guildId}";
-
-    // ---- area: web ----------------------------------------------------------------
-    public static string WebSession(string sessionHash) => $"{Prefix}:web:session:{sessionHash}";
-
-    public static string WebLiveStatus => $"{Prefix}:web:live_status";
-
-    /// <summary>
-    /// Her current mood mode id, shown as text on the You and bot health pages. It fed a
-    /// mood-driven accent colour until the panel rewrite dropped that; the key outlived it,
-    /// because naming the mood is the accessible version of tinting the page with it.
-    /// </summary>
-    public static string WebMood => $"{Prefix}:web:mood";
 
     // ---- area: cfg ----------------------------------------------------------------
     public static string ConfigGuild(ulong guildId) => $"{Prefix}:cfg:guild:{guildId}";
@@ -95,9 +77,6 @@ public static class CacheTtl
     // rl
     public static readonly TimeSpan RateLimitCommand = TimeSpan.FromSeconds(10);
     public static readonly TimeSpan RateLimitSpam = TimeSpan.FromMinutes(5);
-    public static readonly TimeSpan RateLimitLogin = TimeSpan.FromMinutes(15);
-    /// <summary>The token's own lifetime — the attempt count is meaningless once the code is dead.</summary>
-    public static readonly TimeSpan RateLimitLoginVerify = TimeSpan.FromMinutes(10);
     public static readonly TimeSpan RateLimitXp = TimeSpan.FromSeconds(60);
 
     // presence
@@ -105,26 +84,9 @@ public static class CacheTtl
     public static readonly TimeSpan PresenceVoice = TimeSpan.FromHours(12);
     public static readonly TimeSpan PresenceOnlineSample = TimeSpan.FromMinutes(10);
 
-    // web
-    /// <summary>Ceiling for the session mirror; the actual TTL is min(this, row expiry).</summary>
-    public static readonly TimeSpan WebSessionMax = TimeSpan.FromDays(30);
-    public static readonly TimeSpan WebLiveStatus = TimeSpan.FromSeconds(5);
-
-    /// <summary>
-    /// Long enough that a quiet channel does not reset the page to neutral mid-afternoon, short
-    /// enough that a mood from yesterday does not colour today.
-    /// </summary>
-    public static readonly TimeSpan WebMood = TimeSpan.FromHours(1);
-
     // cfg
     public static readonly TimeSpan ConfigGuild = TimeSpan.FromMinutes(10);
     public static readonly TimeSpan ConfigFlags = TimeSpan.FromMinutes(1);
-
-    /// <summary>Login window allowance (docs/05: max 3 requests per window per ip AND per user).</summary>
-    public const int LoginRequestsPerWindow = 3;
-
-    /// <summary>Wrong codes allowed before the token dies (docs/09: 5 tries per token).</summary>
-    public const int LoginVerifyAttempts = Domain.Web.WebAuthRules.MaxVerifyAttempts;
 
     /// <summary>Channel ring buffer cap (docs/05: list capped 10).</summary>
     public const int RingBufferLength = 10;

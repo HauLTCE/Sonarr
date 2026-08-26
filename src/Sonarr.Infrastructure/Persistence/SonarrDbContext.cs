@@ -6,7 +6,6 @@ using Sonarr.Domain.Entities.Mod;
 using Sonarr.Domain.Entities.Music;
 using Sonarr.Domain.Entities.Social;
 using Sonarr.Domain.Entities.Stats;
-using Sonarr.Domain.Entities.Web;
 
 namespace Sonarr.Infrastructure.Persistence;
 
@@ -56,11 +55,6 @@ public class SonarrDbContext(DbContextOptions<SonarrDbContext> options) : DbCont
     public DbSet<SocialEvent> Events => Set<SocialEvent>();
     public DbSet<EventRsvp> EventRsvps => Set<EventRsvp>();
     public DbSet<Ticket> Tickets => Set<Ticket>();
-
-    // web
-    public DbSet<LoginToken> LoginTokens => Set<LoginToken>();
-    public DbSet<WebSession> WebSessions => Set<WebSession>();
-    public DbSet<WebAudit> WebAudits => Set<WebAudit>();
 
     // stats
     public DbSet<CommandUsage> CommandUsage => Set<CommandUsage>();

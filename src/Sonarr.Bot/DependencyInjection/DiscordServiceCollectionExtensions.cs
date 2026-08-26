@@ -2,6 +2,7 @@ using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using Sonarr.Bot.Discord;
+using Sonarr.Bot.Discord.Utility;
 using Sonarr.Bot.Observability;
 using Sonarr.Domain.Abstractions;
 
@@ -49,8 +50,13 @@ public static class DiscordServiceCollectionExtensions
             sp.GetRequiredService<DiscordSocketClient>(),
             sp.GetRequiredService<InteractionServiceConfig>()));
 
-        // The error pipeline's panel half: the same friendly line the user saw, kept per user so
-        // "My errors" has something to show (docs/09).
+        // Channel/role/member names off the gateway cache. Used by GuildConfigService to check a
+        // snowflake is the kind of thing its key asks for — it lived in the panel slice until that
+        // was deleted, and losing the registration makes every `/config set` throw at resolution.
+        services.AddSingleton<IGuildDirectory, GatewayGuildDirectory>();
+
+        // The error pipeline's user-facing half: the same friendly line the user saw, kept per user
+        // so `sonarr errors` has something to show (docs/07).
         services.AddSingleton<UserErrorLog>();
 
         services.AddHostedService<InteractionHandler>();

@@ -25,15 +25,10 @@ public class RedisKeysTests
     // rl
     [InlineData("sonarr:rl:cmd:2")]
     [InlineData("sonarr:rl:spam:1:2")]
-    [InlineData("sonarr:rl:login:203.0.113.7")]
     [InlineData("sonarr:rl:xp:1:2")]
     // presence
     [InlineData("sonarr:presence:voice:1:2")]
     [InlineData("sonarr:presence:online_sample:1")]
-    // web
-    [InlineData("sonarr:web:session:abc123")]
-    [InlineData("sonarr:web:live_status")]
-    [InlineData("sonarr:web:mood")]
     // cfg
     [InlineData("sonarr:cfg:guild:1")]
     [InlineData("sonarr:cfg:flags")]
@@ -42,7 +37,7 @@ public class RedisKeysTests
     [Fact]
     public void AllKeys_UseTheSonarrAreaPrefix()
     {
-        var areas = new[] { "chat", "music", "rl", "presence", "web", "cfg" };
+        var areas = new[] { "chat", "music", "rl", "presence", "cfg" };
         Assert.All(AllKeys(), key =>
         {
             var parts = key.Split(':');
@@ -51,18 +46,22 @@ public class RedisKeysTests
         });
     }
 
+    /// <summary>
+    /// Goal 4: no web surface, so no web keys. A <c>sonarr:web:*</c> family coming back means an
+    /// HTTP surface came back with it — this is the cheapest place to notice.
+    /// </summary>
+    [Fact]
+    public void NoKey_BelongsToAWebArea()
+    {
+        Assert.DoesNotContain("web", KeyFamilies().Select(f => f.ToLowerInvariant()));
+        Assert.All(AllKeys(), key => Assert.DoesNotContain(":web:", key, StringComparison.Ordinal));
+    }
+
     [Fact]
     public void KeyBuilders_ProduceDistinctKeys()
     {
         var keys = AllKeys();
         Assert.Equal(keys.Count, keys.Distinct(StringComparer.Ordinal).Count());
-    }
-
-    [Fact]
-    public void LoginLimit_IsThreePerFifteenMinutes()
-    {
-        Assert.Equal(3, CacheTtl.LoginRequestsPerWindow);
-        Assert.Equal(TimeSpan.FromMinutes(15), CacheTtl.RateLimitLogin);
     }
 
     [Fact]
@@ -82,8 +81,6 @@ public class RedisKeysTests
     [InlineData(5 * 60, nameof(CacheTtl.RateLimitSpam))]
     [InlineData(60, nameof(CacheTtl.RateLimitXp))]
     [InlineData(10 * 60, nameof(CacheTtl.PresenceOnlineSample))]
-    [InlineData(5, nameof(CacheTtl.WebLiveStatus))]
-    [InlineData(60 * 60, nameof(CacheTtl.WebMood))]
     [InlineData(10 * 60, nameof(CacheTtl.ConfigGuild))]
     [InlineData(60, nameof(CacheTtl.ConfigFlags))]
     public void Ttl_MatchesDocumentedPolicy(int expectedSeconds, string field)
@@ -141,10 +138,10 @@ public class RedisKeysTests
     }
 
     /// <summary>
-    /// docs/05 line 66: a full <c>FLUSHALL</c> must cost at most a reset conversation, an
-    /// unresumable music session, and a panel re-login. Every key family therefore has to declare
-    /// which of those three it is — and the point of the test is that adding a fourth kind of cost
-    /// fails here, at the moment the key is added, rather than the morning after a flush.
+    /// docs/05 line 66: a full <c>FLUSHALL</c> must cost at most a reset conversation and an
+    /// unresumable music session. Every key family therefore has to declare which of those two it
+    /// is — and the point of the test is that adding a third kind of cost fails here, at the moment
+    /// the key is added, rather than the morning after a flush.
     /// </summary>
     [Theory]
     [InlineData("ChatSession", Reset)]
@@ -159,31 +156,21 @@ public class RedisKeysTests
     [InlineData("MusicUndoSkip", MusicStops)]
     [InlineData("MusicNowPlayingMessage", MusicStops)]
     // Limiters and cooldowns: a flush forgives whoever was mid-window. That is a reset, not data
-    // loss — and rl:login fails *closed* while Redis is down, so a flush cannot open the gate.
+    // loss.
     [InlineData("RateLimitCommand", Reset)]
     [InlineData("RateLimitSpam", Reset)]
-    [InlineData("RateLimitLogin", Reset)]
-    // rl:login:verify also fails closed, so a flush forgives an attacker mid-guessing at the cost
-    // of a token they still do not have — and the token itself lives in Postgres.
-    [InlineData("RateLimitLoginVerify", Reset)]
     [InlineData("RateLimitXp", Reset)]
     // Presence is re-sampled within 5 min by PresenceSampler; a lost voice key costs at most one
     // accrual window, and stats.activity_sample already has the durable copy.
     [InlineData("PresenceVoice", Reset)]
     [InlineData("PresenceOnlineSample", Reset)]
-    // The session mirror only; web.session rows are the authority, so this is a re-login at worst.
-    [InlineData("WebSession", ReLogin)]
-    [InlineData("WebLiveStatus", ReLogin)]
-    // The panel's accent colour, nothing else. A flush leaves it on her neutral green until she
-    // next speaks, which is a colour, not a cost — Reset is the closest honest label.
-    [InlineData("WebMood", Reset)]
     // Config falls back to the Postgres row on a miss, so a flush costs one uncached read.
     [InlineData("ConfigGuild", Reset)]
     [InlineData("ConfigFlags", Reset)]
     public void EveryKeyFamily_DeclaresItsFlushCost(string family, string cost)
     {
         Assert.Contains(family, KeyFamilies());
-        Assert.Contains(cost, (string[])[Reset, MusicStops, ReLogin]);
+        Assert.Contains(cost, (string[])[Reset, MusicStops]);
     }
 
     /// <summary>Nothing may be added without a declared cost above.</summary>
@@ -202,7 +189,6 @@ public class RedisKeysTests
 
     private const string Reset = "conversations feel reset";
     private const string MusicStops = "music session cannot resume";
-    private const string ReLogin = "panel re-login";
 
     /// <summary>Every public key builder's name — methods and get-only properties alike.</summary>
     private static HashSet<string> KeyFamilies()
@@ -227,13 +213,9 @@ public class RedisKeysTests
         RedisKeys.MusicNowPlayingMessage(1),
         RedisKeys.RateLimitCommand(2),
         RedisKeys.RateLimitSpam(1, 2),
-        RedisKeys.RateLimitLogin("203.0.113.7"),
         RedisKeys.RateLimitXp(1, 2),
         RedisKeys.PresenceVoice(1, 2),
         RedisKeys.PresenceOnlineSample(1),
-        RedisKeys.WebSession("abc123"),
-        RedisKeys.WebLiveStatus,
-        RedisKeys.WebMood,
         RedisKeys.ConfigGuild(1),
         RedisKeys.ConfigFlags,
     ];

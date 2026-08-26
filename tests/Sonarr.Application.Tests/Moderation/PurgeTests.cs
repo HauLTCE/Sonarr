@@ -10,7 +10,16 @@ namespace Sonarr.Application.Tests.Moderation;
 /// </summary>
 public sealed class PurgeTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 7, 27, 12, 0, 0, TimeSpan.Zero);
+    /// <summary>
+    /// Relative to the real clock, not a fixed date. <see cref="PurgePlanner.Plan"/> takes an
+    /// injectable <c>now</c> but <see cref="Sonarr.Application.Moderation.ModerationService.PurgeAsync"/>
+    /// does not pass one, so the tests that go through the service are measured against
+    /// <c>UtcNow</c>. A pinned date therefore ages out of the 14-day bulk-delete window and every
+    /// candidate silently becomes "too old" — which is how these passed in July and failed in
+    /// August. Truncated to the hour so a run is still deterministic within one.
+    /// </summary>
+    private static readonly DateTimeOffset Now = new DateTimeOffset(
+        DateTimeOffset.UtcNow.Date, TimeSpan.Zero).AddHours(12);
 
     [Fact]
     public async Task Preview_deletes_nothing_and_files_no_case()

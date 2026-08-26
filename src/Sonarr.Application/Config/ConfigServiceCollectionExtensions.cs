@@ -11,9 +11,9 @@ public static class ConfigServiceCollectionExtensions
     /// is the unit of work.
     /// </summary>
     /// <remarks>
-    /// Needs an <see cref="IGuildDirectory"/> from somewhere, which <c>AddSonarrPanelApi</c>
+    /// Needs an <see cref="IGuildDirectory"/> from somewhere, which <c>AddSonarrDiscord</c>
     /// registers. Order between the two calls does not matter — resolution happens per request — but
-    /// dropping the panel slice would leave every config write throwing at the first
+    /// dropping that registration would leave every config write throwing at the first
     /// <c>/config set</c> rather than at startup. The config service uses it to check that a
     /// snowflake is the kind of thing its key asks for; see <c>GuildConfigService.Missing</c>.
     /// </remarks>

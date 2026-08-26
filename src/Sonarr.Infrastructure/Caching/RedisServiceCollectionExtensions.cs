@@ -31,7 +31,6 @@ public static class RedisServiceCollectionExtensions
         services.AddSingleton<IMusicSessionCache, RedisMusicSessionCache>();
         services.AddSingleton<IPresenceCache, RedisPresenceCache>();
         services.AddSingleton<IConfigCache, RedisConfigCache>();
-        services.AddSingleton<IWebSessionCache, RedisWebSessionCache>();
 
         return services;
     }

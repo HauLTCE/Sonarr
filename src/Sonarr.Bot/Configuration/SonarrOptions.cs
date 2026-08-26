@@ -34,14 +34,11 @@ public sealed class SonarrOptions
     public string RedisConnection { get; init; } = "";
 
     /// <summary>
-    /// Admin-panel allow-list. Parsed from a comma-separated ADMIN_USER_IDS.
-    /// Authority for admin routes is still Postgres per request (docs/09), this is the seed.
+    /// Who may change global configuration. Parsed from a comma-separated ADMIN_USER_IDS.
+    /// This is the whole authority for <c>sonarr set</c> on a global key — there is no other
+    /// surface that writes them, so an empty list means nobody can.
     /// </summary>
     public IReadOnlyList<ulong> AdminUserIds { get; init; } = [];
-
-    /// <summary>Public base URL of the panels, used in DM login messages.</summary>
-    [Required(AllowEmptyStrings = false, ErrorMessage = "PANEL_BASE_URL is required.")]
-    public string PanelBaseUrl { get; init; } = "";
 
     /// <summary>Where BackupRunner writes dumps (docs/11). Container path.</summary>
     public string BackupPath { get; init; } = "/backups";
@@ -54,8 +51,4 @@ public sealed class SonarrOptions
     /// Missing files are not fatal: matching degrades to lexical-only.
     /// </summary>
     public string ModelPath { get; init; } = "/app/models/minilm-l6-v2";
-
-    /// <summary>Kestrel port for the panel API (docs/02: 5088, plain HTTP behind the tunnel).</summary>
-    [Range(1, 65535)]
-    public int ApiPort { get; init; } = 5088;
 }

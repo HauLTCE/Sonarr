@@ -3,9 +3,9 @@ namespace Sonarr.Domain.Abstractions;
 /// <summary>
 /// How many rows each nightly sweep deleted (docs/08 <c>RetentionPruner</c>).
 /// </summary>
-public sealed record RetentionSweep(int LoginTokens, int WebSessions, int ActivitySamples, int CommandUsage)
+public sealed record RetentionSweep(int ActivitySamples, int CommandUsage)
 {
-    public int Total => LoginTokens + WebSessions + ActivitySamples + CommandUsage;
+    public int Total => ActivitySamples + CommandUsage;
 }
 
 /// <summary>
@@ -16,7 +16,7 @@ public sealed record RetentionSweep(int LoginTokens, int WebSessions, int Activi
 public interface IRetentionRepository
 {
     /// <summary>
-    /// Sweeps expired web credentials and stats older than the cutoffs. Returns per-table counts.
+    /// Sweeps stats rows older than the cutoff. Returns per-table counts.
     /// </summary>
     /// <param name="now">Cutoff clock, so a test does not have to wait for midnight.</param>
     /// <param name="statsMaxAge">Age past which a stats row goes (docs/08: 400 days).</param>

@@ -35,11 +35,9 @@ public static class SonarrOptionsSetup
         PgConnection = Str(c, "PG_CONNECTION"),
         RedisConnection = Str(c, "REDIS_CONNECTION"),
         AdminUserIds = UlongList(c, "ADMIN_USER_IDS"),
-        PanelBaseUrl = Str(c, "PANEL_BASE_URL"),
         BackupPath = Str(c, "BACKUP_PATH", "/backups"),
         PersonaPath = Str(c, "PERSONA_PATH", "/app/persona"),
         ModelPath = Str(c, "MODEL_PATH", "/app/models/minilm-l6-v2"),
-        ApiPort = OptionalUlong(c, "API_PORT") is { } p ? (int)p : 5088,
     };
 
     /// <summary>
@@ -61,11 +59,6 @@ public static class SonarrOptionsSetup
             errors.Add($"LAVALINK_URI scheme '{lavalink.Scheme}' is not http/https.");
         }
 
-        if (!Uri.TryCreate(o.PanelBaseUrl, UriKind.Absolute, out _))
-        {
-            errors.Add("PANEL_BASE_URL must be an absolute URL (it goes into login DMs).");
-        }
-
         // A token-shaped sanity check only — we cannot verify it without calling Discord,
         // but "you pasted the client secret" is a common and very confusing failure.
         if (o.DiscordToken.Length is > 0 and < 50)
@@ -75,7 +68,7 @@ public static class SonarrOptionsSetup
 
         if (o.AdminUserIds.Count == 0)
         {
-            errors.Add("ADMIN_USER_IDS is empty — nobody could reach the admin panel.");
+            errors.Add("ADMIN_USER_IDS is empty — nobody could change global config.");
         }
 
         return errors;

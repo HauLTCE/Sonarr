@@ -30,16 +30,20 @@ public enum ConfigValueKind
 /// <param name="Minimum">
 /// Inclusive lower bound for <see cref="ConfigValueKind.Integer"/>, and for
 /// <see cref="ConfigValueKind.ChannelWeights"/> the bound on one pair's percent — the value is a
-/// list, so there is no whole-value bound to mean anything else. Both are read by the web panel to
-/// set its number input's range, which is why the weights entry carries them at all.
+/// list, so there is no whole-value bound to mean anything else.
 /// </param>
 /// <param name="Maximum">Inclusive upper bound; see <paramref name="Minimum"/>.</param>
+/// <param name="Alias">
+/// Short name accepted by <c>sonarr set</c> in place of <paramref name="Key"/>, so the CLI can say
+/// <c>sonarr set sleep false</c> rather than spelling out <c>sleep_mode</c>.
+/// </param>
 public sealed record ConfigKeyDefinition(
     string Key,
     ConfigValueKind Kind,
     string Description,
     int Minimum = int.MinValue,
-    int Maximum = int.MaxValue);
+    int Maximum = int.MaxValue,
+    string? Alias = null);
 
 /// <summary>
 /// The config key catalog (docs/04-database.md#coreguild_config). Closed set: anything not

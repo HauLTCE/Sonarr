@@ -19,7 +19,6 @@ public sealed class SonarrOptionsSetupTests
         ["PG_CONNECTION"] = "Host=localhost;Database=sonarr;Username=sonarr;Password=x",
         ["REDIS_CONNECTION"] = "localhost:6379",
         ["ADMIN_USER_IDS"] = "123456789012345678",
-        ["PANEL_BASE_URL"] = "https://sonarr.hault.io.vn",
     };
 
     private static SonarrOptions Bind(Action<Dictionary<string, string?>>? mutate = null)
@@ -36,7 +35,6 @@ public sealed class SonarrOptionsSetupTests
         var options = Bind();
 
         Assert.Equal("localhost:6379", options.RedisConnection);
-        Assert.Equal(5088, options.ApiPort);
         Assert.Equal([123456789012345678UL], options.AdminUserIds);
         Assert.Null(options.DiscordDevGuildId);
     }
@@ -47,10 +45,29 @@ public sealed class SonarrOptionsSetupTests
     [InlineData("LAVALINK_PASSWORD")]
     [InlineData("PG_CONNECTION")]
     [InlineData("REDIS_CONNECTION")]
-    [InlineData("PANEL_BASE_URL")]
     [InlineData("ADMIN_USER_IDS")]
     public void Missing_required_value_fails_boot(string key)
         => Assert.Throws<OptionsValidationException>(() => Bind(v => v.Remove(key)));
+
+    /// <summary>
+    /// The panel is gone (goal 4), so its two settings must not quietly come back as bindable
+    /// keys — a stray PANEL_BASE_URL in a .env should be ignored, not honoured.
+    /// </summary>
+    [Fact]
+    public void Panel_settings_are_not_bindable_any_more()
+    {
+        var properties = typeof(SonarrOptions).GetProperties().Select(p => p.Name).ToList();
+
+        Assert.DoesNotContain("PanelBaseUrl", properties);
+        Assert.DoesNotContain("ApiPort", properties);
+
+        // And a leftover value in the environment does not fail boot either.
+        Bind(v =>
+        {
+            v["PANEL_BASE_URL"] = "https://sonarr.example.com";
+            v["API_PORT"] = "5088";
+        });
+    }
 
     [Theory]
     [InlineData("not-a-uri")]

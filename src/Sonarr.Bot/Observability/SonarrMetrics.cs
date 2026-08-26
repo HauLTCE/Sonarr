@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 namespace Sonarr.Bot.Observability;
 
 /// <summary>
-/// Counters the panel renders. Deliberately not Prometheus — an 8GB box does not get a
+/// Counters <c>sonarr stats</c> renders. Deliberately not Prometheus — an 8GB box does not get a
 /// metrics stack (docs/03-stack.md#observability--ops).
 /// </summary>
 // ponytail: in-process counters, reset on restart. If we ever want history, push these

@@ -1,8 +1,8 @@
+using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Events;
 using Sonarr.Application.Config;
 using Sonarr.Application.Health;
-using Sonarr.Bot.Api;
 using Sonarr.Bot.Discord.Chat;
 using Sonarr.Bot.Discord.Jobs;
 using Sonarr.Bot.Discord.Levels;
@@ -20,34 +20,29 @@ using Sonarr.Infrastructure.Persistence;
 // everything else (docs/03-stack.md: structured console = the `docker logs` view).
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
-    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-    .WriteTo.Console(outputTemplate:
-        "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext} {Message:lj}{NewLine}{Exception}")
+    .WriteTo.Console(outputTemplate: LogTemplates.Console)
     .CreateBootstrapLogger();
 
 try
 {
-    var builder = WebApplication.CreateBuilder(args);
+    HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 
     builder.Configuration.AddDotEnvFile(Path.Combine(builder.Environment.ContentRootPath, ".env"));
     builder.Configuration.AddEnvironmentVariables();
 
     var options = builder.Services.AddSonarrOptions(builder.Configuration);
 
-    builder.Host.UseSerilog((ctx, services, cfg) => cfg
-        .ReadFrom.Configuration(ctx.Configuration)
+    builder.Services.AddSerilog((services, cfg) => cfg
+        .ReadFrom.Configuration(builder.Configuration)
         .ReadFrom.Services(services)
         .MinimumLevel.Information()
-        .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
         .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
         .Enrich.FromLogContext()
-        .WriteTo.Console(outputTemplate:
-            "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext} {Message:lj}{NewLine}{Exception}")
+        .WriteTo.Console(outputTemplate: LogTemplates.Console)
         .WriteTo.File("logs/sonarr-.log",
             rollingInterval: RollingInterval.Day,
             retainedFileCountLimit: 14,
-            outputTemplate:
-            "{Timestamp:o} [{Level:u3}] {SourceContext} {Message:lj}{NewLine}{Exception}"));
+            outputTemplate: LogTemplates.File));
 
     builder.Services.AddSingleton<SonarrMetrics>();
     builder.Services.AddSonarrPersistence(options.PgConnection);
@@ -66,37 +61,11 @@ try
     builder.Services.AddSonarrChat(options);
     builder.Services.AddSonarrDiscord();
 
-    builder.Services.AddSonarrPanelApi(options);
+    IHost app = builder.Build();
 
-    // Plain HTTP: HTTPS is terminated by the user's tunnel in front of
-    // sonarr.hault.io.vn (docs/02-architecture.md).
-    builder.WebHost.UseUrls($"http://0.0.0.0:{options.ApiPort}");
-
-    var app = builder.Build();
-
-    app.UseCors(PanelApiServiceCollectionExtensions.CorsPolicy);
-
-    app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
-
-    // docs/03-stack.md: lightweight counters, rendered by the panel. No auth needed —
-    // it exposes no user data, and the API is only reachable behind the tunnel.
-    app.MapGet("/api/metrics", (SonarrMetrics m) => Results.Ok(new
-    {
-        startedAt = m.StartedAt,
-        uptimeSeconds = (long)(DateTimeOffset.UtcNow - m.StartedAt).TotalSeconds,
-        counters = m.Snapshot(),
-    }));
-
-    // The panel surface (docs/09): login, the user's own data, the rest of the user pages, the
-    // public status blob and the allow-listed admin routes.
-    app.MapSonarrAuth();
-    app.MapSonarrMe();
-    app.MapSonarrPanel();
-    app.MapSonarrStatus();
-    app.MapSonarrAdmin();
-
-    Log.Information("Sonarr starting — API on :{Port}, commands {Scope}",
-        options.ApiPort,
+    Log.Information("Sonarr starting — {Now:yyyy-MM-dd HH:mm:ss zzz} ({Zone}), commands {Scope}",
+        DateTimeOffset.Now,
+        TimeZoneInfo.Local.Id,
         options.DiscordDevGuildId is { } g ? $"scoped to dev guild {g}" : "registered globally");
 
     app.Run();

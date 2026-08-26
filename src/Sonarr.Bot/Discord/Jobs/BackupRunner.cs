@@ -277,7 +277,6 @@ public sealed class BackupRunner(
         "PG_CONNECTION=" + options.PgConnection,
         "REDIS_CONNECTION=" + options.RedisConnection,
         "ADMIN_USER_IDS=" + string.Join(',', options.AdminUserIds),
-        "PANEL_BASE_URL=" + options.PanelBaseUrl,
         "",
     ]);
 

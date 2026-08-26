@@ -50,7 +50,6 @@ public sealed class PrivacyNoticeTests
 
         Assert.Contains("200", retention, StringComparison.Ordinal);
         Assert.Contains("400 days", retention, StringComparison.Ordinal);
-        Assert.Contains("10 minutes", retention, StringComparison.Ordinal);
 
         if (Doc is null)
         {
@@ -87,21 +86,16 @@ public sealed class PrivacyNoticeTests
     }
 
     [Fact]
-    public void Renders_with_the_panel_link_when_a_url_is_configured()
+    public void The_notice_promises_no_web_surface()
     {
-        var body = PrivacyNotice.Render("https://sonarr.example.com/");
+        // Goal 4: the panel is gone, frontend and backend. The notice is where a user reads that
+        // there is nothing to be logged into, so a panel sentence creeping back in fails here.
+        var body = PrivacyNotice.Render();
 
-        Assert.Contains("https://sonarr.example.com/me/data", body, StringComparison.Ordinal);
-        Assert.DoesNotContain("//me/data", body, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Renders_without_a_broken_link_when_no_url_is_configured()
-    {
-        var body = PrivacyNotice.Render(null);
-
+        Assert.Contains("No web surface", body, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("panel", body, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("/me/data", body, StringComparison.Ordinal);
-        Assert.Contains("What I keep about you", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("login", body, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -109,7 +103,7 @@ public sealed class PrivacyNoticeTests
     {
         // 4096 is Discord's embed description limit; the notice is too long for a plain message
         // (2000), which is why PrivacyModule uses an embed.
-        var body = PrivacyNotice.Render("https://sonarr.example.com");
+        var body = PrivacyNotice.Render();
 
         Assert.True(body.Length <= 4096, $"the notice is {body.Length} characters");
     }
@@ -118,7 +112,7 @@ public sealed class PrivacyNoticeTests
     public void Never_calls_itself_by_the_internal_persona_name()
     {
         // Hard rule: users only ever see "Sonarr".
-        var body = PrivacyNotice.Render("https://sonarr.example.com");
+        var body = PrivacyNotice.Render();
 
         Assert.DoesNotContain("elaine", body, StringComparison.OrdinalIgnoreCase);
     }

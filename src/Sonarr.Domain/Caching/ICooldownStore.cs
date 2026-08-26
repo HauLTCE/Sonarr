@@ -6,7 +6,7 @@ namespace Sonarr.Domain.Caching;
 /// <remarks>
 /// Availability contract: every method here FAILS CLOSED. If the cache is unreachable the
 /// implementation denies the action (returns <c>false</c> / reports "seen before"), because
-/// these calls guard a security boundary (web DM-token endpoint) and abuse surfaces.
+/// these calls guard abuse surfaces.
 /// The only exception is the anti-spam duplicate check, which fails OPEN — see its remarks.
 /// </remarks>
 public interface ICooldownStore
@@ -22,24 +22,6 @@ public interface ICooldownStore
     /// Returns <c>true</c> when the user is allowed to run a command now.
     /// </summary>
     Task<bool> TryAcquireCommandAsync(ulong userId, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Web DM-token endpoint limit (<c>rl:login:{identifier}</c>, max 3 per 15 min).
-    /// Call once per identifier (caller checks both the IP and the target username).
-    /// Returns <c>false</c> when the window is exhausted.
-    /// </summary>
-    Task<bool> TryConsumeLoginAsync(string identifier, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Wrong-code counter for one outstanding login token (<c>rl:login:verify:{user}</c>, max 5 in
-    /// the token's 10 minute life). Returns <c>false</c> once the allowance is spent, which is the
-    /// caller's signal to kill the token.
-    /// </summary>
-    /// <remarks>
-    /// Redis rather than a column on <c>web.login_token</c>: the count is only meaningful for as
-    /// long as the token is, and it expires with it. Fails closed like the rest of this interface.
-    /// </remarks>
-    Task<bool> TryConsumeVerifyAsync(string identifier, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Anti-spam recent-hash set (<c>rl:spam:{guild}:{user}</c>, 5 min): records

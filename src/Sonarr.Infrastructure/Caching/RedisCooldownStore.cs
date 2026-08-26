@@ -9,9 +9,8 @@ namespace Sonarr.Infrastructure.Caching;
 /// </summary>
 /// <remarks>
 /// <b>FAILS CLOSED.</b> Unlike every other cache in this folder, a Redis outage here denies the
-/// action. <c>rl:login</c> is the web DM-token limiter — a security boundary — and "cache down"
-/// must never mean "unlimited requests". The cheaper limiters (xp, cmd) fail closed too, for one
-/// code path and because the cost is a missed XP tick, not lost data.
+/// action: a cooldown that cannot be recorded is a cooldown that cannot be enforced, and the cost
+/// is a missed XP tick, not lost data.
 /// The single exception is <see cref="RecordMessageHashAsync"/>: it drives an automated moderation
 /// action, so an outage there must not punish anyone. It is marked at the call site.
 /// </remarks>
@@ -27,58 +26,6 @@ internal sealed class RedisCooldownStore : RedisCacheBase, ICooldownStore
 
     public Task<bool> TryAcquireCommandAsync(ulong userId, CancellationToken cancellationToken = default) =>
         TryAcquireAsync(RedisKeys.RateLimitCommand(userId), CacheTtl.RateLimitCommand);
-
-    public async Task<bool> TryConsumeLoginAsync(string identifier, CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(identifier);
-
-        var key = RedisKeys.RateLimitLogin(identifier);
-        try
-        {
-            // Counter + expiry-on-first-increment: the 15 min window starts at the first request
-            // and is NOT extended by later hits, so a spammer cannot keep the window rolling.
-            var count = await Db.StringIncrementAsync(key).ConfigureAwait(false);
-            if (count == 1)
-            {
-                await Db.KeyExpireAsync(key, CacheTtl.RateLimitLogin).ConfigureAwait(false);
-            }
-
-            return count <= CacheTtl.LoginRequestsPerWindow;
-        }
-        catch (Exception ex) when (IsRedisFailure(ex))
-        {
-            // FAIL CLOSED: security boundary. Denying login-token requests while Redis is down is
-            // an availability hit; allowing unlimited ones is a DM-spam abuse vector.
-            Logger.LogError(ex, "Redis unavailable for login rate limit {Identifier}; denying (fail closed).", identifier);
-            return false;
-        }
-    }
-
-    public async Task<bool> TryConsumeVerifyAsync(string identifier, CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(identifier);
-
-        var key = RedisKeys.RateLimitLoginVerify(identifier);
-        try
-        {
-            // Same counter shape as the request limit, but the window is the token's own life: the
-            // key is armed on the first wrong guess and dies with the code.
-            var count = await Db.StringIncrementAsync(key).ConfigureAwait(false);
-            if (count == 1)
-            {
-                await Db.KeyExpireAsync(key, CacheTtl.RateLimitLoginVerify).ConfigureAwait(false);
-            }
-
-            return count <= CacheTtl.LoginVerifyAttempts;
-        }
-        catch (Exception ex) when (IsRedisFailure(ex))
-        {
-            // FAIL CLOSED: without a counter there is no attempt cap, which turns an 8-char code
-            // into something brute-forceable. Denying verifies during an outage is the cheaper loss.
-            Logger.LogError(ex, "Redis unavailable for login verify limit; denying (fail closed).");
-            return false;
-        }
-    }
 
     public async Task<int> RecordMessageHashAsync(
         ulong guildId,

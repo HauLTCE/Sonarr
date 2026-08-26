@@ -43,7 +43,7 @@ internal sealed class PrunerRetentionRepository : IRetentionRepository
 
     public Exception? Throws { get; set; }
 
-    public RetentionSweep Returns { get; set; } = new(0, 0, 0, 0);
+    public RetentionSweep Returns { get; set; } = new(0, 0);
 
     public Task<RetentionSweep> SweepAsync(
         DateTimeOffset now, TimeSpan statsMaxAge, CancellationToken ct = default)
@@ -139,5 +139,5 @@ public class RetentionPrunerTests
 
     [Fact]
     public void The_total_is_every_table()
-        => Assert.Equal(10, new RetentionSweep(1, 2, 3, 4).Total);
+        => Assert.Equal(3, new RetentionSweep(1, 2).Total);
 }

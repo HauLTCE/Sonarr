@@ -84,10 +84,8 @@ public sealed class RetentionPruner(IServiceScopeFactory scopes, ILogger<Retenti
                 .SweepAsync(DateTimeOffset.UtcNow, StatsMaxAge, ct).ConfigureAwait(false);
 
             log.LogInformation(
-                "Retention: swept {Total} row(s) — {Tokens} token(s), {Sessions} session(s), "
-                + "{Samples} sample(s), {Usage} usage row(s).",
-                swept.Total, swept.LoginTokens, swept.WebSessions, swept.ActivitySamples,
-                swept.CommandUsage);
+                "Retention: swept {Total} row(s) — {Samples} sample(s), {Usage} usage row(s).",
+                swept.Total, swept.ActivitySamples, swept.CommandUsage);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

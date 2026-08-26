@@ -1,5 +1,4 @@
 using System.Reflection;
-using Sonarr.Bot.Api;
 
 namespace Sonarr.Application.Tests;
 
@@ -14,9 +13,8 @@ namespace Sonarr.Application.Tests;
 /// repository call when <c>Addressed</c> is false — pinned by
 /// <see cref="Chat.ChatPipelineTests.An_ambient_message_gets_no_reply_but_still_feeds_the_ring_buffer"/>);
 /// DM content is never stored (every gateway handler requires a <c>SocketTextChannel</c>, so a DM
-/// never reaches a service at all, and the only DM the bot ever *sends* is the login code); and
-/// nothing is shared with a third party (the sole outbound HTTP call in the solution is
-/// <c>LavalinkProbe</c> hitting the Lavalink on loopback).
+/// never reaches a service at all); and nothing is shared with a third party (the sole outbound
+/// HTTP call in the solution is <c>LavalinkProbe</c> hitting the Lavalink on loopback).
 /// </remarks>
 public sealed class PrivacyAuditTests
 {
@@ -62,7 +60,7 @@ public sealed class PrivacyAuditTests
         ["Member.Username"] = "Discord handle",
         ["Member.DisplayName"] = "Discord display name",
         ["Member.Timezone"] = "opt-in, /timezone only",
-        ["Member.Locale"] = "panel language",
+        ["Member.Locale"] = "Discord's own locale, from the gateway",
 
         // levels / mod / stats
         ["Season.Status"] = "status",
@@ -87,15 +85,6 @@ public sealed class PrivacyAuditTests
         ["SocialEvent.Status"] = "status",
         ["Ticket.Status"] = "status",
         ["Ticket.TranscriptRef"] = "a jump url; the transcript itself lives in the log channel",
-
-        // web
-        ["LoginToken.TokenHash"] = "SHA-256; the raw token only ever exists in the DM",
-        ["LoginToken.Purpose"] = "purpose",
-        ["WebAudit.SessionId"] = "session hash",
-        ["WebAudit.Action"] = "action",
-        ["WebAudit.Target"] = "an id or a config key",
-        ["WebSession.SessionId"] = "session hash",
-        ["WebSession.UserAgent"] = "browser UA, shown back on the sessions list",
     };
 
     [Fact]
@@ -120,59 +109,42 @@ public sealed class PrivacyAuditTests
     }
 
     /// <summary>
-    /// docs/06: user panel queries are scoped to the session's <c>user_id</c> in every query. The
-    /// enforceable half of that is that no <c>/api/me</c> handler <em>accepts</em> a user id — the
-    /// subject comes from <c>AuthenticateAsync</c> or from nowhere.
+    /// The panel is gone (frontend and backend), and the reason it went is a privacy one: it served
+    /// any guild's settings to any logged-in visitor. So "there is no HTTP surface" is a privacy
+    /// invariant now, and this is where it is enforced — a project going back onto the Web SDK, or
+    /// taking an ASP.NET package, fails here.
     /// </summary>
-    /// <remarks>
-    /// A parameter is the only way a user id could get in: these are minimal-API delegates, so
-    /// anything bindable is either a route value, a query string or a JSON body — all three
-    /// attacker-controlled. `guildId` is deliberately fine, and is checked against the caller's own
-    /// membership list by the panel before it is ever sent (web/lib/guilds.ts).
-    /// </remarks>
-    [Theory]
-    [InlineData(typeof(MeEndpoints))]
-    [InlineData(typeof(PanelEndpoints))]
-    public void No_user_panel_route_takes_a_user_id(Type endpoints)
+    [Fact]
+    public void No_project_builds_an_http_surface()
     {
-        var offenders = endpoints
-            .GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
-            .SelectMany(m => m.GetParameters().Select(p => (Method: m.Name, Param: p.Name ?? "")))
-            .Where(x => x.Param.Contains("user", StringComparison.OrdinalIgnoreCase))
-            .Select(x => $"{x.Method}({x.Param})")
+        var offenders = Directory
+            .EnumerateFiles(RepoRoot().FullName, "*.csproj", SearchOption.AllDirectories)
+            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                && !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Select(f => (Project: Path.GetFileName(f), Text: File.ReadAllText(f)))
+            .Where(p => p.Text.Contains("Microsoft.NET.Sdk.Web", StringComparison.OrdinalIgnoreCase)
+                || p.Text.Contains("Microsoft.AspNetCore", StringComparison.OrdinalIgnoreCase)
+                || p.Text.Contains("Serilog.AspNetCore", StringComparison.OrdinalIgnoreCase))
+            .Select(p => p.Project)
             .ToList();
 
         Assert.True(
             offenders.Count == 0,
-            "An /api/me handler takes a user id, which would make it a 'look at user X' route: "
-                + string.Join(", ", offenders));
+            "Sonarr has no web surface by design (docs/06): " + string.Join(", ", offenders));
     }
 
     /// <summary>
-    /// docs/06: the web app has no database credentials and no Discord token. The panel reads one
-    /// env var, and this is the test that keeps that true — a second one would mean it had grown a
-    /// connection of its own.
+    /// The other half: no frontend either. A <c>web/</c> tree coming back means a panel came back
+    /// with it, whether or not anything in the solution serves it.
     /// </summary>
     [Fact]
-    public void The_web_app_reads_no_secret_from_its_environment()
+    public void No_frontend_tree_exists()
     {
-        DirectoryInfo root = RepoRoot();
-        var web = Path.Combine(root.FullName, "web");
-        Assert.True(Directory.Exists(web), "web/ is missing");
-
-        var reads = Directory
-            .EnumerateFiles(web, "*.ts*", SearchOption.AllDirectories)
-            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}node_modules{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                && !f.Contains($"{Path.DirectorySeparatorChar}.next{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
-            .SelectMany(f => File.ReadAllLines(f)
-                .Where(l => l.Contains("process.env.", StringComparison.Ordinal))
-                .Select(l => l[(l.IndexOf("process.env.", StringComparison.Ordinal) + "process.env.".Length)..])
-                .Select(l => new string([.. l.TakeWhile(c => char.IsLetterOrDigit(c) || c == '_')])))
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
-
-        // The panel talks to Kestrel and to nothing else. No DATABASE_URL, no REDIS_URL, no token.
-        Assert.Equal(["SONARR_API_URL"], reads);
+        foreach (var name in new[] { "web", "frontend", "panel" })
+        {
+            var path = Path.Combine(RepoRoot().FullName, name);
+            Assert.False(Directory.Exists(path), $"{name}/ is back — Discord is the only surface");
+        }
     }
 
     private static DirectoryInfo RepoRoot()

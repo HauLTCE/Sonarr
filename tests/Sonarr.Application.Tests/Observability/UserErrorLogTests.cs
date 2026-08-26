@@ -1,10 +1,10 @@
 using Sonarr.Bot.Observability;
 
-namespace Sonarr.Application.Tests.Web;
+namespace Sonarr.Application.Tests.Observability;
 
 /// <summary>
-/// The store behind the panel's "My errors" page (docs/09). In-memory and bounded, so the things
-/// worth pinning down are the bounds and the ordering.
+/// The store behind <c>sonarr errors</c> (docs/07). In-memory and bounded, so the things worth
+/// pinning down are the bounds and the ordering.
 /// </summary>
 public class UserErrorLogTests
 {

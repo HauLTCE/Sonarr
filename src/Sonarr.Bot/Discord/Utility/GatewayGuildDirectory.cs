@@ -2,18 +2,16 @@ using System.Globalization;
 using Discord.WebSocket;
 using Sonarr.Domain.Abstractions;
 
-namespace Sonarr.Bot.Discord.Web;
+namespace Sonarr.Bot.Discord.Utility;
 
 /// <summary>
-/// Names for the panel, read straight off the gateway cache. Singleton for the same reason
-/// <see cref="GatewayGuildAuthority"/> is: <see cref="DiscordSocketClient"/> is one, and Kestrel
-/// runs in this process.
+/// Channel, role and member names read straight off the gateway cache. Singleton because
+/// <see cref="DiscordSocketClient"/> is one.
 /// </summary>
 /// <remarks>
 /// No REST fallback and no cache of its own. The gateway already holds channels and roles for every
 /// guild it is in, so this is a dictionary walk; a name that cannot be found is not worth an HTTP
-/// request, because the caller's fallback — show the id — is what the panel displayed before this
-/// type existed.
+/// request, because the caller's fallback — show the id — is what it did before this type existed.
 /// </remarks>
 public sealed class GatewayGuildDirectory(DiscordSocketClient client) : IGuildDirectory
 {
@@ -58,8 +56,8 @@ public sealed class GatewayGuildDirectory(DiscordSocketClient client) : IGuildDi
             return member.Nickname ?? member.DisplayName;
         }
 
-        // Bot-wide rows (the audit page) and members who left: the user cache still knows most of
-        // them, because they are in some other guild she shares.
+        // Bot-wide rows and members who left: the user cache still knows most of them, because
+        // they are in some other guild she shares.
         SocketUser? user = client.GetUser(userId);
 
         return user?.GlobalName ?? user?.Username;
