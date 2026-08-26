@@ -14,6 +14,7 @@ using Sonarr.Bot.DependencyInjection;
 using Sonarr.Bot.Observability;
 using Sonarr.Bot.Persona;
 using Sonarr.Infrastructure.Caching;
+using Sonarr.Infrastructure.Configuration;
 using Sonarr.Infrastructure.Persistence;
 
 // Serilog before anything else, so config failures are logged in the same shape as
