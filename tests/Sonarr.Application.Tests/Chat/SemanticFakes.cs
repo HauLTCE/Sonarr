@@ -144,6 +144,15 @@ internal sealed class FakeEpisodeRepository : IEpisodeRepository
             : Task.FromResult<IReadOnlyList<Episode>>(
                 [.. _episodes.Where(e => e.Embedding is null).OrderBy(e => e.Id).Take(limit)]);
 
+    public Task<IReadOnlyList<Episode>> GetRecentAsync(
+        long guildId, long userId, DateTimeOffset since, int limit, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<Episode>>(
+            [.. _episodes
+                .Where(e => e.GuildId == guildId && e.UserId == userId && e.HappenedAt >= since)
+                .OrderByDescending(e => e.HappenedAt).ThenByDescending(e => e.Id)
+                .Take(limit)
+                .Reverse()]);
+
     public Task SetEmbeddingsAsync(
         IReadOnlyList<(long Id, float[] Vector)> embeddings, CancellationToken ct = default)
     {

@@ -26,6 +26,23 @@ public interface IEpisodeRepository
     /// <summary>Oldest episodes still missing an embedding, for the backfill job.</summary>
     Task<IReadOnlyList<Episode>> GetUnembeddedAsync(int limit, CancellationToken ct = default);
 
+    /// <summary>
+    /// The newest <paramref name="limit"/> episodes for one person since
+    /// <paramref name="since"/>, returned oldest-first — a transcript, not a search.
+    /// </summary>
+    /// <remarks>
+    /// Chronological rather than by similarity, because the caller (<c>sonarr chat -u</c>) is a
+    /// person reading down the page instead of the engine looking something up, and because
+    /// un-embedded rows have to appear: an episode is recorded on the turn it happens and embedded
+    /// by a background job later, so <see cref="SearchAsync"/> cannot see the last few minutes.
+    /// </remarks>
+    Task<IReadOnlyList<Episode>> GetRecentAsync(
+        long guildId,
+        long userId,
+        DateTimeOffset since,
+        int limit,
+        CancellationToken ct = default);
+
     /// <summary>Stores embeddings for rows the backfill job just computed.</summary>
     Task SetEmbeddingsAsync(
         IReadOnlyList<(long Id, float[] Vector)> embeddings,

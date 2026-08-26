@@ -49,6 +49,34 @@ public sealed class EpisodeRepository(SonarrDbContext db) : IEpisodeRepository
             .Take(limit <= 0 ? BatchSize : limit)
             .ToListAsync(ct);
 
+    /// <remarks>
+    /// Ordered newest-first in SQL so <c>Take</c> keeps the <em>latest</em> page, then reversed
+    /// here — the caller wants the tail of the conversation, read downwards.
+    /// </remarks>
+    public async Task<IReadOnlyList<Episode>> GetRecentAsync(
+        long guildId,
+        long userId,
+        DateTimeOffset since,
+        int limit,
+        CancellationToken ct = default)
+    {
+        if (limit <= 0)
+        {
+            return [];
+        }
+
+        List<Episode> newestFirst = await db.Episodes
+            .AsNoTracking()
+            .Where(e => e.GuildId == guildId && e.UserId == userId && e.HappenedAt >= since)
+            .OrderByDescending(e => e.HappenedAt)
+            .ThenByDescending(e => e.Id)
+            .Take(limit)
+            .ToListAsync(ct);
+
+        newestFirst.Reverse();
+        return newestFirst;
+    }
+
     public async Task SetEmbeddingsAsync(
         IReadOnlyList<(long Id, float[] Vector)> embeddings, CancellationToken ct = default)
     {

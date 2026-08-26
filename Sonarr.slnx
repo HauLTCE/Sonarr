@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/Sonarr.Application/Sonarr.Application.csproj" />
     <Project Path="src/Sonarr.Bot/Sonarr.Bot.csproj" />
+    <Project Path="src/Sonarr.Cli/Sonarr.Cli.csproj" />
     <Project Path="src/Sonarr.Domain/Sonarr.Domain.csproj" />
     <Project Path="src/Sonarr.Elaine/Sonarr.Elaine.csproj" />
     <Project Path="src/Sonarr.Infrastructure/Sonarr.Infrastructure.csproj" />

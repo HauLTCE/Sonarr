@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- The binary a person types, not the project name. `sonarr stats` is the whole point
+         of goal 5, and a shim that has to translate the name is a shim that drifts. -->
+    <AssemblyName>sonarr</AssemblyName>
+    <RootNamespace>Sonarr.Cli</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Application for FeatureGate: a toggle written straight into core.feature_flag would
+         skip the Redis invalidation that makes the change apply immediately in the running
+         bot. Reusing the service means the CLI and /feature cannot disagree. -->
+    <ProjectReference Include="..\Sonarr.Application\Sonarr.Application.csproj" />
+    <ProjectReference Include="..\Sonarr.Infrastructure\Sonarr.Infrastructure.csproj" />
+    <ProjectReference Include="..\Sonarr.Domain\Sonarr.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Hosting for the configuration builder and DI only. No Discord.Net: the CLI never
+         connects to the gateway, which is exactly why it cannot write config keys that need
+         a channel/role lookup (see Help). -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+</Project>

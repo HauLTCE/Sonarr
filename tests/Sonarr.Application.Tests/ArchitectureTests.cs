@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Xml.Linq;
 
 namespace Sonarr.Application.Tests;
 
@@ -58,4 +59,61 @@ public sealed class ArchitectureTests
     [InlineData("Microsoft.AspNetCore.Http.Abstractions")]
     public void Elaine_stays_pure(string forbidden)
         => Assert.DoesNotContain(forbidden, ReferenceNames(Elaine));
+
+    /// <summary>
+    /// The <c>sonarr</c> CLI has no gateway, and that is a design decision rather than a gap
+    /// nobody got round to.
+    /// </summary>
+    /// <remarks>
+    /// A second process that connects to Discord needs the bot token, and a shell tool that reads
+    /// the token is one accident away from being a second bot session — which Discord answers by
+    /// disconnecting the first. <c>CliHost</c> pays for that with <c>OfflineGuildDirectory</c>,
+    /// documented in <c>sonarr help set</c>: the CLI cannot tell a channel id from a role id.
+    /// <para>
+    /// The obvious "fix" for that limitation is to add Discord.Net to the CLI, which is exactly what
+    /// must not happen — so it fails here, with the reason attached. Read from the csproj rather than
+    /// by assembly reference because the test project does not reference the CLI, and giving it one
+    /// would put the CLI's dependencies on the test assembly's own probing path.
+    /// </para>
+    /// <para>
+    /// The <c>Include</c> attributes, not the file's text: the csproj explains in a comment why it
+    /// takes no Discord.Net, so a text scan matches the comment and fails a project that is correct.
+    /// A guard that cannot tell the defect from the thing documenting its own absence gets deleted
+    /// the first time it cries wolf.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_cli_takes_no_gateway_dependency()
+    {
+        FileInfo project = new(Path.Combine(RepoRoot().FullName, "src", "Sonarr.Cli", "Sonarr.Cli.csproj"));
+
+        // Asserted, not skipped: a moved or renamed project must fail loudly rather than turn this
+        // into a test that passes by finding nothing.
+        Assert.True(project.Exists, $"{project.FullName} is not there — did the CLI project move?");
+
+        List<string> gateway = [.. XDocument
+            .Load(project.FullName)
+            .Descendants()
+            .Where(e => e.Name.LocalName is "PackageReference" or "ProjectReference")
+            .Select(e => e.Attribute("Include")?.Value ?? "")
+            .Where(include => include.Contains("Discord", StringComparison.OrdinalIgnoreCase))];
+
+        Assert.True(
+            gateway.Count == 0,
+            "The CLI runs without a gateway on purpose (CliHost). Reaching for Discord.Net to close "
+                + "the IGuildDirectory gap makes a shell tool hold the bot token; use /config set for "
+                + $"the channel and role keys instead. Found: {string.Join(", ", gateway)}");
+    }
+
+    private static DirectoryInfo RepoRoot()
+    {
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Sonarr.slnx")))
+        {
+            directory = directory.Parent;
+        }
+
+        Assert.NotNull(directory);
+        return directory!;
+    }
 }
