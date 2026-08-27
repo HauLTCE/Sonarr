@@ -11,6 +11,12 @@ Backup layout (written by BackupRunner, 03:30 nightly):
 /root/backups/sonarr/YYYY/MM/config-YYYY-MM-DD.tar.gz    # weekly: persona/ + .env
 ```
 
+Those are the **host** paths, which have not changed and are what every step below uses. The
+bot itself now writes to `/opt/sonarr/backups`, because it runs as `sonarr.service` with
+`ProtectHome=true` and the unit bind-mounts the host directory there (docs/11) — the same files,
+seen from inside the service's namespace. `BACKUP_PATH` in the unit names the namespace path;
+nothing in this drill does.
+
 No `.gz` on the dump: `--format=custom` is already zlib-compressed, so piping it through
 gzip would cost J2900 CPU to add nothing and invite a drill that gunzips first. The
 config archive *is* gzipped — that one is text.
@@ -27,11 +33,10 @@ echo "$DUMP"
 ls -lh "$DUMP"                                 # must be non-zero; ~50-100MB at this scale
 head -c 5 "$DUMP" | grep -q PGDMP && echo "pg_dump header ok"
 # The strongest check short of restoring: pg_restore reads the whole table of contents.
-# Run it in the bot image — there is no Postgres client on the host, by design (the only
-# one that has to exist is the client 17 inside that image, which is what writes these).
-docker run --rm -v /root/backups/sonarr:/backups:ro --entrypoint pg_restore \
-  sonarr-bot:local --list "/backups/${DUMP#/root/backups/sonarr/}" >/dev/null \
-  && echo "table of contents ok"
+# pg_restore is a host binary now — postgresql-client-17 is installed on the box, because
+# BackupProbe goes red at boot without pg_dump on PATH (docs/11). It used to have to be run
+# inside the bot image, which was the only place a client 17 existed.
+pg_restore --list "$DUMP" >/dev/null && echo "table of contents ok"
 ```
 
 If any check fails, stop and use the previous night's dump — then find out why
@@ -88,19 +93,32 @@ query). Small deltas are expected — the dump is from 03:30, live has moved on.
 Do **not** use the real Discord token: a second gateway connection on the same bot user
 fights the live one. Use a scratch test-app token, or run only the migrator.
 
+The bot is a host service now, so this runs the installed binaries directly with an override
+`.env` rather than starting a container. `SONARR_ENV` is what makes that possible from outside
+the deployment tree (docs/12) — the same variable `/usr/local/bin/sonarr` exports.
+
 ```sh
-cd /root/sonarr-net
-cp .env /tmp/.env.restore
+cp /opt/sonarr/.env /tmp/.env.restore
 # edit /tmp/.env.restore:
 #   PG_CONNECTION=Host=127.0.0.1;Port=55432;Database=sonarr_restore;Username=sonarr;Password=<the one from step 1>
 #   DISCORD_TOKEN=<scratch test-app token>
 #   DISCORD_DEV_GUILD_ID=<test guild>
 #   REDIS_CONNECTION=127.0.0.1:6379   # fine to share; keys are TTL'd and namespaced by guild
+#   PERSONA_PATH=/opt/sonarr/persona
+#   MODEL_PATH=/opt/sonarr/models/minilm-l6-v2
+#   BACKUP_PATH=/tmp/restore-backups   # NOT the real tree — a drill must not write into it
 
-docker run --rm --name sonarr-restore-test --network host --env-file /tmp/.env.restore \
-  -v /root/sonarr-net/persona:/app/persona \
-  "$(grep -E '^BOT_IMAGE=' .env | cut -d= -f2- || echo sonarr-bot:local)"
+mkdir -p /tmp/restore-backups
+cd /tmp && SONARR_ENV=/tmp/.env.restore dotnet /opt/sonarr/app/Sonarr.Bot.dll
 ```
+
+The three path keys are in the file because the *unit* normally supplies them and this is not
+running under the unit. Leaving them out means the bot reads whatever the copied `.env` says,
+which is the compose stack's container view (`/app/persona`) — it would refuse to boot on a
+missing persona, and the reason would not be obvious.
+
+The schema check is the same either way: `dotnet /opt/sonarr/app/Sonarr.Migrator.dll migrate`
+with `SONARR_ENV` pointed at the same file applies migrations to the restored DB alone.
 
 Pass if: boot config validation passes and the startup self-test reports Postgres green —
 `Self-test GREEN` in the container's own output, since the bot serves no health endpoint

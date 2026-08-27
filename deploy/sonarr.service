@@ -20,6 +20,17 @@ Wants=network-online.target
 # After=, not Requires=: Postgres and Redis are containers, the bot retries both and reconnects
 # to Lavalink on its own, and a hard dependency would take the bot down every time the docker
 # daemon restarted for an unrelated reason. Ordering only.
+#
+# Five failures in a minute means it is not coming up. Stop and stay failed, so `systemctl status`
+# says so instead of hiding a crashloop behind a service that looks like it is running.
+#
+# These two live in [Unit], not [Service], even though Restart= and RestartSec= are in [Service]
+# and every instinct says to keep the four together. systemd parses them in [Service] and ignores
+# them with `Unknown key 'StartLimitIntervalSec' in section [Service]` on a line nobody reads —
+# the unit starts fine, and the limit that was supposed to stop a crashloop simply is not there.
+# Caught only because a reinstall put the warning in the journal next to the log tail.
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 Type=simple
@@ -39,10 +50,11 @@ ExecStart=/usr/bin/dotnet /opt/sonarr/app/Sonarr.Bot.dll
 # whole mechanism, and reversing it in Program.cs would silently point the bot at nothing.
 Environment=PERSONA_PATH=/opt/sonarr/persona
 Environment=MODEL_PATH=/opt/sonarr/models/minilm-l6-v2
-# Unchanged from the container, and deliberately still under /root: RESTORE.md's drill and the
-# weekly config archive both name this path, and a restore procedure that points at a directory
-# that moved is a restore procedure that fails on the day it matters.
-Environment=BACKUP_PATH=/root/backups/sonarr
+# Where the bot writes its dumps — the path *inside* this unit's namespace. The files land in
+# /root/backups/sonarr on the host, via the BindPaths line below, so RESTORE.md's drill and the
+# weekly config archive still name the directory they always did. A restore procedure that points
+# at a directory that moved is a restore procedure that fails on the day it matters.
+Environment=BACKUP_PATH=/opt/sonarr/backups
 
 # The container set this and the reason has not changed: the bot is one of five processes on a
 # 4 GB box, mostly waiting on a socket, and server GC reserves a heap per core.
@@ -53,10 +65,7 @@ Environment=TZ=Asia/Ho_Chi_Minh
 
 Restart=always
 RestartSec=5
-# Five failures in a minute means it is not coming up. Stop and stay failed, so `systemctl
-# status` says so instead of hiding a crashloop behind a service that looks like it is running.
-StartLimitIntervalSec=60
-StartLimitBurst=5
+# StartLimitIntervalSec/StartLimitBurst are in [Unit] above — systemd ignores them here.
 
 # `journalctl -u sonarr -f` is what `docker logs -f` was. The file sink keeps writing
 # logs/sonarr-*.log with its 14-day retention, so scripted log reads are unaffected.
@@ -74,13 +83,27 @@ ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true
-# read-only rather than true: BACKUP_PATH is under /root and ProtectHome=true would make it
-# inaccessible and empty — pg_dump would write into a masked tmpfs and the nightly dump would
-# "succeed" into nothing. ReadWritePaths below punches the one hole that is needed.
-ProtectHome=read-only
+# ProtectHome=true, not read-only: the dumps live in /root/backups/sonarr and nothing else under
+# /root or /home is any of the bot's business. The reason `read-only` looked necessary — and the
+# reason this line was wrong twice — is that /root is 0700 root-owned, so the `sonarr` user cannot
+# *traverse* it no matter what ProtectHome says. Relaxing ProtectHome never fixed that; it only
+# looked like the lever. What fixes it is the bind mount below, which hands the directory to the
+# service at a path it can reach without any permission on /root at all.
+ProtectHome=true
+# The dump directory, mounted where the service can actually get at it. BACKUP_PATH above names
+# this path, not the host one. Verified with `systemd-run` before shipping: inside the namespace
+# the mount shows the real 33 dumps and is writable as `sonarr`, while /root/backups/sonarr itself
+# stays Permission denied — the bind is resolved by the manager as root, so a 0700 host directory
+# and a 0700 /root above it are both irrelevant to the service.
+#
+# The mount point does not need to exist beforehand and does not need permissions: systemd creates
+# it in the namespace. install-host.sh therefore does NOT create /opt/sonarr/backups, and must not
+# chown it — a real directory left there would just be shadowed, and an empty one is exactly what
+# the old bug looked like.
+BindPaths=/root/backups/sonarr:/opt/sonarr/backups
 # ProtectSystem=strict makes the whole filesystem read-only, so every path written is listed:
-# logs/ is Serilog's, and the backup directory is BackupRunner's pg_dump output.
-ReadWritePaths=/opt/sonarr/logs /root/backups/sonarr
+# logs/ is Serilog's, and the backup mount is BackupRunner's pg_dump output.
+ReadWritePaths=/opt/sonarr/logs /opt/sonarr/backups
 
 [Install]
 WantedBy=multi-user.target

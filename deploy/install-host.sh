@@ -72,9 +72,15 @@ PREFIX=/opt/sonarr
 # app.new is staged whole and swapped in one `mv`, so a transfer that dies partway leaves the
 # running bot's tree untouched. Unlike the persona directory (deploy.sh --unpack-persona), no
 # bind mount resolves through here, so replacing the directory is safe.
+#
+# --no-same-owner: the sending tar runs on Git Bash for Windows and stamps the archive with the
+# dev box's own uid/gid (197609/197121, from the Windows SID mapping). Extracting as root honours
+# those by default and dies with "Cannot change ownership to uid 197609: Invalid argument" — the
+# whole transfer fails, and the message points at the *server* while the cause is the client. The
+# ownership here is set explicitly by the chown below anyway, so what the archive claims is noise.
 if [ "$MODE" = unpack ]; then
     rm -rf app.new
-    tar x
+    tar x --no-same-owner
     for f in app.new/Sonarr.Bot.dll app.new/Sonarr.Migrator.dll app.new/sonarr.dll; do
         [ -e "$f" ] || { echo "!! $f missing after transfer — keeping the old tree" >&2; exit 1; }
     done
@@ -119,8 +125,10 @@ if [ "$MODE" = remote ]; then
     ssh -o BatchMode=yes "$TARGET" "mkdir -p '${PREFIX}'"
 
     # This script and the unit file first, so the far end has both before it is asked to run one.
+    # --no-same-owner for the same reason as the unpack step: this tar stream is written by Git
+    # Bash on Windows and carries a uid the server has never heard of.
     tar c -C deploy install-host.sh sonarr.service \
-        | ssh -o BatchMode=yes "$TARGET" "tar x -C '${PREFIX}'"
+        | ssh -o BatchMode=yes "$TARGET" "tar x --no-same-owner -C '${PREFIX}'"
 
     tar c -C "$STAGE" app.new \
         | ssh -o BatchMode=yes "$TARGET" "cd '${PREFIX}' && sh install-host.sh --unpack"
@@ -169,14 +177,16 @@ fi
 
 echo "==> layout"
 # /opt/sonarr becomes the app root, and the three things the bot reads move here rather than
-# being read across a symlink into /root: ProtectHome=read-only in the unit still needs the
-# service user to be able to *traverse* /root, and /root is 0700. The alternatives were chmod
-# o+x on /root (loosening a system directory for one service) or a second copy of .env that can
-# drift from the one compose reads. Moving the file and leaving a symlink behind is neither:
-# there is exactly one .env, and both readers find it.
+# being read across a symlink into /root: a service user cannot traverse /root at all (0700
+# root-owned), whatever the unit's ProtectHome says. The alternatives were chmod o+x on /root
+# (loosening a system directory for one service) or a second copy of .env that can drift from the
+# one compose reads. Moving the file and leaving a symlink behind is neither: there is exactly one
+# .env, and both readers find it.
 #
-# logs/ is Serilog's. backups/ is not created here — BACKUP_PATH stays /root/backups/sonarr,
-# because RESTORE.md's drill and the weekly config archive both name that path.
+# logs/ is Serilog's. backups/ is deliberately NOT created: the unit bind-mounts
+# /root/backups/sonarr onto /opt/sonarr/backups, systemd creates that mount point inside the
+# namespace, and a real directory left here would only be shadowed by it. RESTORE.md's drill and
+# the weekly config archive still name the host path, which has not moved.
 mkdir -p "$PREFIX/logs"
 
 for item in .env persona models; do
@@ -258,7 +268,15 @@ if [ "$RESTART" = yes ]; then
     fi
 
     echo "==> starting sonarr.service"
-    systemctl enable --now sonarr
+    # enable, then restart — NOT `enable --now`. `--now` starts a stopped unit and does nothing at
+    # all to a running one, so on the second run (which is the upgrade path this script advertises)
+    # it left the old process alive on the old binaries and the old unit file, and printed
+    # "active (running)" with a start timestamp from the previous deploy. The status block below
+    # looked perfect. `restart` is unconditional and works from either state.
+    systemctl enable sonarr
+    was=$(systemctl show sonarr -p MainPID --value)
+    systemctl restart sonarr
+
     # A unit that fails after 3 s of "activating" reports active(activating) to a naive check,
     # so this waits for it to settle rather than asking once.
     i=0
@@ -280,6 +298,15 @@ if [ "$RESTART" = yes ]; then
         echo "   Roll back: systemctl disable --now sonarr && docker compose -f /root/sonarr-net/docker-compose.yml up -d bot" >&2
         exit 1
     fi
+
+    # `active` alone does not prove this run replaced anything — that is exactly what the
+    # `enable --now` bug produced. A changed main PID does.
+    now=$(systemctl show sonarr -p MainPID --value)
+    if [ "$now" = "$was" ] && [ "$was" != 0 ]; then
+        echo "!! sonarr.service is active but still on PID $was — the restart did not take." >&2
+        exit 1
+    fi
+    echo "    running as PID $now (was ${was:-none})"
 fi
 
 echo

@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Sonarr.Infrastructure.Configuration;
 using Sonarr.Infrastructure.Persistence;
 using Sonarr.Migrator.Import;
 
@@ -8,7 +10,23 @@ using Sonarr.Migrator.Import;
 //
 // Usage: Sonarr.Migrator migrate [--connection "Host=...;"]
 //        Sonarr.Migrator import  [--connection "Host=...;"] [--source /root/sonarr]
-//        --connection falls back to PG_CONNECTION from the environment.
+//        --connection falls back to PG_CONNECTION, from the environment or from the .env.
+
+// The .env, then real environment variables — the same order and the same resolution the bot
+// (Program.cs) and the CLI (CliHost) use, so all three agree on which database they mean.
+//
+// Reading the file at all is what install-host.sh needs: it runs `migrate` over ssh as the
+// service user, and a non-interactive `sh -c` inherits none of the deploy shell's variables, so
+// PG_CONNECTION was simply absent and the step failed with "no connection string" after having
+// already installed everything. Passing --connection instead would put the password in the
+// process table and in the deploy transcript.
+string? envFile = Environment.GetEnvironmentVariable("SONARR_ENV") is { Length: > 0 } named
+    ? named
+    : DotEnv.FindUpwards(Directory.GetCurrentDirectory());
+IConfiguration configuration = new ConfigurationBuilder()
+    .AddDotEnvFile(envFile ?? string.Empty)   // AddDotEnvFile ignores a path that is not a file
+    .AddEnvironmentVariables()
+    .Build();
 
 string verb = args.FirstOrDefault() ?? "migrate";
 if (verb is "-h" or "--help" or "help")
@@ -24,10 +42,11 @@ if (verb is not ("migrate" or "import"))
     return 2;
 }
 
-string? connection = Option("--connection") ?? Environment.GetEnvironmentVariable("PG_CONNECTION");
+string? connection = Option("--connection") ?? configuration["PG_CONNECTION"];
 if (string.IsNullOrWhiteSpace(connection))
 {
-    Console.Error.WriteLine("no connection string: pass --connection or set PG_CONNECTION.");
+    Console.Error.WriteLine("no connection string: pass --connection, set PG_CONNECTION, or run "
+        + "this from a directory with a .env (or point SONARR_ENV at one).");
     return 2;
 }
 
@@ -71,7 +90,7 @@ async Task<int> ImportAsync(SonarrDbContext db)
 {
     // Default is /root/sonarr — the live directory. /root/sonarr-data is a stale copy and
     // importing it would silently roll everyone's data back (docs/11).
-    string root = Option("--source") ?? Environment.GetEnvironmentVariable("LEGACY_DIR") ?? "/root/sonarr";
+    string root = Option("--source") ?? configuration["LEGACY_DIR"] ?? "/root/sonarr";
     LegacySource source = new(root);
     Console.WriteLine($"reading legacy data from {source.Root}");
 
