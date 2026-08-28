@@ -22,16 +22,21 @@ internal static class PanaceaCommand
         bool heal = !cli.Has("check");
         List<IDoctorCheck> checks =
         [
+            // Order is diagnostic, not cosmetic: each check's failure mode is a plausible cause
+            // of the ones below it. A full disk truncates dumps and half-applies migrations; a
+            // missing key means the connection below was never going to work.
+            new DiskCheck(),
             new EnvCheck(),
             new PostgresCheck(),
             new SchemaCheck(),
             new RedisCheck(),
+            new LavalinkCheck(),
             new PersonaCheck(),
             new ModelCheck(),
             new BackupCheck(),
 
             // Last, and last deliberately: the bot is what everything above supports, so a round
-            // that fixed a stopped Postgres and then found the bot down reads in the right order.
+            // that fixed a stopped Postgres and then started the bot reads in the right order.
             new ServiceCheck("sonarr", "bot"),
         ];
 

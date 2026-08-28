@@ -180,18 +180,19 @@ public static class Help
         """
         sonarr health [--check]
 
-        Panacea, the doctor. Examines everything the bot stands on — the .env keys, postgres, the
-        schema, redis, the persona, the embedding model, the backup tree, the bot's own unit —
-        and by default treats what it can: starts a stopped postgres/redis container, applies
-        pending migrations, fetches a missing or truncated model, takes a fresh backup dump,
-        starts the bot's service. A healed row says what was broken and what fixed it. What it
-        cannot fix it reports three ways: what is broken, what it tried, and what to do next.
-        Exit 0 only when nothing is left broken.
+        Panacea, the doctor. Ten checks, in the order one causes the next: disk, the .env keys,
+        postgres, the schema, redis, lavalink, the persona, the embedding model, the backup tree,
+        the bot's own unit. By default it treats what it can — starts a stopped container, applies
+        pending migrations, fetches a missing or truncated model, takes a fresh verified backup
+        dump, reclaims Docker build cache, starts the bot's service. A healed row says what was
+        broken and what fixed it; what it cannot fix it reports three ways: what is broken, what
+        it tried, and what to do next. Exit 0 only when nothing is left broken.
 
-        Two things it will not do, both on purpose: rewrite the persona (an invalid persona is an
-        authoring error, and she does not get her words edited by a machine) and restart a unit
-        that is failing rather than stopped (that is a crashloop, and hiding it is worse than
-        reporting it — the row points at the journal instead).
+        What it will not do, all on purpose: rewrite the persona (an invalid persona is an
+        authoring error, and she does not get her words edited by a machine), restart a unit that
+        is failing rather than stopped (that is a crashloop, and hiding it is worse than reporting
+        it — the row points at the journal), delete a dump or a log to free disk, or guess a
+        credential.
 
           --check     examine only, no treatment — the canary mode for cron.
         """);
