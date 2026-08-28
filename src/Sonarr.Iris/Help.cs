@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace Sonarr.Cli;
+namespace Sonarr.Iris;
 
 /// <summary>
 /// The help screen. Written by hand and kept to one screen — goal 5 asked for "short and

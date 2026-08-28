@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Sonarr.Cli;
+namespace Sonarr.Iris;
 
 /// <summary>
 /// Terminal formatting. Plain text, aligned columns, no box drawing — this output gets piped and

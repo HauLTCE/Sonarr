@@ -1,6 +1,8 @@
-using Sonarr.Cli;
+using Sonarr.Iris;
 
-// The `sonarr` CLI (goal 5). One-shot console app in the shape of Sonarr.Migrator: verb first,
+// The `sonarr` CLI — the face of the Iris module (see docs/naming: Sonarr is the bot, Elaine is
+// her speech, Iris is the window between her and the operator: this CLI plus the shared logging
+// the bot writes through). One-shot console app in the shape of Sonarr.Migrator: verb first,
 // flags after, exit code says what happened.
 //
 //   0  did the thing

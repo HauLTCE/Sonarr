@@ -7,6 +7,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Sonarr.Application\Sonarr.Application.csproj" />
     <ProjectReference Include="..\Sonarr.Infrastructure\Sonarr.Infrastructure.csproj" />
+    <!-- Iris: the shared logging (IrisLogging/LogTemplates) the host registers at boot, and the
+         module whose `sonarr logs` reads those same files back. -->
+    <ProjectReference Include="..\Sonarr.Iris\Sonarr.Iris.csproj" />
   </ItemGroup>
 
   <ItemGroup>

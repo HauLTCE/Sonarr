@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Hosting;
 using Serilog;
-using Serilog.Events;
 using Sonarr.Application.Config;
 using Sonarr.Application.Health;
 using Sonarr.Bot.Discord.Chat;
@@ -16,13 +15,12 @@ using Sonarr.Bot.Persona;
 using Sonarr.Infrastructure.Caching;
 using Sonarr.Infrastructure.Configuration;
 using Sonarr.Infrastructure.Persistence;
+using Sonarr.Iris.Logging;
 
 // Serilog before anything else, so config failures are logged in the same shape as
-// everything else (docs/03-stack.md: structured console = the `docker logs` view).
-Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Information()
-    .WriteTo.Console(outputTemplate: LogTemplates.Console)
-    .CreateBootstrapLogger();
+// everything else (docs/03-stack.md: structured console = the journal view). Iris owns the
+// configuration of it — the same module that reads these files back with `sonarr logs`.
+IrisLogging.Bootstrap();
 
 try
 {
@@ -33,17 +31,7 @@ try
 
     var options = builder.Services.AddSonarrOptions(builder.Configuration);
 
-    builder.Services.AddSerilog((services, cfg) => cfg
-        .ReadFrom.Configuration(builder.Configuration)
-        .ReadFrom.Services(services)
-        .MinimumLevel.Information()
-        .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
-        .Enrich.FromLogContext()
-        .WriteTo.Console(outputTemplate: LogTemplates.Console)
-        .WriteTo.File("logs/sonarr-.log",
-            rollingInterval: RollingInterval.Day,
-            retainedFileCountLimit: 14,
-            outputTemplate: LogTemplates.File));
+    builder.Services.AddIrisLogging(builder.Configuration);
 
     builder.Services.AddSingleton<SonarrMetrics>();
     builder.Services.AddSonarrPersistence(options.PgConnection);

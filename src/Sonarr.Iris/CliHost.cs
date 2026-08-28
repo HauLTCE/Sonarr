@@ -10,7 +10,7 @@ using Sonarr.Infrastructure.Persistence.Repositories;
 using Sonarr.Infrastructure.Persistence.Repositories.Chat;
 using Sonarr.Infrastructure.Persistence.Repositories.Stats;
 
-namespace Sonarr.Cli;
+namespace Sonarr.Iris;
 
 /// <summary>
 /// The CLI's service provider: the same <c>.env</c>, the same repositories and the same Redis

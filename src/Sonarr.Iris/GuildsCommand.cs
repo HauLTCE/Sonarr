@@ -5,7 +5,7 @@ using Sonarr.Domain.Abstractions;
 using Sonarr.Domain.Entities.Core;
 using Sonarr.Infrastructure.Persistence;
 
-namespace Sonarr.Cli;
+namespace Sonarr.Iris;
 
 /// <summary>
 /// <c>sonarr guilds</c> — what is in <c>core.guild</c>, so the other commands have an id to be

@@ -2,7 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Sonarr.Domain.Abstractions;
 using Sonarr.Domain.Configuration;
 
-namespace Sonarr.Cli;
+namespace Sonarr.Iris;
 
 /// <summary>
 /// <c>sonarr get</c> — the read half of <see cref="SetCommand"/>, over both catalogs.

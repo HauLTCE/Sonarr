@@ -2,7 +2,7 @@ using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
 using Sonarr.Domain.Abstractions;
 
-namespace Sonarr.Cli;
+namespace Sonarr.Iris;
 
 /// <summary>
 /// <c>sonarr stats</c> — the durable analytics for one guild.

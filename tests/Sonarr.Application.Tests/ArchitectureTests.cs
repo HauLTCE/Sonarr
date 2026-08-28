@@ -85,7 +85,7 @@ public sealed class ArchitectureTests
     [Fact]
     public void The_cli_takes_no_gateway_dependency()
     {
-        FileInfo project = new(Path.Combine(RepoRoot().FullName, "src", "Sonarr.Cli", "Sonarr.Cli.csproj"));
+        FileInfo project = new(Path.Combine(RepoRoot().FullName, "src", "Sonarr.Iris", "Sonarr.Iris.csproj"));
 
         // Asserted, not skipped: a moved or renamed project must fail loudly rather than turn this
         // into a test that passes by finding nothing.

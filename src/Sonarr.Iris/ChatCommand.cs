@@ -4,7 +4,7 @@ using Sonarr.Domain.Abstractions;
 using Sonarr.Domain.Entities.Chat;
 using Sonarr.Domain.Entities.Core;
 
-namespace Sonarr.Cli;
+namespace Sonarr.Iris;
 
 /// <summary>
 /// <c>sonarr chat -u NAME</c> — one person's side of the chat record, following live by default.

@@ -1,4 +1,4 @@
-namespace Sonarr.Bot.Observability;
+namespace Sonarr.Iris.Logging;
 
 /// <summary>
 /// The two Serilog output templates, in one place so the bootstrap logger and the real one cannot
@@ -9,10 +9,14 @@ namespace Sonarr.Bot.Observability;
 /// <c>HH:mm:ss</c>, which made a container running UTC while its host ran +07 look like a
 /// seven-hour-wrong clock rather than a missing <c>TZ</c> — the offset is what tells those apart,
 /// and it costs six characters a line.
+/// <para>
+/// Iris owns these because it also reads the result: <c>sonarr logs</c> parses the file shape, so
+/// the template and its reader live in the same module and change together.
+/// </para>
 /// </remarks>
 public static class LogTemplates
 {
-    /// <summary>What <c>docker logs</c> / the terminal shows.</summary>
+    /// <summary>What <c>journalctl -u sonarr</c> / the terminal shows.</summary>
     public const string Console =
         "[{Timestamp:yyyy-MM-dd HH:mm:ss zzz} {Level:u3}] {SourceContext} {Message:lj}{NewLine}{Exception}";
 

@@ -3,7 +3,7 @@ using Sonarr.Domain.Abstractions;
 using Sonarr.Domain.Configuration;
 using StackExchange.Redis;
 
-namespace Sonarr.Cli;
+namespace Sonarr.Iris;
 
 /// <summary>
 /// <c>sonarr set KEY VALUE</c> — one entry point over both config systems, dispatching on which

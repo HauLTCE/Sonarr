@@ -115,7 +115,7 @@ if [ "$MODE" = remote ]; then
     # picks the Linux native assets — a portable publish drops a `runtimes/` tree with every
     # platform's copy of libonnxruntime.so, which is 209 MB of which 24 are useful.
     echo "==> publishing bot + migrator + cli (linux-x64, framework-dependent)"
-    for project in src/Sonarr.Bot src/Sonarr.Migrator src/Sonarr.Cli; do
+    for project in src/Sonarr.Bot src/Sonarr.Migrator src/Sonarr.Iris; do
         dotnet publish "$project" -c Release -r linux-x64 --self-contained false \
             -p:DebugType=none -o "$STAGE/app.new" --nologo -v quiet
     done

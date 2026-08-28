@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Sonarr.Cli;
+namespace Sonarr.Iris;
 
 /// <summary>
 /// A failure with a sentence already written for the person who typed the command, and the exit
