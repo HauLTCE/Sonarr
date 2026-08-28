@@ -1,122 +1,162 @@
 # Sonarr
 
-A Discord bot for one community: authored personality chat with long-term memory, a full
-Lavalink music player, levels, and moderation. This is the **C# / .NET 10** rewrite of a
-Python bot that worked but lost its state on every restart.
+Sonarr is a Discord bot built for one community. It holds a conversation in a consistent
+personality, plays music in voice channels, tracks activity levels, and gives moderators
+the usual tools. It is written in C# on .NET 10.
 
-**No LLM anywhere.** Every reply Sonarr sends was written by a person and picked by
-deterministic rules. Embeddings are used for understanding and recall — matching what you
-said to an authored intent, remembering what you told it three months ago — never for
-generation. That constraint is the point of the project, not a limitation of it: the bot
-has a fixed personality that cannot drift, cost nothing per message, and runs on a
-ten-year-old Pentium.
+## The unusual part: nothing it says is written by an AI
 
-## What it does
+Every single line Sonarr sends was typed out by a person ahead of time and stored in a file.
+There are about 3,800 of these lines. When you say something to it, the bot works out which
+situation you are in and picks one of the lines written for that situation. It never invents
+a sentence.
+
+This is a deliberate design choice, not a shortcut, and it buys three things:
+
+- **The personality cannot drift.** A bot that generates its replies says something slightly
+  different every week as its model changes. This one says exactly what somebody decided it
+  should say, and a test suite fails the build if a code change alters any of those replies.
+- **It costs nothing to run.** No per-message API bill, no rate limits, no outage somewhere
+  else taking the bot down with it.
+- **It runs on modest hardware.** No GPU, and no need for a machine with modern vector
+  instructions — the whole thing is comfortable on a low-power four-core box with 8 GB of RAM.
+
+### So where is the AI, then?
+
+There is machine learning in here, but only for *understanding* what you said — never for
+deciding what to say back.
+
+A small language model converts a sentence into a list of numbers that represents its
+meaning. Sentences that mean similar things end up with similar numbers. That is what lets
+"I'm knackered" find the same authored reply as "I'm exhausted", even though the bot was
+never shown the word "knackered". The same trick powers long-term recall: it can find
+something you mentioned three months ago because the meaning matches, not because you used
+the same words.
+
+The model reads. It never writes. Every word that reaches Discord came out of a file a human
+wrote.
+
+## What it can do
 
 | | |
 |---|---|
-| **Chat** | Mention it and it answers in character. Sentiment and mood tracking, per-user long-term memory, episode recall over pgvector, and a behavior catalog that pins every authored response so a refactor can't quietly change its personality. |
-| **Music** | Lavalink4NET against a Lavalink 4.2.2 node: queue, playlists, filters, now-playing, per-guild stats. Handles being dragged between voice channels, which the old bot hand-patched around. |
-| **Levels** | XP with anti-spam cooldowns, streaks, role rewards, leaderboards. |
-| **Moderation** | Warn/mute/kick/ban with a case log, tempbans that survive restarts, purge, audit trail, a permission preflight (`/checkperms`), and private mod threads via `/ticket`. |
-| **Utility** | Reminders, birthdays, events with RSVP, time capsules, quote board, milestones, `/ship`. |
-| **Privacy** | `/privacy`: see what's stored, export it, delete it, all in Discord. No general message-content logging — counts and timestamps only, enforced by a test that reflects over every column in the schema. |
+| **Chat** | Mention it and it replies in character. It tracks its own mood, remembers facts about you between conversations, recalls things you said long ago, and treats you differently depending on how much history you two have. |
+| **Music** | A full player backed by Lavalink: queue, playlists, audio filters, now-playing, per-server stats. It copes with being dragged between voice channels mid-song. |
+| **Levels** | Experience points for chatting, with anti-spam cooldowns, streaks, role rewards and leaderboards. |
+| **Moderation** | Warn, mute, kick and ban with a searchable case log; temporary bans that survive a restart; bulk message purge; an audit trail; a permission pre-flight check; and private moderator threads. |
+| **Utility** | Reminders, birthdays, events with RSVP, messages scheduled far into the future, a quote board, milestones. |
+| **Privacy** | One command shows you everything stored about you, exports it, or deletes it. The bot does not log what people say — only counts and timestamps — and a test inspects every column in the database to prove it. |
 
-97 slash commands (85 distinct names — the rest are subcommands like `list` and `set` reused
-across groups) across 28 interaction modules. Discord is the only surface: there is no HTTP
-API and no web UI, and `ArchitectureTests` keeps it that way
-(`No_project_builds_an_http_surface`, `No_frontend_tree_exists`).
+That comes to 98 slash commands (86 distinct names, since groups reuse words like `list` and
+`set`) across 28 command modules. Discord is the only way in: there is no website and no web
+API, and an architecture test fails the build if anyone adds one.
 
-## Layout
+## How the code is arranged
 
-One process:
+It is one program. When it runs, that single process talks to Discord, holds the
+conversations, plays the music and runs the scheduled jobs. Alongside it run four supporting
+services in Docker containers: PostgreSQL (the database, with a `pgvector` extension for the
+meaning-matching described above), Redis (a short-lived cache), Lavalink (the audio engine)
+and a small helper for YouTube playback.
 
-- **sonarr-bot** — one .NET 10 process: Discord gateway (Discord.Net), chat engine
-  (`Sonarr.Elaine`), music (Lavalink4NET) and background services. A worker host, not a web
-  host — it listens on no port.
-
-Plus Postgres 17 (+pgvector), Redis 7, Lavalink and yt-cipher — all compose services in
-one stack.
+The source is split into layers so that the interesting parts can be tested without needing
+a Discord account or a database:
 
 ```
-src/Sonarr.Domain          entities, domain models, IService/IRepository contracts
-src/Sonarr.Elaine          chat engine — pure logic, no Discord/DB/HTTP
-src/Sonarr.Application     service implementations, one folder per module
-src/Sonarr.Infrastructure  repositories, SonarrDbContext, Redis, ONNX, Lavalink wiring
-src/Sonarr.Bot             host: gateway, interaction modules, background services
-src/Sonarr.Migrator        one-shot: old SQLite/JSON -> Postgres
-persona/                   authored YAML the engine loads; LIMITS.md is what it deliberately
-                           does not check, and why
-tests/                     xUnit — engine behavior catalog + service tests
-deploy/                    prod compose stack, deploy script, restore drill
+src/Sonarr.Domain          the vocabulary: what a user, a case, an episode is
+src/Sonarr.Elaine          the chat engine — pure logic, no Discord, no database, no network
+src/Sonarr.Application     what each feature actually does
+src/Sonarr.Infrastructure  the plumbing: database, cache, the meaning model, audio
+src/Sonarr.Bot             the program itself: Discord commands and background jobs
+src/Sonarr.Iris            a command-line tool for whoever runs the server
+src/Sonarr.Migrator        a one-off importer from the bot's previous life
+persona/                   the authored replies, as YAML files
+tests/                     1,340 automated tests
+deploy/                    everything needed to put it on a server
 ```
 
-Dependencies point one way: `Bot → Application → Domain ← Infrastructure`. `Sonarr.Elaine`
-depends on nothing but the BCL, so the chat engine is testable without a Discord token or a
-database — `ArchitectureTests` fails the build if either rule is broken.
+Two rules are enforced by tests rather than by good intentions. Dependencies only ever point
+one direction — the Discord layer may call the feature layer, never the reverse. And
+`Sonarr.Elaine`, the chat engine, is allowed to reference nothing but the standard library, so
+it cannot even accidentally reach a database or the network. That is why the entire
+personality can be tested in about two seconds with no server running anywhere.
 
-## Running the dev stack
+**A note on the names.** The bot is called Sonarr and that is the only name a user ever sees.
+Internally the chat engine is called Elaine and the command-line tool is called Iris. If you
+read the source and wonder who they are, that is the answer — they are parts, not products.
+
+## Trying it yourself
+
+You need the .NET 10 SDK, Docker, and a Discord bot token from the
+[Discord developer portal](https://discord.com/developers/applications).
 
 ```sh
-cp .env.example .env          # fill in DISCORD_TOKEN, POSTGRES_PASSWORD, PG_CONNECTION
-docker compose up -d          # postgres:17+pgvector and redis:7 on 127.0.0.1
+cp .env.example .env          # then fill it in — see below
+docker compose up -d          # starts PostgreSQL and Redis, on your machine only
+sh scripts/fetch-model.sh     # downloads the meaning model (~90 MB, one time)
 dotnet run --project src/Sonarr.Bot
 ```
 
-Postgres and Redis are bound to loopback only. The bot runs on the host in dev (hot reload,
-debugger) and containerised in prod — `src/Sonarr.Bot/Dockerfile`, built from the repo root.
+Six values in `.env` have to be filled in, and the bot refuses to start without them rather
+than failing confusingly later on:
 
-Set `DISCORD_DEV_GUILD_ID` so slash commands register per-guild and appear instantly instead
-of waiting on Discord's global propagation.
+| | |
+|---|---|
+| `DISCORD_TOKEN` | from the developer portal above |
+| `PG_CONNECTION` and `POSTGRES_PASSWORD` | the database; keep the password identical in both |
+| `LAVALINK_PASSWORD` and `LAVALINK_URI` | the audio engine — required even for a run with no music, because the bot checks its configuration all at once at startup |
+| `ADMIN_USER_IDS` | your own Discord user ID. This is who may change settings that apply to every server, so an empty list means nobody can |
 
-```sh
-dotnet test                   # the engine behavior catalog is the regression floor
-```
+`.env.example` lists every key with a comment explaining what it is for. To find your Discord
+user ID: turn on Developer Mode in Discord's settings under Advanced, then right-click your
+own name and choose Copy User ID.
 
-Deploying is `deploy/deploy.sh` (`--build` on the box, or `--pull` from GHCR). CI builds and
-tests, then publishes the image. `deploy/RESTORE.md` is the backup restore drill — run it
-before trusting a backup, then quarterly.
+Two things about the commands above. The database and cache are deliberately reachable only
+from your own machine and never from the network. And the model download is optional — skip
+it and the bot still runs, but it will only recognise phrasings somebody anticipated, losing
+the "I'm knackered" trick described above.
 
-## The legacy Python bot
+`docker compose up -d` starts the database and cache only, not the audio engine, so music will
+not work in a plain development run. That is intentional: it keeps first-time setup to two
+containers. The full set of services for a real server lives in `deploy/`.
 
-The retired Python bot used to live in `_bot_legacy/`. It is gone from the working tree;
-everything it was kept for has been extracted:
-
-- **Reference implementation** — its persona YAML now lives in `persona/`, loaded directly
-  by the engine rather than copied.
-- **Conformance suite** — `tests/Sonarr.Elaine.Tests/BehaviorCatalogTests.cs` is the mined
-  catalog, restated against the v2 engine. Every behavior pinned there still has to survive,
-  and the ones with no v2 route are recorded as comments rather than dropped.
-
-The last commit containing the tree is the `python-bot-final` tag, so provenance comments in
-the C# stay resolvable:
+Set `DISCORD_DEV_GUILD_ID` to your own test server. Commands then appear immediately instead
+of taking up to an hour to propagate across Discord.
 
 ```sh
-git show python-bot-final:_bot_legacy/tests/test_logical_response.py
+dotnet test                   # all 1,340 tests; takes a few seconds
 ```
 
-## Ground rules
+Nothing secret is in this repository. `.env` holds the bot token and the database passwords
+and is excluded from Git; `.env.example` lists the same keys with the values left blank.
 
-These gate every change:
+## Health checks that repair rather than complain
 
-1. **Users only ever see "Sonarr."** Elaine is the internal name of the chat module; it
-   never appears in a command or a reply.
-2. **No generative AI.** Every reply is authored.
-3. **Everything runs on the target box** — Pentium J2900, 4C/4T, 8GB RAM, no AVX. Anything
-   that can't gets redesigned, not excused.
-4. **Nothing durable is lost on restart.** State is Postgres (durable), Redis (transient by
-   design, TTL'd), or explicitly documented as ephemeral.
+There is a command-line tool for whoever runs the server. Its most useful command runs ten
+checks — disk space, configuration, database, database schema, cache, audio engine, the
+authored replies, the meaning model, backups, and whether the bot itself is running:
 
-Secrets live in `.env`, which is gitignored and never committed; `.env.example` carries the
-keys with empty values.
+```sh
+dotnet run --project src/Sonarr.Iris -- health     # on a development machine
+sonarr health                                      # on a server, where it is installed
+```
 
-## A note on the docs
+Most tools like this tell you something is wrong and leave. This one tries to fix it: it
+starts a container that has stopped, applies a database update the code is waiting on,
+downloads a model that went missing, takes a fresh backup, reclaims disk space. Each line
+reports what was broken, what was attempted, and whether it worked. When it genuinely cannot
+help, it says what is broken, what it tried, and what you should do about it.
 
-The design notes and build checklist that drove this rewrite live in `docs/` on disk but are
-deliberately not published — they carry server layout, guild ids and operational detail that
-does no good in a public repo. The code is the specification here: decisions are recorded as
-comments where the decision lives, and every non-obvious trade-off has one.
+Four things it refuses to do, on purpose:
 
-This is a bot for a single community rather than a product you deploy. It is public because
-the engine, the layering and the no-LLM approach might be useful to read, not because it is
-built for reuse — there is no multi-tenant story and there won't be one.
+- **Rewrite the authored replies.** A mistake in those files is a human's writing error, and
+  a machine editing the bot's personality to make an error go away is worse than the error.
+- **Restart a service that keeps crashing.** Restarting a service that is *stopped* is
+  helpful; restarting one that starts and immediately dies just hides the reason it died.
+  The report points at the log instead.
+- **Delete a backup or a log to free up space.** It clears rebuildable caches only. Deleting
+  a backup to free disk would destroy the exact thing you came to protect.
+- **Guess a password.** A rejected credential is reported, never worked around.
+
+Add `--check` to make it examine and report without changing anything, which is what you want
+from an automated monitor.
