@@ -65,15 +65,18 @@ public sealed class ChatCalendarTests
     }
 
     [Fact]
-    public void At_4am_on_halloween_both_overlays_are_live_and_the_stronger_one_leads()
+    public void At_4am_on_halloween_every_live_overlay_is_listed_strongest_first()
     {
-        // persona/overlays/*.yaml both claim mood_fragment; latenight has the higher priority, so
-        // it must come first — LinePicker walks this list in order and takes the first claim.
+        // Three are live at 4 am on the 31st: latenight (3-6), morning (0-9) and october. The
+        // order is the whole point — LinePicker walks this list and takes the first claim on a
+        // pool, so latenight (priority 10) must precede morning (6), which must precede october
+        // (5). latenight and october both claim mood_fragment; latenight and morning both claim
+        // the greeting and the idle fallback.
         IReadOnlyList<string> overlays = ClockSignals
             .From(Build.Graph, new DateTimeOffset(2026, 10, 31, 4, 0, 0, TimeSpan.Zero), null)
             .Overlays;
 
-        Assert.Equal(["latenight", "october"], overlays);
+        Assert.Equal(["latenight", "morning", "october"], overlays);
     }
 
     [Fact]

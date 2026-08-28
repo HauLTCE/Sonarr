@@ -10,3 +10,6 @@ priority: 7
 replaces:
   neutral_statement: lunch_break
   social_greeting: lunch_break
+  # And the cold-stranger greeting: GREETING_FIRST draws greeting_first rather than
+  # social_greeting, so without this line a first hello at noon skipped the daypart.
+  greeting_first: lunch_break

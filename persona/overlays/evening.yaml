@@ -10,3 +10,6 @@ priority: 8
 replaces:
   neutral_statement: evening_grace
   social_greeting: evening_grace
+  # And the cold-stranger greeting: GREETING_FIRST draws greeting_first rather than
+  # social_greeting, so without this line a first hello at 22:00 skipped the daypart.
+  greeting_first: evening_grace

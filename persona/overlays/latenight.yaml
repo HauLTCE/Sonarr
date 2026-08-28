@@ -9,4 +9,8 @@ priority: 10
 replaces:
   neutral_statement: topic_sleep
   social_greeting: topic_nap
+  # greeting_first as well as social_greeting: GREETING_FIRST (social.yaml) draws its own pool
+  # for a stranger's first hello, so without this line a cold hello at 4 am drew "what." and
+  # the daypart never reached the one turn most likely to be someone's first.
+  greeting_first: topic_nap
   mood_fragment: mood_fragment_latenight

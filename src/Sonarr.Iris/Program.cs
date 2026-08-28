@@ -1,4 +1,5 @@
 using Sonarr.Iris;
+using Sonarr.Iris.Panacea;
 
 // The `sonarr` CLI — the face of the Iris module (see docs/naming: Sonarr is the bot, Elaine is
 // her speech, Iris is the window between her and the operator: this CLI plus the shared logging
@@ -59,7 +60,7 @@ try
             return await EpisodesCommand.RunAsync(cli);
 
         case "health":
-            return await HealthCommand.RunAsync(cli);
+            return await PanaceaCommand.RunAsync(cli);
 
         default:
             Console.Error.WriteLine($"sonarr: '{verb}' isn't a command. Try `sonarr help`.");

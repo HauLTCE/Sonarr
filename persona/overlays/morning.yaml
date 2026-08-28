@@ -11,3 +11,6 @@ priority: 6
 replaces:
   neutral_statement: morning_grace
   social_greeting: morning_grace
+  # And the cold-stranger greeting: GREETING_FIRST draws greeting_first rather than
+  # social_greeting, so without this line a first hello at 7 am skipped the daypart entirely.
+  greeting_first: morning_grace

@@ -47,7 +47,7 @@ public static class Help
           sonarr episodes [--guild ID] [--days N]   her recent lines, across the whole server
           sonarr persona                            validate the persona the bot would load
           sonarr backups [--verify]                 what the nightly backup job has written
-          sonarr health                             postgres, redis, persona, backups — one row each
+          sonarr health [--check]                   the doctor: examine everything, fix what it can
 
         Common flags:
           --guild ID    which server (default: SONARR_GUILD from .env; 0 = global)
@@ -178,10 +178,15 @@ public static class Help
 
     private static void Health() => Console.WriteLine(
         """
-        sonarr health
+        sonarr health [--check]
 
-        Four checks, one row each: postgres connects, redis pings, the persona on disk validates,
-        the backup tree has fresh restorable-shaped dumps. Exit 0 only when all four pass, which
-        is what makes it usable as a cron canary.
+        Panacea, the doctor. Examines everything the bot stands on — the .env, postgres, the
+        schema, redis, the persona, the backup tree — and by default treats what it can: starts
+        a stopped postgres/redis container, applies pending migrations, takes a fresh backup
+        dump. A healed row says what was broken and what fixed it. What it cannot fix it reports
+        three ways: what is broken, what it tried, and what to do next. Exit 0 only when nothing
+        is left broken.
+
+          --check     examine only, no treatment — the old canary mode for cron.
         """);
 }
