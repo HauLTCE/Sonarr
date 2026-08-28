@@ -46,6 +46,21 @@ try
         case "guilds":
             return await GuildsCommand.RunAsync(cli);
 
+        case "logs":
+            return await LogsCommand.RunAsync(cli);
+
+        case "backups":
+            return await BackupsCommand.RunAsync(cli);
+
+        case "persona":
+            return await PersonaCommand.RunAsync(cli);
+
+        case "episodes":
+            return await EpisodesCommand.RunAsync(cli);
+
+        case "health":
+            return await HealthCommand.RunAsync(cli);
+
         default:
             Console.Error.WriteLine($"sonarr: '{verb}' isn't a command. Try `sonarr help`.");
             return 2;

@@ -24,20 +24,30 @@ public static class Help
             case "set": Set(); return;
             case "get": Get(); return;
             case "guilds": Guilds(); return;
+            case "logs": Logs(); return;
+            case "backups": Backups(); return;
+            case "persona": Persona(); return;
+            case "episodes": Episodes(); return;
+            case "health": Health(); return;
             default: Summary(); return;
         }
     }
 
     private static void Summary() => Console.WriteLine(
         """
-        sonarr — the bot's command line. Reads Postgres and Redis directly; works with the bot
-        stopped.
+        sonarr — the bot's command line. Reads Postgres, Redis and the files on disk directly;
+        works with the bot stopped.
 
           sonarr stats [--guild ID] [--days N]      command usage, activity and member growth
           sonarr chat -u NAME [--follow]            one person's conversation history, live by default
           sonarr set KEY VALUE [--guild ID]         a feature toggle or a config key
           sonarr get [KEY] [--guild ID]             what is set now, and where it came from
           sonarr guilds                             which servers are in the database
+          sonarr logs [--errors] [--follow]         her rolling log files on disk
+          sonarr episodes [--guild ID] [--days N]   her recent lines, across the whole server
+          sonarr persona                            validate the persona the bot would load
+          sonarr backups [--verify]                 what the nightly backup job has written
+          sonarr health                             postgres, redis, persona, backups — one row each
 
         Common flags:
           --guild ID    which server (default: SONARR_GUILD from .env; 0 = global)
@@ -112,5 +122,66 @@ public static class Help
 
         Every server in core.guild with its id, name and join date, plus its member count. Useful
         for finding the id the other commands want.
+        """);
+
+    private static void Logs() => Console.WriteLine(
+        """
+        sonarr logs [--lines N] [--errors] [--follow] [--dir PATH]
+
+        Her rolling log files — the same events journalctl shows, on disk, readable by any user
+        and with the bot stopped. Tails the newest day's file by default.
+
+          --lines N    how many lines, default 50
+          --errors     only warning-and-worse records, stacks included (one-shot scan)
+          --follow     re-read every 2s and print what arrived; Ctrl-C exits 0
+          --dir PATH   where the logs live (default: ./logs, then next to the binary)
+
+        --errors is a scan and --follow is raw; combined, you get the scan and then the tail.
+        """);
+
+    private static void Backups() => Console.WriteLine(
+        """
+        sonarr backups [--verify] [--dir PATH]
+
+        What the nightly job writes (docs/11): the dumps and config archives, their date range,
+        what the retention rules would prune, and whether the newest dump is restorable-shaped.
+        --verify shape-checks every dump, not just the newest.
+
+        Exits 1 when there are no dumps, the newest is truncated or not a custom-format archive,
+        or the newest is more than two days old — the nightly job runs at 03:30.
+
+          --dir PATH   the backup tree (default: BACKUP_PATH if it exists, else /root/backups/sonarr)
+        """);
+
+    private static void Persona() => Console.WriteLine(
+        """
+        sonarr persona [--dir PATH]
+
+        Loads the persona exactly the way the bot does and reports what the validator sees: the
+        counts, the warnings, the errors. Answers "would a restart accept what is on disk?" —
+        warnings pass, errors exit 1, which is the bot's own boot contract (docs/10).
+
+          --dir PATH   the persona directory (default: PERSONA_PATH, then persona/ above you)
+        """);
+
+    private static void Episodes() => Console.WriteLine(
+        """
+        sonarr episodes [--guild ID] [--days N] [--limit N]
+
+        What she has been saying lately, across the whole server: her authored lines with who she
+        said them to, oldest first. The store only ever holds her own replies, so this is safe to
+        read out — it is not a channel transcript.
+
+          --days N     how far back, default 7
+          --limit N    newest lines to show, default 50
+        """);
+
+    private static void Health() => Console.WriteLine(
+        """
+        sonarr health
+
+        Four checks, one row each: postgres connects, redis pings, the persona on disk validates,
+        the backup tree has fresh restorable-shaped dumps. Exit 0 only when all four pass, which
+        is what makes it usable as a cron canary.
         """);
 }

@@ -36,4 +36,10 @@
     <PackageReference Include="Serilog.Sinks.File" />
   </ItemGroup>
 
+  <!-- The commands are internal — the binary's surface is its verbs — but their report-shaping
+       helpers are the part worth unit testing. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Sonarr.Iris.Tests" />
+  </ItemGroup>
+
 </Project>

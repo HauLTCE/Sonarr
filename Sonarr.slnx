@@ -11,5 +11,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/Sonarr.Application.Tests/Sonarr.Application.Tests.csproj" />
     <Project Path="tests/Sonarr.Elaine.Tests/Sonarr.Elaine.Tests.csproj" />
+    <Project Path="tests/Sonarr.Iris.Tests/Sonarr.Iris.Tests.csproj" />
   </Folder>
 </Solution>
