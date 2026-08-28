@@ -213,6 +213,81 @@ intents:
     # thanked the reader for a compliment nobody paid.
     - (?:tell|say) (?:me |us )?something funny
   pool: request_general
+# The request family's specific refusal pools. request_general above is the flat route; each
+# of these is authored for one shape of ask and reads better than "not happening." for it.
+# Each anchor is bare-imperative territory: the "can you / would you / please" forms stay with
+# REQUEST unless the specific pool beats it on the same row, which is the meals-vs-FOOD
+# precedent (a narrower route outranking the flat one when it is the better answer).
+- id: REQUEST_SEARCH
+  match:
+    regex:
+    - \bsearch (?:for |up )?(?:this|that|it|him|her)\b
+    - \blook (?:it|that|this) up\b
+    - \blook up \w+
+    - ^google \w+
+  pool: request_search
+- id: REQUEST_RANDOM
+  match:
+    regex:
+    - random facts?
+    - something random
+    - random number
+    - ^random$
+  pool: request_random
+- id: REQUEST_RELAY
+  match:
+    regex:
+    - ^tell (?:him|her|them)\b
+    - \btell (?:him|her|them) (?:that|to)\b
+    - \brelay\b
+    - \bpass (?:it|this|that|the message) (?:along|on)\b
+  pool: request_relay
+- id: REQUEST_SELFIE
+  match:
+    regex:
+    - \bselfie\b
+    - \bsend (?:a |me |some )?(?:pic|pics|picture|photo)\b
+    - \bface reveal\b
+    - \bshow (?:me )?(?:your|ur) face\b
+    - \bpics? of you\b
+  pool: request_selfie
+# `for them` is deliberately never anchored bare: "i'm happy for them" is a feeling, not a
+# favor, and stays with HAPPY -- RoutingBoundaryTests pins it.
+- id: REQUEST_FOR_OTHERS
+  match:
+    regex:
+    - \bfor (?:my|a) friend\b
+    - \bon behalf of\b
+    - \bmy friend (?:wants|needs|asked|would like)\b
+    - \b(?:do|make|get|say) (?:this|that|it|one) for (?:him|her|them)\b
+  pool: request_for_others
+# `^`-anchored so the demanded verb must lead the message: "you make me happy" is about her
+# effect on the sender and stays with HAPPY, while "make me a sandwich" is a task demand and
+# gets the task refusal. "do my homework" outscores SCHOOL's keyword on purpose: the demand
+# wants "do it yourself.", not school talk, and the topic form ("my homework is killing me")
+# keeps SCHOOL. USER_DEMANDING keeps the impatience forms ("do it now").
+- id: REQUEST_ACTION
+  match:
+    regex:
+    - ^do my \w+
+    - ^make me \w+
+    - ^write me \w+
+    - ^finish my \w+
+    - ^complete my \w+
+    - \bexecute\b
+  pool: request_action
+# "marry me" and "be my wife" stay with AFFECTION and FLIRT where they have always been, and
+# "we're married" stays MARRIAGE_DELUSION -- this route only takes the proposal shapes none
+# of them can reach. RoutingBoundaryTests pins both halves.
+- id: REQUEST_MARRIAGE
+  match:
+    regex:
+    - \bget married\b
+    - \bbe my husband\b
+    - \bour wedding\b
+    - \bpropos\w* to (?:you|u)\b
+    - \bmy proposal\b
+  pool: request_marriage
 - id: PREFERENCE
   match:
     regex:

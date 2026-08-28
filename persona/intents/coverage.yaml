@@ -231,6 +231,10 @@ intents:
         - "\\byou'?re (?:the )?best\\b"
         - "\\bmarry me\\b"
         - "\\bbe my (?:girlfriend|gf|wife|waifu)\\b"
+        # The positive "you make me" forms, carved out of USER_GUILT (hostility.yaml): its
+        # `you (?:made|make) me` pattern answered "you make me happy" with blame-pool lines.
+        # The negative forms ("you made me cry") stay with USER_GUILT.
+        - "\\byou (?:make|made) me (?:happy|smile|laugh|feel better)\\b"
     pool: user_love
     affect:
       trust: 1.0

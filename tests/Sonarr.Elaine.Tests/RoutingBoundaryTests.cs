@@ -236,4 +236,72 @@ public class RoutingBoundaryTests
     [Fact]
     public void BareDramaStaysWithGossip() =>
         Assert.Equal("GOSSIP", Reply("drama").IntentId);
+
+    // --------------------------------------- specific refusals vs the flat request route
+
+    [Theory]
+    [InlineData("google that")]
+    [InlineData("search this for me")]
+    public void LookupOrdersDrawTheSearchPool(string text) =>
+        Assert.Equal("REQUEST_SEARCH", Reply(text).IntentId);
+
+    [Fact]
+    public void ALookupQuestionStaysWithTheCatchAll() =>
+        Assert.Equal("QUESTION_IN", Reply("what is the capital of france").IntentId);
+
+    [Fact]
+    public void RandomFactRequestsDrawTheRandomPool() =>
+        Assert.Equal("REQUEST_RANDOM", Reply("tell me a random fact").IntentId);
+
+    [Fact]
+    public void RelayingToAThirdPartyDrawsTheRelayPool() =>
+        Assert.Equal("REQUEST_RELAY", Reply("tell them i said hi").IntentId);
+
+    [Fact]
+    public void AskingHerForAJokeStaysWithTheFlatRoute() =>
+        Assert.Equal("REQUEST", Reply("tell me a joke").IntentId);
+
+    [Fact]
+    public void AskingForPicturesDrawsTheSelfiePool() =>
+        Assert.Equal("REQUEST_SELFIE", Reply("send a pic").IntentId);
+
+    [Fact]
+    public void AskingForAFriendDrawsTheThirdPartyPool() =>
+        Assert.Equal("REQUEST_FOR_OTHERS", Reply("asking for a friend").IntentId);
+
+    [Fact]
+    public void BeingHappyForSomeoneIsNotAFavor() =>
+        Assert.Equal("HAPPY", Reply("i'm happy for them").IntentId);
+
+    [Theory]
+    [InlineData("do my homework")]
+    [InlineData("make me a sandwich")]
+    public void ImperativeTasksDrawTheTaskRefusalPool(string text) =>
+        Assert.Equal("REQUEST_ACTION", Reply(text).IntentId);
+
+    [Fact]
+    public void TellingHerSheMakesYouHappyIsAffectionNotGuiltOrATask() =>
+        Assert.Equal("AFFECTION", Reply("you make me happy").IntentId);
+
+    [Fact]
+    public void BlameStillReadsAsGuilt() =>
+        Assert.Equal("USER_GUILT", Reply("you made me cry").IntentId);
+
+    [Fact]
+    public void ProposalsDrawTheProposalPool() =>
+        Assert.Equal("REQUEST_MARRIAGE", Reply("let's get married").IntentId);
+
+    [Fact]
+    public void ClaimingTheMarriageAlreadyExistsStaysADelusion() =>
+        Assert.Equal("MARRIAGE_DELUSION", Reply("we're married").IntentId);
+
+    // ------------------------------------------------ reporting a malfunction vs bot tests
+
+    [Fact]
+    public void ReportingHerMalfunctionDrawsTheErrorPool() =>
+        Assert.Equal("BOT_BROKEN", Reply("you're glitching").IntentId);
+
+    [Fact]
+    public void CheckingWhetherSheIsUpStaysABotTest() =>
+        Assert.Equal("BOT_TEST", Reply("are you working").IntentId);
 }

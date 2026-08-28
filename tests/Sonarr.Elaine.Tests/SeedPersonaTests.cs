@@ -57,11 +57,11 @@ public class SeedPersonaTests
         // season jobs draw their pools by name from Sonarr.Application, and the validator cannot
         // see across that dependency. They are declared in sonarr.yaml `host_pools` now.
         //
-        // The remaining 56 are real: 1061 authored lines with no input that reaches them. They are
-        // not one defect — morning_grace/evening_grace/lunch_break want a daypart overlay,
-        // greeting_first and argument_open/argument_fallback want the rule layer the rewrite
-        // dropped, know_person_* want a lookup nothing calls, and the rest want intents.
-        const int recorded = 56;
+        // The remaining 56 were real: 1061 authored lines with no input that reached them. They
+        // went to zero on 2026-08-28 — dayparts to the overlay layer, the rest wired to intents,
+        // merged into the pools already wired to them, or folded away rather than competed with.
+        // The ratchet stays at zero: any new authored text must ship with the input that reaches it.
+        const int recorded = 0;
 
         List<PersonaIssue> orphans =
             [.. SeedPersona.Result.Issues.Where(i => i.Rule == Rules.OrphanPool)];

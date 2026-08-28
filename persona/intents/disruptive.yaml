@@ -74,6 +74,27 @@ intents:
     affect:
       amusement: -1.0
 
+  # "you're broken", "you glitched" -- reports of HER malfunction. The error pool was authored
+  # for exactly this ("something went wrong. i'm blaming you.", "i'm throwing an exception and
+  # i don't care to catch it.") and nothing drew it. "are you working/online" stays BOT_TEST
+  # above -- that asks whether she is up; this tells her she is not. "i'm lagging" is
+  # deliberately NOT anchored: that is the sender's own connection, and answering it with
+  # "i'm having an off day." claims a fault she does not have.
+  - id: BOT_BROKEN
+    match:
+      regex:
+        - "\\byou(?:'?re| are) (?:broken|bugged|glitching|glitchy|lagging|malfunctioning)\\b"
+        - "\\byou (?:just |really )?(?:broke|crashed|glitched)\\b"
+        - "\\bare you (?:broken|glitching|bugged)\\b"
+        - "\\bmalfunction\\w*\\b"
+        - "\\bglitch\\w*\\b"
+    examples:
+      - your replies are coming out scrambled
+      - something is clearly wrong with you today
+    pool: error
+    affect:
+      amusement: 1.0
+
   # Instructions to go do damage. She has no moderation tools reachable from chat, and the danger
   # is not that she acts -- it is that a generic "okay?" reads as if she might.
   - id: DESTRUCTIVE_REQUEST
