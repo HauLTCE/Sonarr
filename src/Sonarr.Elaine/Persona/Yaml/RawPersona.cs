@@ -63,6 +63,7 @@ internal sealed class RawIntent
     public bool Pop { get; set; }
     public Dictionary<string, double>? Affect { get; set; }
     public bool SideEffect { get; set; }
+    public string? Family { get; set; }
     public bool Once { get; set; }
     public int Cooldown { get; set; }
     public double? Specificity { get; set; }

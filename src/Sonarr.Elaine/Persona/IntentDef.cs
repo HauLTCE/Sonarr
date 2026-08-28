@@ -133,6 +133,13 @@ public sealed record IntentDef
     /// </summary>
     public bool SideEffect { get; init; }
 
+    /// <summary>
+    /// Names a set of guard-separated twins over one act (the cold first hello and the warm
+    /// one). The ranking picks which twin answers; family members never also ride along as a
+    /// side-effect clause of the twin that won, so one act gets one answer.
+    /// </summary>
+    public string? Family { get; init; }
+
     /// <summary>Fires at most once per person.</summary>
     public bool Once { get; init; }
 

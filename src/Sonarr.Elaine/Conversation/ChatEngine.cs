@@ -43,6 +43,7 @@ public sealed class ChatEngine(PersonaGraph persona, ISemanticMatcher? semantic 
         MatchOutcome outcome = _recognizer.Recognize(input.Text, working.ToMatchContext(_persona.Root));
         MatchCandidate? primary = outcome.Ranked.FirstOrDefault(
             c => working.Fired.IsEligible(c.Intent, turn));
+        IReadOnlyList<MatchCandidate> sideEffects = SideEffectsFor(primary, outcome.SideEffects);
 
         ReplyComposer composer = new(
             _persona, new LinePicker(_persona, input.ActiveOverlays), input.ShakySlots);
@@ -51,7 +52,7 @@ public sealed class ChatEngine(PersonaGraph persona, ISemanticMatcher? semantic 
                 ? Empty(input.Text)
                     ? FromPool(working, composer, EmptyPool, modeId, rng, input)
                     : Fallback(working, composer, modeId, rng, input)
-                : Apply(working, primary, outcome.SideEffects, composer, modeId, rng, input);
+                : Apply(working, primary, sideEffects, composer, modeId, rng, input);
 
         return new TurnResult
         {
@@ -59,7 +60,7 @@ public sealed class ChatEngine(PersonaGraph persona, ISemanticMatcher? semantic 
             Text = text,
             IntentId = intentId,
             ModeId = modeId,
-            SideEffectIntentIds = [.. outcome.SideEffects
+            SideEffectIntentIds = [.. sideEffects
                 .Where(c => c.IntentId != intentId)
                 .Select(c => c.IntentId)],
             LearnedSlots = primary is null ? NoSlots : Learned(primary),
@@ -207,6 +208,19 @@ public sealed class ChatEngine(PersonaGraph persona, ISemanticMatcher? semantic 
 
     /// <summary>How many side-effect clauses one reply can carry beyond the primary.</summary>
     public const int MaxSideEffects = 2;
+
+    /// <summary>
+    /// Drops the primary's family members from the side-effect list. Family members are
+    /// guard-separated twins over one act — the cold first hello and the warm one, the
+    /// gratitude and its reply. The ranking already picked which twin answers; the one that
+    /// lost must not also ride along as a clause, or one hello gets two answers ("state your
+    /// business. look who decided to show up.").
+    /// </summary>
+    private static IReadOnlyList<MatchCandidate> SideEffectsFor(
+        MatchCandidate? primary, IReadOnlyList<MatchCandidate> sideEffects) =>
+        primary?.Intent.Family is not { } family
+            ? sideEffects
+            : [.. sideEffects.Where(c => c.Intent.Family != family)];
 
     /// <summary>
     /// When this turn's affect crossed a tier boundary, appends the authored moment for the new

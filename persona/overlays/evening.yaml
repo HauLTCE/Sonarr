@@ -1,0 +1,12 @@
+# Late-evening overlay, the wind-down before latenight's 3-6 am graveyard shift.
+# evening_grace is the "you have {minutes_left} minutes. go." persona — yawning, budgeting
+# what attention is left. Both the greeting and the idle fallback swap.
+#
+# The {minutes_left} lines only draw once the adapter fills that slot (LinePicker walks past
+# unrenderable templates), which keeps this valid on hosts that never set it.
+id: evening
+activation: "hour in 21..23"
+priority: 8
+replaces:
+  neutral_statement: evening_grace
+  social_greeting: evening_grace

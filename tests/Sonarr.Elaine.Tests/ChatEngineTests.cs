@@ -332,7 +332,9 @@ public class ChatEngineTests
     }
 
     [Theory]
-    [InlineData("hello", "GREETING", "social_greeting_aside")]
+    // "hello there", not "hello": a bare greeting now goes to the GREETING_FIRST twin for an
+    // unplaced user, so the warm twin needs trailing words to stay the primary here.
+    [InlineData("hello there", "GREETING", "social_greeting_aside")]
     [InlineData("sorry", "APOLOGY", "social_apology_aside")]
     [InlineData("thanks", "THANKS", "social_thanks_aside")]
     public void Turn_OneIntentStillUsesItsFullReplyPool(
@@ -366,9 +368,11 @@ public class ChatEngineTests
     {
         // side_effect marks an intent that *can* ride along, not one that stops being an answer.
         // When the greeting is the whole message it is the only candidate, so it is the primary.
+        // For an unplaced user the cold twin wins, and `family` keeps the warm twin from also
+        // riding along as a clause — one hello, one answer.
         TurnResult result = Engine.Turn(Fresh(), Say("hello"));
 
-        Assert.Equal("GREETING", result.IntentId);
+        Assert.Equal("GREETING_FIRST", result.IntentId);
         Assert.Empty(result.SideEffectIntentIds);
     }
 

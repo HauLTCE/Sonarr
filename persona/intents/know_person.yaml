@@ -1,0 +1,52 @@
+# "do you know X?" about a third party. The answer depends on how well she knows the
+# reader, because her knowledge of anyone is a function of who she talks to: the three
+# bands are tier-guarded twins over one set of patterns, so the same question draws
+# "i have their complete chat history." from a favorite and "literally who?" from a
+# stranger.
+#
+# Guard arithmetic (positions come from sonarr.yaml tiers): HISTORY holds at favorite(13)
+# and inner_circle(18); SOME holds from acquaintance(3) up to and including regular(8) —
+# the max_tier ceiling is inclusive; KNOW_PERSON is the unconditional floor for stranger,
+# and for anyone unplaced, since an unknown tier sits at −∞ and fails every min_tier.
+# Nemesis lands on the floor too: −∞ fails HISTORY's min_tier even though she knows them
+# intimately. That is a known wart — no guard can say "favorite or nemesis" — and the
+# "literally who?" it draws at a nemesis is at least in character.
+#
+# RECALL_NAME's "do you (know|remember) my name" is untouched: these patterns require a
+# third-party pronoun in that seat, so the slot-naming forms never reach them.
+intents:
+- id: KNOW_PERSON_HISTORY
+  match:
+    regex:
+    - do (?:you|u) know (?:him|her|them|that guy|that girl|that person)
+    - (?:you|u) know (?:him|her|them)
+    - do (?:you|u) remember (?:him|her|them|that guy|that girl)
+    - who (?:is|are) (?:he|she|they)\b
+  guards:
+  - kind: min_tier
+    value: favorite
+    bonus: 1.0
+  pool: know_person_has_history
+- id: KNOW_PERSON_SOME
+  match:
+    regex:
+    - do (?:you|u) know (?:him|her|them|that guy|that girl|that person)
+    - (?:you|u) know (?:him|her|them)
+    - do (?:you|u) remember (?:him|her|them|that guy|that girl)
+    - who (?:is|are) (?:he|she|they)\b
+  guards:
+  - kind: min_tier
+    value: acquaintance
+    bonus: 0.5
+  - kind: max_tier
+    value: regular
+    bonus: 0.5
+  pool: know_person_little
+- id: KNOW_PERSON
+  match:
+    regex:
+    - do (?:you|u) know (?:him|her|them|that guy|that girl|that person)
+    - (?:you|u) know (?:him|her|them)
+    - do (?:you|u) remember (?:him|her|them|that guy|that girl)
+    - who (?:is|are) (?:he|she|they)\b
+  pool: know_person_none

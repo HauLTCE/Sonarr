@@ -1,0 +1,13 @@
+# Pre-noon overlay. The adapter evaluates `activation` from a wall-clock signal and tells the
+# engine which overlays are live — the engine itself never reads a clock (docs/10).
+#
+# morning_grace is the half-asleep persona: typos, no coffee, "come back at noon". It swaps
+# in for both the greeting and the idle fallback, so for those hours every opener and every
+# shrug sounds like it cost her something. Priority sits below latenight (10): in the 3-6 am
+# overlap latenight wins, because "why are you up at 4am" fits better than "it's too early".
+id: morning
+activation: "hour in 0..9"
+priority: 6
+replaces:
+  neutral_statement: morning_grace
+  social_greeting: morning_grace

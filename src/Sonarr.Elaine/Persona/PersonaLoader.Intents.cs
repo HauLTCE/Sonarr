@@ -66,6 +66,7 @@ public static partial class PersonaLoader
                     PopActivity = r.Pop,
                     Affect = [.. (r.Affect ?? []).Select(kv => new AffectDelta(kv.Key, kv.Value))],
                     SideEffect = r.SideEffect,
+                    Family = r.Family,
                     Once = r.Once,
                     Cooldown = r.Cooldown,
                     Specificity = r.Specificity,

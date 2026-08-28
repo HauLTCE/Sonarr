@@ -46,7 +46,8 @@ public class GoldenConversationTests
     {
         Script chat = new();
 
-        Assert.Equal("GREETING", chat.Say("hey").IntentId);
+        // An unplaced visitor's first hello draws the cold twin; the warm one takes over after.
+        Assert.Equal("GREETING_FIRST", chat.Say("hey").IntentId);
         Assert.Equal("SET_NAME", chat.Say("my name is Hau").IntentId);
         Assert.Equal("SET_AGE", chat.Say("i'm 25").IntentId);
 
@@ -77,7 +78,7 @@ public class GoldenConversationTests
         chat.Say("hi");
 
         TurnResult jab = chat.Say("you're an idiot");
-        Assert.Equal("INSULT", jab.IntentId);
+        Assert.Equal("INSULT_OPEN", jab.IntentId);
         Assert.Equal("argument", chat.State.Activities.Current);
         Assert.Equal(2, chat.State.Activities.Depth);
 

@@ -2,6 +2,31 @@
 # `git show python-bot-final:_bot_legacy/elaine/persona/elaine.yaml`).
 # Patterns carry over verbatim; Python (?P<x>) named groups rewritten to .NET (?<x>).
 intents:
+# Hand-authored twin of INSULT, for the opening shot. user_insult answers an insult in the
+# middle of things; argument_open is the "oh, we're doing this?" line that starts a fight.
+# Same patterns as INSULT, so the two tie on specificity and the guard decides: while the
+# activity is idle the bonus puts this one first, and its `push: argument` moves the
+# conversation into the argument activity — where this guard fails, the intent leaves the
+# ranking, and every follow-up insult lands on INSULT. One-way in, and DEESCALATE is still
+# the way out.
+- id: INSULT_OPEN
+  match:
+    regex:
+    - (?<jab>stupid|dumb|idiot|trash|useless|loser|clown|npc)
+    fuzzy:
+    - pathetic
+    - worthless
+    max_distance: 2
+  guards:
+  - kind: activity
+    value: idle
+    bonus: 1.0
+  pool: argument_open
+  push: argument
+  affect:
+    anger: 3.0
+    trust: -1.0
+    grudge: 1.0
 # Hand-authored: v1 routed insults through a `when: not FRIENDLY` sentiment guard, which the
 # migration could not carry (no sentiment classifier in v2 yet). The capture and the argument
 # push are v1's; the backhanded-compliment case ("you're not stupid") is now COMPLIMENT's
@@ -21,7 +46,7 @@ intents:
     trust: -1.0
     grudge: 1.0
 # Hand-authored: the only way back out of an argument. Without it the push above is a
-# one-way door — every later turn draws from the argument fallback (`user_insult`) and she
+# one-way door — every later turn draws from the argument fallback (`argument_fallback`) and she
 # stays hostile forever, which is the terminal-state trap v1 shipped in BYE. Activity-guarded
 # so a plain "sorry" in normal chat is still APOLOGY.
 - id: DEESCALATE

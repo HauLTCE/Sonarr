@@ -347,9 +347,11 @@ public class SeedPersonaTests
     // Behavior floor carried over from the v1 suite (git show
     // python-bot-final:_bot_legacy/tests/test_logical_response.py): these are the pinned
     // recognitions, asserted against the new scored matcher.
-    [InlineData("hey", "GREETING")]
+    [InlineData("hey", "GREETING_FIRST")]
     [InlineData("hello there", "GREETING")]
-    [InlineData("you're such an idiot", "INSULT")]
+    [InlineData("do you know him", "KNOW_PERSON")]
+    [InlineData("you're welcome", "THANKS_RESPONSE")]
+    [InlineData("you're such an idiot", "INSULT_OPEN")]
     [InlineData("kys", "KYS")]
     [InlineData("your mom", "YOURMOM")]
     [InlineData("thanks", "THANKS")]

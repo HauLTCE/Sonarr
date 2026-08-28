@@ -1,0 +1,12 @@
+# Midday overlay. lunch_break is the "my lunch break is sacred. you are not." persona: she
+# is away, on the clock, and tells you so. Both the greeting and the idle fallback swap, so
+# a midday fallthrough sounds like a lunch break, not a generic shrug.
+#
+# Lines carrying {minutes_left} stay out of rotation until the adapter fills that slot —
+# LinePicker walks past templates it cannot render — so this loads clean without it.
+id: lunch
+activation: "hour in 11..13"
+priority: 7
+replaces:
+  neutral_statement: lunch_break
+  social_greeting: lunch_break

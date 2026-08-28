@@ -96,7 +96,9 @@ public class BehaviorCatalogTests
     [InlineData("helo")]
     public void StretchedAndMistypedGreetingsStillReadAsGreetings(string word)
     {
-        Assert.Equal("GREETING", Reply(word).IntentId);
+        // A fresh conversation is unplaced, so the cold twin takes the first hello — still a
+        // greeting route, which is the behavior the v1 test protected.
+        Assert.Equal("GREETING_FIRST", Reply(word).IntentId);
     }
 
     [Theory]
@@ -106,7 +108,9 @@ public class BehaviorCatalogTests
     [InlineData("help")]
     public void TheGreetingPatternsDoNotOvermatchOrdinaryWords(string word)
     {
-        Assert.NotEqual("GREETING", Reply(word).IntentId);
+        string? intent = Reply(word).IntentId;
+        Assert.NotEqual("GREETING", intent);
+        Assert.NotEqual("GREETING_FIRST", intent);
     }
 
     // ----------------------------------------------------------- style reactions

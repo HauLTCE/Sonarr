@@ -5,6 +5,44 @@ intents:
 # Hand-authored: v1 split these across four state-conditional transitions each (hello_count,
 # time_of_day, has-name). The v2 engine picks the pool; the count-aware variants become the
 # adapter's problem, not the matcher's.
+# The cold first hello. greeting_first is written for someone she does not know yet ("what
+# do you want?", "state your business."), which is exactly wrong for a regular and exactly
+# right for a stranger. Three mechanisms split it from GREETING:
+#   - the max_tier guard holds for stranger and acquaintance (−∞ counts as below every
+#     tier, so an unplaced user gets the cold opener too) and removes the intent for
+#     regular and up;
+#   - `once: true` hands every later greeting back to GREETING through the fired log, even
+#     for strangers — the cold door opens once, then she warms up to social_greeting;
+#   - the patterns are anchored to the whole message. A greeting word buried in a longer
+#     message ("what's so boring about a simple hello?") must not draw "state your
+#     business." as the whole reply — the unanchored version outranked QUESTION_IN and did
+#     exactly that. When the greeting is the whole message, the matcher's side-effect
+#     demotion (LexicalMatcher.cs:56) drops GREETING under this intent anyway, so the
+#     twin wins without needing to out-score it.
+- id: GREETING_FIRST
+  match:
+    regex:
+    - ^(?:hi|hello|hey|yo|sup|hiya|heya|howdy|greetings)$
+    - ^h+i+$
+    - ^h+e+y+$
+    - ^y+o+$
+    - ^s+u+p+$
+    - ^h+e+l+o+$
+    - ^h+a+i+$
+    - ^h+i+y+a+$
+    - ^h+e+y+a+$
+    - ^h+o+w+d+y+$
+  # Modest bonus: the side-effect demotion above already decides pure greetings in this
+  # intent's favour, so the bonus is belt and braces, not the mechanism.
+  guards:
+  - kind: max_tier
+    value: acquaintance
+    bonus: 0.5
+  once: true
+  # Same act as GREETING, seen from the cold side: when this wins, the warm twin must not
+  # also ride along as an aside clause, or one hello gets two answers.
+  family: greeting
+  pool: greeting_first
 - id: GREETING
   match:
     keyword:
@@ -44,8 +82,11 @@ intents:
   # primary instead: one clause for the greeting, one for what was actually asked.
   #
   # Safe here because a greeting is never the *point* of a longer message. When it is the whole
-  # message it is the only candidate, so it is the primary and this flag does nothing.
+  # message it is the only candidate, so it is the primary and this flag does nothing. When the
+  # whole message is a greeting and GREETING_FIRST wins it instead, `family` keeps this intent
+  # from also riding along.
   side_effect: true
+  family: greeting
 - id: BYE
   match:
     keyword:
@@ -211,6 +252,23 @@ intents:
   # Same reason as GREETING: "thanks, but how do i undo it" is gratitude plus a question, and the
   # question is the part she was asked. Riding along keeps the thanks answered instead of eaten.
   side_effect: true
+  # One politeness exchange, two directions: "thanks, you're welcome" in a single message must
+  # not draw both answers, so the two directions share a family.
+  family: courtesy
+# The other half of the gratitude exchange: the user replying to *her* help ("you're welcome",
+# "no problem"). Nothing else owns these — THANKS only covers the gratitude direction — so they
+# fell through to a neutral shrug. social_thanks_response is written for the reply-to-thanks
+# seat ("...don't get used to it."), and the anchored bare forms keep it off real sentences:
+# "anytime" as a farewell particle stays BYE's problem only when it says goodbye alongside.
+- id: THANKS_RESPONSE
+  match:
+    regex:
+    - you'?re welcome
+    - you'?re very welcome
+    - ^(?:np|no problem|no worries|anytime|no sweat|glad to help|happy to help|don'?t mention it)$
+    - \bde nada\b
+  family: courtesy
+  pool: social_thanks_response
 # joke_dad had 20 authored lines and nothing that could fire them, so the dad_jokes stance in
 # stances.yaml was an opinion she could never be caught holding. Regexes only: a bare "pun"
 # keyword would eat half the JOKE traffic below, and a regex outranks a keyword on specificity

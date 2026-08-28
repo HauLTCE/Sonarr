@@ -22,7 +22,11 @@ activities:
 
   - id: argument
     intents: ["*"]
-    fallback_pool: user_insult
+    # argument_fallback, not user_insult: user_insult is a direct reply to being insulted
+    # ("that hurts. i'm keeping score."), which presupposes a fresh insult every time the
+    # stack falls back mid-argument. argument_fallback is authored for sustaining the
+    # argument on her own steam.
+    fallback_pool: argument_fallback
 
   - id: rps
     intents: ["*"]
