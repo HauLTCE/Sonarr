@@ -1,6 +1,8 @@
 using Sonarr.Bot.Configuration;
 using Sonarr.Elaine.Persona;
 
+using Sonarr.Iris.Persona;
+
 namespace Sonarr.Bot.Persona;
 
 /// <summary>Persona loading and hot-reload wiring (docs/10-elaine-engine.md).</summary>

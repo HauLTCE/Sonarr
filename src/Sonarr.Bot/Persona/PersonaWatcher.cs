@@ -1,4 +1,5 @@
 using Sonarr.Elaine.Persona;
+using Sonarr.Iris.Persona;
 
 namespace Sonarr.Bot.Persona;
 
