@@ -526,3 +526,52 @@ intents:
     - under the weather
     - caught a cold
   pool: topic_health
+# Meal topics. FOOD is a flat keyword route (hungry, food, lunch, dinner, breakfast, ...) that
+# draws social_food, so a bare "dinner" used to get the generic food line even though the meal
+# pools already ship meal-aware roasts ("instant noodles again", "steak? in this economy?",
+# "cereal is soup"). A regex outscores a keyword, so anchoring each meal word here redirects meal
+# mentions to their specific pool while FOOD keeps everything else (pizza, burger, hungry, snack).
+# "what should i eat" still reads FOOD — ChatPipelineTests pins it and no meal word is in it.
+- id: TOPIC_BREAKFAST
+  match:
+    regex:
+    - \bbreakfast\b
+  pool: topic_breakfast
+- id: TOPIC_LUNCH
+  match:
+    regex:
+    - \blunch\b
+  pool: topic_lunch
+- id: TOPIC_DINNER
+  match:
+    regex:
+    - \bdinner\b
+  pool: topic_dinner
+# ANIME is a flat keyword route (gacha, genshin, arknights, ...) drawing topic_gacha_general, but
+# topic_gacha_arknights ships Arknights-only roasts (amiya, silverash, rhodes island, originium)
+# that a generic gacha line can't cash. Anchoring the Arknights vocabulary here redirects those
+# rows to the specific pool while bare "gacha"/"genshin" keep reading topic_gacha_general. The
+# character names were never ANIME keywords, so they used to fall through entirely.
+- id: TOPIC_GACHA_ARKNIGHTS
+  match:
+    regex:
+    - \barknights\b
+    - \bamiya\b
+    - \brhodes island\b
+    - \boriginium\b
+    - \bkal'?tsit\b
+    - \bsilverash\b
+  pool: topic_gacha_arknights
+# No v1 route carried gossip/leak chatter, so topic_leaks shipped unrouted. Anchored on the leak
+# and rumor vocabulary plus "spilled tea" — bare "tea" stays with DRINKS (that's the drink; this
+# is the gossip idiom), and the pool itself splits the two ("leak? i'm waterproof." vs "oh, tea?
+# i don't drink it.").
+- id: TOPIC_LEAKS
+  match:
+    regex:
+    - \bleaks?\b
+    - \bleaked\b
+    - \bleaking\b
+    - \brumou?rs?\b
+    - spilled (?:the )?tea
+  pool: topic_leaks
