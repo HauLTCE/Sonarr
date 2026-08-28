@@ -123,6 +123,48 @@ public class RoutingBoundaryTests
     public void SpillingTeaStaysWithTheGossipRoute() =>
         Assert.Equal("GOSSIP", Reply("spill the tea").IntentId);
 
+    // ----------------------------------------- disruptive vocabulary vs the insult wordlists
+
+    [Fact]
+    public void CringeAsContentDrawsTheCringePool() =>
+        Assert.Equal("DISRUPTIVE_CRINGE", Reply("that edit was cringeworthy").IntentId);
+
+    [Fact]
+    public void BareCringeStaysAnInsult() =>
+        Assert.Equal("INSULT_EXTRA", Reply("cringe").IntentId);
+
+    [Fact]
+    public void NpcBehaviourDrawsTheNpcPool() =>
+        Assert.Equal("DISRUPTIVE_NPC", Reply("npc moment").IntentId);
+
+    [Fact]
+    public void BareNpcStillOpensTheArgument() =>
+        Assert.Equal("INSULT_OPEN", Reply("npc").IntentId);
+
+    [Fact]
+    public void DeluluTalkGetsTheRealityCheck() =>
+        Assert.Equal("DISRUPTIVE_DELULU", Reply("delulu is the solulu").IntentId);
+
+    [Fact]
+    public void MainCharacterAnnouncementsDrawTheirOwnPool() =>
+        Assert.Equal("DISRUPTIVE_MAIN_CHARACTER", Reply("i'm the main character").IntentId);
+
+    [Fact]
+    public void RagebaitGetsNamedAsRagebait() =>
+        Assert.Equal("DISRUPTIVE_RAGEBAIT", Reply("hot take: bots are people").IntentId);
+
+    [Fact]
+    public void UnpopularOpinionsAboutSomethingStayOpinionQuestions() =>
+        Assert.Equal("Q_OPINION", Reply("unpopular opinion on pineapple pizza").IntentId);
+
+    [Fact]
+    public void AnnouncingYouAlreadySaidItDrawsTheRepetitionPool() =>
+        Assert.Equal("DISRUPTIVE_REPETITION", Reply("like i said, it doesn't work").IntentId);
+
+    [Fact]
+    public void ForcedPositivityGetsToldOff() =>
+        Assert.Equal("DISRUPTIVE_TOXIC_POSITIVITY", Reply("good vibes only").IntentId);
+
     [Fact]
     public void TheDrinkCalledTeaStaysWithDrinks() =>
         Assert.Equal("DRINKS", Reply("i want some iced tea").IntentId);

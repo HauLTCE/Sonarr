@@ -177,3 +177,113 @@ intents:
     affect:
       amusement: 1.0
       trust: -1.0
+
+  # The cringe reaction. disruptive_cringe is written for someone who has just posted something
+  # unwatchable ("i physically cringed.", "delete this."). Bare "cringe" stays with INSULT_EXTRA
+  # in coverage.yaml — that is an insult aimed at her and it pushes the argument; this anchors on
+  # the forms that name cringe as content, which the bare-word route cannot reach ("cringeworthy",
+  # "cringe fest"), so the two intents match disjoint messages.
+  - id: DISRUPTIVE_CRINGE
+    match:
+      regex:
+        - "\\bcringe ?(?:fest|compil\\w*|lord|core)\\b"
+        - "\\bcringey\\b"
+        - "\\bcringeworthy\\b"
+        - "\\bsecondhand embarrassment\\b"
+    examples:
+      - i just watched that edit and my eyes need cleaning
+      - posting that here was a choice and we all saw it happen
+    pool: disruptive_cringe
+    affect:
+      amusement: 0.5
+
+  # Delusion talk. MARRIAGE_DELUSION in coverage.yaml owns the wife-claim cluster; this is the
+  # general vocabulary — "delulu", "delusional" — which its patterns cannot reach.
+  - id: DISRUPTIVE_DELULU
+    match:
+      regex:
+        - "\\bdelulu\\b"
+        - "\\bdelusion\\w*\\b"
+    examples:
+      - that take belongs in a fantasy novel, not a chat
+      - the confidence is impressive, the reality is not
+    pool: disruptive_delulu
+    affect:
+      amusement: 1.0
+
+  # Main character announcements. Nothing else patterns on this vocabulary, so the bare words are
+  # safe to own.
+  - id: DISRUPTIVE_MAIN_CHARACTER
+    match:
+      regex:
+        - "\\bmain character\\b"
+        - "\\bprotagonist\\b"
+        - "\\bside character\\b"
+        - "\\bthe world revolves around (?:me|you)\\b"
+    pool: disruptive_main_character
+    affect:
+      amusement: 1.0
+
+  # NPC behaviour. Bare "npc" stays with INSULT — the jab list owns it as a directed insult and
+  # INSULT_OPEN opens the argument on it; this is the behaviour form, where a second noun says
+  # what kind of NPC it was ("npc moment", "npc energy"). An argument opened on "npc moment" is
+  # a jab at a third party answered as an insult to her, so this must out-score INSULT_OPEN,
+  # which sits at 3.3 in idle (2.3 base plus the 1.0 activity guard). The `\bso npc\b` form is
+  # deliberately NOT anchored: "you're so npc" is a directed insult and stays with the argument.
+  - id: DISRUPTIVE_NPC
+    match:
+      regex:
+        - "\\bnpc (?:moment|behaviou?r|energy|vibes?|dialogue|brain)\\b"
+    # 3.5 clears INSULT_OPEN's idle 3.3 outright, since an explicit specificity replaces the
+    # computed base rather than adding to it.
+    specificity: 3.5
+    pool: disruptive_npc
+    affect:
+      amusement: 1.0
+
+  # Ragebait and deliberate hot takes. The lookahead keeps "unpopular opinion on X" with
+  # Q_OPINION — that one asks for her take; this one is a provocation posted for reactions.
+  - id: DISRUPTIVE_RAGEBAIT
+    match:
+      regex:
+        - "\\brage ?bait\\w*\\b"
+        - "\\bhot take\\b"
+        - "\\bcontroversial take\\b"
+        - "\\bunpopular opinion\\b(?! (?:about|on|of)\\b)"
+    pool: disruptive_ragebait
+    affect:
+      amusement: 0.5
+
+  # Repetition. She remembers; the pool says so ("i heard you the first time. i ignored you on
+  # purpose."). Anchored on the forms where the sender announces they already said it, plus the
+  # commentary forms ("copy paste energy" is the pool's own read of them). "You already said
+  # that" aimed at HER is deliberately not anchored: the pool's lines all talk down to the
+  # repeater, and would read as deflection pointed the other way.
+  - id: DISRUPTIVE_REPETITION
+    match:
+      regex:
+        - "\\blike i said\\b"
+        - "\\bas i (?:said|mentioned)\\b"
+        - "\\bi already said\\b"
+        - "\\bgroundhog day\\b"
+        - "\\bcopy ?paste\\w*\\b"
+        - "\\bcopypasta\\b"
+    pool: disruptive_repetition
+    affect:
+      boredom: 1.0
+
+  # Toxic positivity. Forced sunshine gets told off ("good vibes only? please. spare me.").
+  # Anchored on the slogans themselves: they are the message entire, so no other intent shares
+  # the shapes. SAD keeps every message that merely mentions being sad.
+  - id: DISRUPTIVE_TOXIC_POSITIVITY
+    match:
+      regex:
+        - "\\btoxic positivity\\b"
+        - "\\bgood vibes only\\b"
+        - "\\bstay positive\\b"
+        - "\\blook on the bright side\\b"
+        - "\\beverything happens for a reason\\b"
+        - "\\bsilver lining\\b"
+    pool: disruptive_toxic_positivity
+    affect:
+      anger: 0.5
