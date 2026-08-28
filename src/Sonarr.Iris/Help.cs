@@ -180,13 +180,19 @@ public static class Help
         """
         sonarr health [--check]
 
-        Panacea, the doctor. Examines everything the bot stands on — the .env, postgres, the
-        schema, redis, the persona, the backup tree — and by default treats what it can: starts
-        a stopped postgres/redis container, applies pending migrations, takes a fresh backup
-        dump. A healed row says what was broken and what fixed it. What it cannot fix it reports
-        three ways: what is broken, what it tried, and what to do next. Exit 0 only when nothing
-        is left broken.
+        Panacea, the doctor. Examines everything the bot stands on — the .env keys, postgres, the
+        schema, redis, the persona, the embedding model, the backup tree, the bot's own unit —
+        and by default treats what it can: starts a stopped postgres/redis container, applies
+        pending migrations, fetches a missing or truncated model, takes a fresh backup dump,
+        starts the bot's service. A healed row says what was broken and what fixed it. What it
+        cannot fix it reports three ways: what is broken, what it tried, and what to do next.
+        Exit 0 only when nothing is left broken.
 
-          --check     examine only, no treatment — the old canary mode for cron.
+        Two things it will not do, both on purpose: rewrite the persona (an invalid persona is an
+        authoring error, and she does not get her words edited by a machine) and restart a unit
+        that is failing rather than stopped (that is a crashloop, and hiding it is worse than
+        reporting it — the row points at the journal instead).
+
+          --check     examine only, no treatment — the canary mode for cron.
         """);
 }

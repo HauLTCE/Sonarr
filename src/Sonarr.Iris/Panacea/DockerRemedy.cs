@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace Sonarr.Iris.Panacea;
 
 /// <summary>
@@ -10,11 +8,11 @@ namespace Sonarr.Iris.Panacea;
 /// </summary>
 internal static class DockerRemedy
 {
-    /// <summary>How long <c>docker ps</c> / <c>docker start</c> get before they are a failure.</summary>
+    /// <summary>How long a docker call gets before it counts as unusable.</summary>
     private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(30);
 
     /// <summary>
-    /// Try to start a stopped container for <paramref name="service"> and wait for
+    /// Try to start a stopped container for <paramref name="service"/> and wait for
     /// <paramref name="probe"/> to agree it is back. Returns the steps attempted, each one a
     /// sentence fit for the report.
     /// </summary>
@@ -23,25 +21,30 @@ internal static class DockerRemedy
     {
         List<string> steps = [];
 
-        (int found, string psOutput, string? whichError) = await RunAsync(
-            ["ps", "-a", "--filter", "status=exited", "--format", "{{.ID}}|{{.Names}}|{{.Image}}"], ct);
-        if (whichError is not null)
+        CommandResult listing = await Command.RunAsync(
+            "docker",
+            ["ps", "-a", "--filter", "status=exited", "--format", "{{.ID}}|{{.Names}}|{{.Image}}"],
+            CommandTimeout,
+            ct);
+
+        if (!listing.Started || listing.TimedOut || listing.Exit != 0)
         {
-            steps.Add($"looked for a stopped {service} container — docker is not usable here ({whichError})");
+            steps.Add($"looked for a stopped {service} container — docker is not usable here "
+                + $"({Unusable(listing)})");
             return steps;
         }
 
-        (string id, string name) = FindContainer(psOutput, service);
+        (string id, string name) = FindContainer(listing.Stdout, service);
         if (id.Length == 0)
         {
             steps.Add($"looked for a stopped {service} container — there is none to start");
             return steps;
         }
 
-        (int started, _, string? startError) = await RunAsync(["start", id], ct);
-        if (startError is not null || started != 0)
+        CommandResult started = await Command.RunAsync("docker", ["start", id], CommandTimeout, ct);
+        if (!started.Started || started.TimedOut || started.Exit != 0)
         {
-            steps.Add($"tried to start container '{name}' — {(startError ?? $"docker start exited {started}")}");
+            steps.Add($"tried to start container '{name}' — {Unusable(started)}");
             return steps;
         }
 
@@ -70,7 +73,8 @@ internal static class DockerRemedy
     /// </summary>
     internal static (string Id, string Name) FindContainer(string psOutput, string service)
     {
-        foreach (string line in psOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        foreach (string line in psOutput.Split(
+            '\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
             string[] parts = line.Split('|', 3);
             if (parts.Length < 3)
@@ -88,60 +92,15 @@ internal static class DockerRemedy
         return ("", "");
     }
 
-    /// <summary>
-    /// One docker command. The exit code, stdout, and null-or-a-reason when docker itself could
-    /// not run (not on PATH, refused to start). Command output is capped: a container listing
-    /// that is somehow megabytes long has no business in a report.
-    /// </summary>
-    private static async Task<(int Exit, string Stdout, string? Error)> RunAsync(
-        string[] arguments, CancellationToken ct)
+    /// <summary>Why a docker call is no use, in the words the report prints.</summary>
+    private static string Unusable(CommandResult result) => result switch
     {
-        ProcessStartInfo start = new("docker")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        };
-        foreach (string argument in arguments)
-        {
-            start.ArgumentList.Add(argument);
-        }
-
-        Process process;
-        try
-        {
-            process = Process.Start(start) ?? throw new InvalidOperationException("docker did not start");
-        }
-        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
-        {
-            return (-1, "", "not found or not runnable");
-        }
-
-        using (process)
-        {
-            Task<string> stdout = process.StandardOutput.ReadToEndAsync(ct);
-            Task<string> stderr = process.StandardError.ReadToEndAsync(ct);
-
-            using CancellationTokenSource timeout = new(CommandTimeout);
-            using CancellationTokenSource linked =
-                CancellationTokenSource.CreateLinkedTokenSource(ct, timeout.Token);
-
-            try
-            {
-                await process.WaitForExitAsync(linked.Token);
-            }
-            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-            {
-                Kill(process);
-                return (-1, "", $"timed out after {CommandTimeout.TotalSeconds:F0} s");
-            }
-
-            await Task.WhenAll(stdout, stderr);
-            string output = stdout.Result.Length > 4000 ? stdout.Result[..4000] : stdout.Result;
-            string error = stderr.Result.Trim();
-            return (process.ExitCode, output, process.ExitCode == 0 ? null : Doctor.OneLine(error));
-        }
-    }
+        { Started: false } => result.Error ?? "not runnable",
+        { TimedOut: true } => $"timed out after {CommandTimeout.TotalSeconds:F0} s",
+        _ => Doctor.OneLine(result.Stderr.Trim().Length > 0
+            ? result.Stderr
+            : $"docker exited {result.Exit}"),
+    };
 
     private static async Task<bool> ProbeSafely(Func<Task<bool>> probe)
     {
@@ -152,18 +111,6 @@ internal static class DockerRemedy
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return false;
-        }
-    }
-
-    private static void Kill(Process process)
-    {
-        try
-        {
-            process.Kill(entireProcessTree: true);
-        }
-        catch (InvalidOperationException)
-        {
-            // Exited between the check and the kill. Nothing to do.
         }
     }
 }

@@ -172,6 +172,73 @@ public sealed class PanaceaTests
         Assert.Equal("sonarr-dev-redis-1", name);
     }
 
+    // -------------------------------------------------- the shared external-command wrapper
+
+    [Fact]
+    public async Task Command_ThatCannotStart_IsNotStarted_NotAFailedExit()
+    {
+        CommandResult result = await Command.RunAsync(
+            "a-binary-that-is-not-installed-anywhere", [], TimeSpan.FromSeconds(5), default);
+
+        Assert.False(result.Started);
+        Assert.False(result.TimedOut);
+        Assert.NotNull(result.Error);
+    }
+
+    [Fact]
+    public async Task Shell_SaysSoWhenTheBinaryIsMissing()
+    {
+        List<string> steps = await Shell.RunAsync(
+            "a-binary-that-is-not-installed-anywhere", [], TimeSpan.FromSeconds(5), default);
+
+        Assert.Contains("could not run", Assert.Single(steps));
+    }
+
+    [Fact]
+    public async Task Command_CapturesStdoutFromSomethingThatRuns()
+    {
+        // dotnet is on PATH wherever these tests run — it is what is running them.
+        CommandResult result = await Command.RunAsync(
+            "dotnet", ["--version"], TimeSpan.FromSeconds(60), default);
+
+        Assert.True(result.Started);
+        Assert.Equal(0, result.Exit);
+        Assert.NotEmpty(result.Stdout.Trim());
+    }
+
+    [Fact]
+    public async Task Shell_ReportsNothingButDoneOnSuccess()
+    {
+        List<string> steps = await Shell.RunAsync(
+            "dotnet", ["--version"], TimeSpan.FromSeconds(60), default);
+
+        Assert.Equal("done", Assert.Single(steps));
+    }
+
+    // -------------------------------------------------------- the unit check, off the server
+
+    [Fact]
+    public async Task ServiceCheck_OffTheServer_IsBlockedRatherThanRed()
+    {
+        // The bot is a systemd unit on the server and nothing at all on a dev box, so "no unit"
+        // must not read as "the bot is down" — a red row here would be a false alarm on every
+        // developer machine. On Linux the same call reaches systemctl and grades a real unit,
+        // so the assertion is the one thing true either way: it answers, and never throws.
+        Diagnosis diagnosis = await new ServiceCheck("sonarr", "bot").ExamineAsync(default);
+
+        if (!OperatingSystem.IsLinux())
+        {
+            Assert.Equal(Verdict.Blocked, diagnosis.Kind);
+            Assert.Contains("systemd", diagnosis.Detail);
+            return;
+        }
+
+        // A unit that is absent, stopped or failed is broken with advice; only "active" is green.
+        Assert.True(
+            diagnosis.Kind != Verdict.Broken || diagnosis.Advice is not null,
+            "a broken unit must carry advice");
+    }
+
     private sealed class FakeThrowingCheck : IDoctorCheck
     {
         public string Name => "exploding";

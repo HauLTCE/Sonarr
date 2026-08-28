@@ -27,7 +27,12 @@ internal static class PanaceaCommand
             new SchemaCheck(),
             new RedisCheck(),
             new PersonaCheck(),
+            new ModelCheck(),
             new BackupCheck(),
+
+            // Last, and last deliberately: the bot is what everything above supports, so a round
+            // that fixed a stopped Postgres and then found the bot down reads in the right order.
+            new ServiceCheck("sonarr", "bot"),
         ];
 
         List<CaseFile> files = await Doctor.RunAsync(checks, heal);

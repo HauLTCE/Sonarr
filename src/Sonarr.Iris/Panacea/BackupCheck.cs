@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Globalization;
 
 using Npgsql;
@@ -125,13 +124,9 @@ internal sealed class BackupCheck : IDoctorCheck
         string partial = path + ".partial";
         NpgsqlConnectionStringBuilder pg = new(connection);
 
-        ProcessStartInfo start = new(pgDump)
-        {
-            // ArgumentList, not a command line — the same reasoning as the nightly runner: a
-            // password or a database name with a space is otherwise a quoting bug in a process
-            // nobody is watching.
-            ArgumentList =
-            {
+        CommandResult result = await Command.RunAsync(
+            pgDump,
+            [
                 "--format=custom",
                 "--no-owner",
                 "--no-privileges",
@@ -140,48 +135,27 @@ internal sealed class BackupCheck : IDoctorCheck
                 "--port=" + pg.Port.ToString(CultureInfo.InvariantCulture),
                 "--username=" + pg.Username,
                 "--dbname=" + pg.Database,
-            },
-            RedirectStandardError = true,
-            RedirectStandardOutput = true,
-            UseShellExecute = false,
-        };
+            ],
+            DumpTimeout,
+            ct,
+            // The password goes in the environment, never in the argument list.
+            new Dictionary<string, string> { ["PGPASSWORD"] = pg.Password ?? "" });
 
-        // The password goes in the environment, never in the argument list.
-        start.Environment["PGPASSWORD"] = pg.Password ?? "";
-
-        using Process process = Process.Start(start)
-            ?? throw new InvalidOperationException("pg_dump did not start");
-
-        try
+        if (result.TimedOut)
         {
-            Task<string> stderr = process.StandardError.ReadToEndAsync(ct);
-            Task<string> stdout = process.StandardOutput.ReadToEndAsync(ct);
-
-            using CancellationTokenSource timeout = new(DumpTimeout);
-            using CancellationTokenSource linked =
-                CancellationTokenSource.CreateLinkedTokenSource(ct, timeout.Token);
-
-            await process.WaitForExitAsync(linked.Token);
-            await Task.WhenAll(stderr, stdout);
-
-            if (process.ExitCode != 0)
-            {
-                // First line only: pg_dump repeats the connection details below it.
-                throw new InvalidOperationException(
-                    $"pg_dump exited {process.ExitCode}: {FirstLine(stderr.Result)}");
-            }
-        }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-        {
-            Kill(process);
             throw new InvalidOperationException($"pg_dump exceeded {DumpTimeout.TotalMinutes:F0} min");
         }
-        finally
+
+        if (!result.Started)
         {
-            if (!process.HasExited)
-            {
-                Kill(process);
-            }
+            throw new InvalidOperationException($"pg_dump {result.Error}");
+        }
+
+        if (result.Exit != 0)
+        {
+            // First line only: pg_dump repeats the connection details below it.
+            throw new InvalidOperationException(
+                $"pg_dump exited {result.Exit}: {FirstLine(result.Stderr)}");
         }
 
         // Verified before it keeps its name, exactly as the nightly job does.
@@ -219,17 +193,5 @@ internal sealed class BackupCheck : IDoctorCheck
         string trimmed = text.Trim();
         int newline = trimmed.IndexOf('\n', StringComparison.Ordinal);
         return newline < 0 ? trimmed : trimmed[..newline];
-    }
-
-    private static void Kill(Process process)
-    {
-        try
-        {
-            process.Kill(entireProcessTree: true);
-        }
-        catch (InvalidOperationException)
-        {
-            // Exited between the check and the kill. Nothing to do.
-        }
     }
 }
