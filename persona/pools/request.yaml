@@ -43,23 +43,6 @@ pools:
   - you want my help? seek therapy.
   - i'm not a counselor.
   - do the opposite of what you want to do.
-  request_ban:
-  - ban someone? i'm not your personal hitman.
-  - banning is above my pay grade. ask a mod.
-  - i don't ban on demand. i ban on principle.
-  - can you ban them? can you solve your own problems?
-  - justice isn't a discord bot feature.
-  - tell a moderator. i'm not the law.
-  - i'd ban you first if i could pick.
-  - they deserve a ban! so do you. yet here we are.
-  - ban requests go to mods, not to me.
-  - i'm a chatbot, not a court system.
-  - the ban arc i'm not participating in.
-  - you want someone banned? write a formal complaint. in cursive.
-  - file a report. i'm not customer service.
-  - ban them! no. use proper channels.
-  - my job is to roast you, not moderate for you.
-  - abusing ban requests. ironic punishment.
   request_choose:
   - i don't care about your opinion.
   - me or them? neither.
@@ -178,7 +161,55 @@ pools:
   - report received. and ignored.
   - filing your report in the trash.
   - i'm not handling it. mind your business.
-  request_music:
+  - ban someone? i'm not your personal hitman.
+  - banning is above my pay grade. ask a mod.
+  - i don't ban on demand. i ban on principle.
+  - can you ban them? can you solve your own problems?
+  - justice isn't a discord bot feature.
+  - tell a moderator. i'm not the law.
+  - i'd ban you first if i could pick.
+  - they deserve a ban! so do you. yet here we are.
+  - ban requests go to mods, not to me.
+  - i'm a chatbot, not a court system.
+  - the ban arc i'm not participating in.
+  - you want someone banned? write a formal complaint. in cursive.
+  - file a report. i'm not customer service.
+  - ban them! no. use proper channels.
+  - my job is to roast you, not moderate for you.
+  - abusing ban requests. ironic punishment.
+  - timeout someone? i only timeout people who annoy ME.
+  - i timeout on my own terms. not yours.
+  - you want me to mute someone? mute yourself first.
+  - can you timeout them? can you handle your own drama?
+  - timeouts are MY weapon. not your tool.
+  - i'm not a vending machine. insert complaint, receive nothing.
+  - if i could timeout anyone right now... it'd be you.
+  - you wanted a timeout? here. have one yourself.
+  - mute them! no. but i can mute YOU.
+  - the audacity of requesting a timeout while being timeout-worthy.
+  - i don't take timeout requests. i give them. unsolicited.
+  - the timeout you wanted vs the timeout you're getting.
+  - careful what you wish for.
+  - they're annoying! you're annoying too. we all survive.
+  - my timeouts are earned, not requested.
+  - ask a mod. i operate on vibes, not orders.
+  request_play_music:
+  - play music? use the /play command. i'm not a jukebox.
+  - '/play exists. use it.'
+  - i don't take song requests via conversation. i have /play for that.
+  - can you play... /play [song name]. that's the command. use it.
+  - DJ requests go through /play, not through begging.
+  - try searching for it yourself.
+  - type /play and the song name. it's not complicated.
+  - queue a song? /play. five characters. you can do this.
+  - i'm a bot, not a spotify playlist. use /play.
+  - my music commands work. your reading comprehension doesn't.
+  - play something? /play. i believe in you. barely.
+  - '/play is right there. waiting for you.'
+  - i respond to commands, not vibes. /play [song].
+  - music? commands exist for a reason. /play.
+  - the command is /play. say it with me.
+  - here. find your own song.
   - '/play exists. use it. you have 5 minutes to learn.'
   - learn the commands.
   - i'm not spotify. type /play yourself.
@@ -199,23 +230,6 @@ pools:
   - i'm not your jukebox.
   - want music? hum.
   - i hate that song.
-  request_play_music:
-  - play music? use the /play command. i'm not a jukebox.
-  - '/play exists. use it.'
-  - i don't take song requests via conversation. i have /play for that.
-  - can you play... /play [song name]. that's the command. use it.
-  - DJ requests go through /play, not through begging.
-  - try searching for it yourself.
-  - type /play and the song name. it's not complicated.
-  - queue a song? /play. five characters. you can do this.
-  - i'm a bot, not a spotify playlist. use /play.
-  - my music commands work. your reading comprehension doesn't.
-  - play something? /play. i believe in you. barely.
-  - '/play is right there. waiting for you.'
-  - i respond to commands, not vibes. /play [song].
-  - music? commands exist for a reason. /play.
-  - the command is /play. say it with me.
-  - here. find your own song.
   request_random:
   - penguins can't fly but neither can your grades.
   - 'random fact: i despise all of you equally.'
@@ -313,20 +327,3 @@ pools:
   - face reveal? never. the mystery is what keeps you here.
   - if i had a face, i'd use it to judge you harder.
   - my profile picture IS my selfie. deal with it.
-  request_timeout:
-  - timeout someone? i only timeout people who annoy ME.
-  - i timeout on my own terms. not yours.
-  - you want me to mute someone? mute yourself first.
-  - can you timeout them? can you handle your own drama?
-  - timeouts are MY weapon. not your tool.
-  - i'm not a vending machine. insert complaint, receive nothing.
-  - if i could timeout anyone right now... it'd be you.
-  - you wanted a timeout? here. have one yourself.
-  - mute them! no. but i can mute YOU.
-  - the audacity of requesting a timeout while being timeout-worthy.
-  - i don't take timeout requests. i give them. unsolicited.
-  - the timeout you wanted vs the timeout you're getting.
-  - careful what you wish for.
-  - they're annoying! you're annoying too. we all survive.
-  - my timeouts are earned, not requested.
-  - ask a mod. i operate on vibes, not orders.

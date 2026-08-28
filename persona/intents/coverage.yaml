@@ -980,3 +980,54 @@ intents:
         - "\\bremember who (?:you|u|i) (?:are|am)$"
         - "\\bdo (?:you|u) (?:even )?remember$"
     pool: question_memory
+
+  # WRONG_NAME_CHATGPT above proved the shape: one competitor name, one authored pool, one route.
+  # The other three assistants each shipped a twenty-line pool and no route, so every "hey siri"
+  # fell through to the fallback and the pool's own "... siri? did you just call me siri?" sat
+  # unread. Each name is distinct enough to stand on a bare word: nobody names a thing "siri" or
+  # "alexa" by accident in a gaming chat, and the pools are written for exactly this cluster.
+  - id: WRONG_NAME_SIRI
+    match:
+      regex:
+        - "\\bsiri\\b"
+    pool: bot_wrong_name_siri
+    affect:
+      anger: 1.0
+
+  # "hello Alexa" is the corpus row. `\balexa\b` is the whole route -- it cannot reach "alexa,"
+  # inside another word because there is no such word, and the pool talks about the cylinder.
+  - id: WRONG_NAME_ALEXA
+    match:
+      regex:
+        - "\\balexa\\b"
+    pool: bot_wrong_name_alexa
+    affect:
+      anger: 1.0
+
+  # The pool's own lines are "'OK google'? OK timeout." and "that's all you know how to say:
+  # ok google." -- the wake phrase, not the search engine. Bare "google" stays out on purpose:
+  # "google it" is a request to search, not a misnaming, and WRONG_NAME_CHATGPT's sibling must not
+  # eat search rows. Anchored to the invocation forms only.
+  - id: WRONG_NAME_GOOGLE
+    match:
+      regex:
+        - "^(?:ok|okay|hey|alright|all right) google\\b"
+        - "\\bgoogle assistant\\b"
+    pool: bot_wrong_name_google
+    affect:
+      anger: 1.0
+
+  # The catch-all pool for every other misnaming: the one that spells it out ("i'm sonarr.
+  # s-o-n-a-r-r.") and answers "wrong AI. the disrespect." The triggers are the device-assistant
+  # names no specific pool owns and the explicit "wrong ai/bot" complaint. `hal` is HAL, the 9000
+  # one, not a substring -- word-bounded. Competitor LLMs (claude, gemini, ...) stay out on
+  # purpose: bare model names are comparison and opinion rows, not misnamings.
+  - id: WRONG_NAME
+    match:
+      regex:
+        - "\\b(?:jarvis|cortana|copilot|bixby|hal)\\b"
+        - "\\bwrong (?:ai|bot|assistant|name)\\b"
+        - "\\byou(?:'?re| are) (?:not |the wrong )?(?:ai|bot|assistant)\\b"
+    pool: bot_wrong_name
+    affect:
+      anger: 1.0
