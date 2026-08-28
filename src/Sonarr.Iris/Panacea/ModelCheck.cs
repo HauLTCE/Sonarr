@@ -73,28 +73,43 @@ internal sealed class ModelCheck : IDoctorCheck
     }
 
     /// <summary>
-    /// Where the model should be, and a note when that is not where the bot will look. MODEL_PATH
-    /// wins when it exists, because it is what the bot reads; otherwise the tree's own models/
-    /// directory, which is where the fetch script writes and where a dev box has one.
+    /// Where the model is, and a note when that is not the first place asked. Candidates in
+    /// order: <c>MODEL_PATH</c>, the tree's own models/ directory walking up from here, then the
+    /// host install path — the same resolution <c>PersonaCommand.ResolveRoot</c> uses, and for
+    /// the same reason.
     /// </summary>
     /// <remarks>
-    /// The note matters on the server, where the unit file sets MODEL_PATH inside its own
-    /// namespace: a green row against a path the bot cannot see would be exactly the lie this
-    /// module exists to refuse, so the row prints which directory it graded.
+    /// The host path is load-bearing rather than a nicety. On the server <c>.env</c> is shared
+    /// with the compose stack and holds the <em>container's</em> view (<c>/app/models/...</c>);
+    /// the unit file overrides it with the real path, and unit environment is invisible to this
+    /// process. Without the fallback the doctor reported a missing model while the bot had it
+    /// loaded and the semantic tier was running — a red row for a healthy thing, which is the
+    /// same class of lie as a green row for a broken one.
     /// </remarks>
     private static (string Dir, string? Note) Directory()
     {
         string? fromEnv = CliHost.Configuration["MODEL_PATH"];
-        if (!string.IsNullOrWhiteSpace(fromEnv))
+        if (!string.IsNullOrWhiteSpace(fromEnv) && System.IO.Directory.Exists(fromEnv))
         {
-            return System.IO.Directory.Exists(fromEnv)
-                ? (fromEnv, "MODEL_PATH")
-                : (FindUpwards(ModelRelative) ?? fromEnv,
-                    $"MODEL_PATH is {fromEnv}, which does not exist here");
+            return (fromEnv, null);
         }
 
-        return (FindUpwards(ModelRelative) ?? ModelRelative, null);
+        string? note = string.IsNullOrWhiteSpace(fromEnv)
+            ? null
+            : $"MODEL_PATH is {fromEnv}, which does not exist here";
+
+        if (FindUpwards(ModelRelative) is { } inTree)
+        {
+            return (inTree, note);
+        }
+
+        return System.IO.Directory.Exists(HostPath)
+            ? (HostPath, note)
+            : (fromEnv ?? ModelRelative, note);
     }
+
+    /// <summary>Where install-host.sh puts the model on the server.</summary>
+    private const string HostPath = "/opt/sonarr/models/minilm-l6-v2";
 
     private static readonly string ModelRelative = Path.Combine("models", "minilm-l6-v2");
 
