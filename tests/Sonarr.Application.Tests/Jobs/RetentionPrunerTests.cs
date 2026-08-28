@@ -36,6 +36,10 @@ internal sealed class PrunerEpisodeRepository : IEpisodeRepository
         long guildId, long userId, DateTimeOffset since, int limit, CancellationToken ct = default)
         => throw new NotSupportedException();
 
+    public Task<IReadOnlyList<Episode>> GetRecentAsync(
+        long guildId, DateTimeOffset since, int limit, CancellationToken ct = default)
+        => throw new NotSupportedException();
+
     public Task SetEmbeddingsAsync(
         IReadOnlyList<(long Id, float[] Vector)> embeddings, CancellationToken ct = default)
         => throw new NotSupportedException();

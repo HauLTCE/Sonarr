@@ -43,6 +43,17 @@ public interface IEpisodeRepository
         int limit,
         CancellationToken ct = default);
 
+    /// <summary>
+    /// The newest <paramref name="limit"/> episodes across all users of a guild since
+    /// <paramref name="since"/>, oldest-first — what <c>sonarr episodes</c> reads to show what
+    /// she has been saying lately, with <see cref="Episode.UserId"/> for attribution.
+    /// </summary>
+    Task<IReadOnlyList<Episode>> GetRecentAsync(
+        long guildId,
+        DateTimeOffset since,
+        int limit,
+        CancellationToken ct = default);
+
     /// <summary>Stores embeddings for rows the backfill job just computed.</summary>
     Task SetEmbeddingsAsync(
         IReadOnlyList<(long Id, float[] Vector)> embeddings,

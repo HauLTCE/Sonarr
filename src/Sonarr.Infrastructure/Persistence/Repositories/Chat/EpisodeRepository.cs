@@ -77,6 +77,30 @@ public sealed class EpisodeRepository(SonarrDbContext db) : IEpisodeRepository
         return newestFirst;
     }
 
+    /// <remarks>Same newest-first-then-reverse shape as the per-user overload.</remarks>
+    public async Task<IReadOnlyList<Episode>> GetRecentAsync(
+        long guildId,
+        DateTimeOffset since,
+        int limit,
+        CancellationToken ct = default)
+    {
+        if (limit <= 0)
+        {
+            return [];
+        }
+
+        List<Episode> newestFirst = await db.Episodes
+            .AsNoTracking()
+            .Where(e => e.GuildId == guildId && e.HappenedAt >= since)
+            .OrderByDescending(e => e.HappenedAt)
+            .ThenByDescending(e => e.Id)
+            .Take(limit)
+            .ToListAsync(ct);
+
+        newestFirst.Reverse();
+        return newestFirst;
+    }
+
     public async Task SetEmbeddingsAsync(
         IReadOnlyList<(long Id, float[] Vector)> embeddings, CancellationToken ct = default)
     {
