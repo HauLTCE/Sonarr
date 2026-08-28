@@ -1031,3 +1031,64 @@ intents:
     pool: bot_wrong_name
     affect:
       anger: 1.0
+
+  # Compound messages: two signals in one line, each with an authored pool that only makes sense
+  # when both halves are read together. INSULT_OPEN takes a bare jab at 3.3 in idle (2.3 base plus
+  # its activity bonus), so anything that has to beat it on a message containing a jab word is
+  # pinned above that; the bare-insult case still belongs to INSULT_OPEN because these patterns
+  # require the second half.
+  #
+  # A question wrapped around an insult: "why are you so stupid", "how are you this useless",
+  # "what is wrong with you". The pool answers the compound ("i'm not answering a question wrapped
+  # in an insult."), not the jab alone.
+  - id: MIXED_QUESTION_INSULT
+    match:
+      regex:
+        - "(?:why|how) (?:are|is|were) (?:you|u|this bot) (?:so |this |even )?(?:stupid|dumb|useless|annoying|bad|boring|cringe|broken)"
+        - "what is wrong with you\\b"
+    specificity: 3.5
+    pool: mixed_question_insult
+    affect:
+      anger: 1.0
+
+  # The affection twin of MIXED_QUESTION_INSULT: "why are you so perfect", "how are you so cute".
+  # QUESTION_IN would read these as genuine questions and answer with the lookup brush-off; this is
+  # a compliment shaped like one, and the pool cashes the compliment ("it takes zero effort to be
+  # this incredible.").
+  - id: MIXED_QUESTION_AFFECTION
+    match:
+      regex:
+        - "(?:why|how) (?:are|is) (?:you|u) (?:so |this |even )?(?:perfect|amazing|great|cute|adorable|incredible|awesome|based|pretty)"
+    pool: mixed_question_affection
+    affect:
+      trust: 0.5
+      amusement: 0.5
+
+  # Insult with affection bolted onto the back: "you're annoying but i like you anyway", "i hate
+  # you but you're cute". The pattern spans both halves, so its matched length carries it past
+  # INSULT_OPEN's single-word match, and the pool reads the whiplash ("ouch. oh wait, you like me.
+  # that's pathetic.").
+  - id: MIXED_INSULT_AFFECTION
+    match:
+      regex:
+        - "(?:hate|annoying|stupid|dumb|useless|trash|terrible|awful|cringe).{0,24}\\bbut\\b.{0,16}\\b(?:i |you )(?:love|like|adore)"
+    pool: mixed_insult_affection
+    affect:
+      amusement: 1.0
+
+  # The backhanded compliment: praise with a jab inside it ("you're actually not that stupid",
+  # "you're smarter than you look", "i like you even though you're annoying"). The negated-insult
+  # pattern also fixes the case hostility.yaml's header calls out — "you're not stupid" scoring as
+  # INSULT because nothing outranked the jab word. Pinned above INSULT_OPEN's idle 3.3 for the same
+  # reason MIXED_QUESTION_INSULT is.
+  - id: MIXED_AFFECTION_INSULT
+    match:
+      regex:
+        - "you(?:'?re| are) (?:actually |really )?not (?:that |even |so )?(?:stupid|dumb|bad|useless|annoying|boring|cringe)"
+        - "you(?:'?re| are) (?:actually|really|surprisingly) (?:smart|cute|funny|sweet|helpful|good)"
+        - "smarter than (?:you look|i thought|expected)"
+        - "i (?:like|love) (?:you|u).{0,16}(?:even though|although)\\b"
+    specificity: 3.5
+    pool: mixed_affection_insult
+    affect:
+      amusement: 0.5

@@ -304,6 +304,25 @@ intents:
   pool: humor_laughing
   affect:
     amusement: 2.0
+# JOKE is the laughter route (lol, lmao, haha) and DADJOKE takes puns and knock-knocks, but
+# nothing answered someone actually TELLING a joke — the setup-and-punchline shapes. She rates
+# every one of them terrible, which is exactly what humor_bad_joke is written for ("not
+# funny.", "crickets.", "... was i supposed to laugh?"). The setups are long fixed phrases,
+# so no keyword anywhere collides with these shapes.
+- id: BAD_JOKE
+  match:
+    regex:
+    - why did the (?:chicken|man|woman|dog|robot|bot|ai|skeleton|tomato)
+    - what do you call (?:a|an)
+    - (?:a|an) (?:man|guy|priest|rabbit|bear|horse) walks? into a bar
+    - hear (?:the one|this one) about
+    - it walks into
+  examples:
+  - why did the chicken cross the road
+  - what do you call a fish with no eyes
+  pool: humor_bad_joke
+  affect:
+    amusement: 0.5
 - id: DISAGREE
   match:
     keyword:

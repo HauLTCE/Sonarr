@@ -562,10 +562,12 @@ intents:
     - \bkal'?tsit\b
     - \bsilverash\b
   pool: topic_gacha_arknights
-# No v1 route carried gossip/leak chatter, so topic_leaks shipped unrouted. Anchored on the leak
-# and rumor vocabulary plus "spilled tea" — bare "tea" stays with DRINKS (that's the drink; this
-# is the gossip idiom), and the pool itself splits the two ("leak? i'm waterproof." vs "oh, tea?
-# i don't drink it.").
+# No v1 route carried leak/rumor chatter, so topic_leaks shipped unrouted. Anchored on the leak
+# and rumor vocabulary only. The tea idiom is deliberately NOT anchored here: "spill the tea" is
+# a gossip request and GOSSIP already owns it (gossip_asking answers it with "spill the tea? i
+# only drink coffee."), and bare "tea" is the drink and stays with DRINKS — RoutingBoundaryTests
+# pins both halves. topic_leaks's own tea lines ("oh, tea? i don't drink it.") are drama
+# refusals that read just as well against a leaked rumor.
 - id: TOPIC_LEAKS
   match:
     regex:
@@ -573,5 +575,4 @@ intents:
     - \bleaked\b
     - \bleaking\b
     - \brumou?rs?\b
-    - spilled (?:the )?tea
   pool: topic_leaks

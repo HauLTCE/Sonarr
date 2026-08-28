@@ -56,10 +56,21 @@ intents:
   match:
     regex:
     - roast me
-    - roast (?:him|her|them|my)
     - insult me
     - make fun of me
   pool: roast_requester
+  affect:
+    amusement: 1.0
+# The third-party half of ROAST_REQ. "roast me" draws roast_requester — lines aimed at the
+# sender — but roast_target is written entirely about someone else ("they are a walking l.",
+# "they are the human equivalent of a typo."), which a self-roast line cannot cash. Splitting
+# the pattern out redirects "roast him/her/them/my friend" to the pool written for it; the two
+# intents match disjoint messages, so nothing competes.
+- id: ROAST_TARGET
+  match:
+    regex:
+    - roast (?:him|her|them|my)
+  pool: roast_target
   affect:
     amusement: 1.0
 - id: COMPLIMENT_REQ

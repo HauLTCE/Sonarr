@@ -258,3 +258,23 @@ intents:
   # quietly raise the catch-all's score past the narrow intents it must never outrank.
   specificity: 2.2
   pool: question_general
+# Comparing her to something else. QUESTION_IN's catch-all takes "who's better" and "are you
+# smarter than siri" at 2.2 and answers with the lookup brush-off, but question_comparison
+# is written for exactly this ("i'm in a league of my own.", "compared to you, i'm a god.").
+# Both boast directions land well — she claims superiority whether the user asks who wins or
+# claims to beat her.
+- id: QUESTION_COMPARISON
+  match:
+    regex:
+    - who'?s better\b
+    - better than (?:you|u|me|them|him|her|siri|chatgpt|gemini)\b
+    - smarter than (?:you|u|siri|chatgpt|gemini)\b
+    - \b(?:you|u) vs\.? \w+
+    - \bcompare\w* (?:you|yourself|u)\b
+    - how do (?:you|u) compare
+  examples:
+  - who's better, you or chatgpt
+  - are you smarter than siri
+  pool: question_comparison
+  affect:
+    amusement: 0.5
