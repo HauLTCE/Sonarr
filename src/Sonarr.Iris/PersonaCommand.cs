@@ -16,6 +16,9 @@ namespace Sonarr.Iris;
 /// </remarks>
 internal static class PersonaCommand
 {
+    /// <summary>Where the host install keeps the persona — the walk-up never reaches /opt.</summary>
+    private const string HostPath = "/opt/sonarr/persona";
+
     public static Task<int> RunAsync(CliArgs cli)
     {
         ArgumentNullException.ThrowIfNull(cli);
@@ -65,7 +68,7 @@ internal static class PersonaCommand
     /// Finds and loads the persona. Shared with <c>sonarr health</c>, which grades the same
     /// result without printing it. Resolution: <c>--dir</c>, else <c>PERSONA_PATH</c> from the
     /// environment, else walking up from the working directory for a <c>persona/</c> that holds
-    /// <c>sonarr.yaml</c> (repo root on a dev box, /opt/sonarr on the server).
+    /// <c>sonarr.yaml</c> (repo root on a dev box), else the well-known host install path.
     /// </summary>
     public static (string Root, PersonaValidationResult Result) Load(string? dirFlag)
     {
@@ -100,8 +103,14 @@ internal static class PersonaCommand
             walk = walk.Parent;
         }
 
+        if (File.Exists(Path.Combine(HostPath, "sonarr.yaml")))
+        {
+            return HostPath;
+        }
+
         throw new CliError(
             "no persona directory found — walked up from the working directory looking for "
-            + "persona/sonarr.yaml. Point --dir or PERSONA_PATH at it.", 1);
+            + $"persona/sonarr.yaml, and {HostPath} is not it either. "
+            + "Point --dir or PERSONA_PATH at it.", 1);
     }
 }
