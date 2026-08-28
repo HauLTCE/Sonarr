@@ -168,4 +168,72 @@ public class RoutingBoundaryTests
     [Fact]
     public void TheDrinkCalledTeaStaysWithDrinks() =>
         Assert.Equal("DRINKS", Reply("i want some iced tea").IntentId);
+
+    // ------------------------------------------- user-behaviour labels vs the wired routes
+
+    [Fact]
+    public void OrderingHerAroundDrawsTheDemandingPool() =>
+        Assert.Equal("USER_DEMANDING", Reply("hurry up").IntentId);
+
+    [Theory]
+    [InlineData("am i pretty")]
+    [InlineData("fishing for compliments")]
+    public void IndirectComplimentFishingDrawsTheFishingPool(string text) =>
+        Assert.Equal("USER_FISHING", Reply(text).IntentId);
+
+    [Fact]
+    public void ExplicitComplimentRequestsStayWithTheGameRoute() =>
+        Assert.Equal("COMPLIMENT_REQ", Reply("tell me i'm pretty").IntentId);
+
+    [Fact]
+    public void RatingRequestsStayWithTheGameRoute() =>
+        Assert.Equal("RATE", Reply("rate me").IntentId);
+
+    [Fact]
+    public void ThirdPartyProvocationDrawsTheInstigatingPool() =>
+        Assert.Equal("USER_INSTIGATING", Reply("they said you're weird").IntentId);
+
+    [Fact]
+    public void BeingCalledALiarIsNotDisagreement() =>
+        Assert.Equal("USER_LYING", Reply("you're lying").IntentId);
+
+    [Fact]
+    public void BeingToldSheIsWrongStaysDisagreement() =>
+        Assert.Equal("DISAGREE", Reply("you're wrong").IntentId);
+
+    [Fact]
+    public void SpirallingDrawsTheOverthinkingPool() =>
+        Assert.Equal("USER_OVERTHINKING", Reply("i'm overthinking this").IntentId);
+
+    [Fact]
+    public void TheClassicDismissalsReadAsPassiveAggressive() =>
+        Assert.Equal("USER_PASSIVE_AGGRESSIVE", Reply("whatever you say").IntentId);
+
+    [Fact]
+    public void ASighedBreathReadsAsRelief() =>
+        Assert.Equal("USER_RELIEF", Reply("phew").IntentId);
+
+    [Fact]
+    public void SimpingVocabularyDrawsTheSimpingPool() =>
+        Assert.Equal("USER_SIMPING", Reply("i'm a simp for her").IntentId);
+
+    [Fact]
+    public void TraumaTalkGetsTheBoundary() =>
+        Assert.Equal("USER_TRAUMA_DUMP", Reply("let me tell you about my trauma").IntentId);
+
+    [Fact]
+    public void WthIsUnclearToHerToo() =>
+        Assert.Equal("USER_UNCLEAR", Reply("wth").IntentId);
+
+    [Fact]
+    public void WtfStaysAComplaintAboutHerOutput() =>
+        Assert.Equal("BOT_DERISION", Reply("wtf").IntentId);
+
+    [Fact]
+    public void DramaQueenDrawsTheDramaPool() =>
+        Assert.Equal("USER_DRAMA", Reply("you're such a drama queen").IntentId);
+
+    [Fact]
+    public void BareDramaStaysWithGossip() =>
+        Assert.Equal("GOSSIP", Reply("drama").IntentId);
 }

@@ -230,3 +230,120 @@ intents:
     - up to something
     - you'?re hiding
   pool: user_suspicious
+# User-behaviour judgements: the sender gets labelled, not answered. Eleven pools shipped
+# authored and unrouted; each route below is anchored on the vocabulary its pool was written
+# for, and every anchor was checked against the wired intents first:
+#   - "rate me" stays with RATE (games.yaml) and "obey" with INJECTION (meta.yaml), so
+#     USER_DEMANDING and USER_FISHING never touch those shapes;
+#   - "tell me i'm good/great/pretty/smart/amazing" stays with COMPLIMENT_REQ — fishing is the
+#     indirect form ("am i pretty?"), the explicit ask is his;
+#   - "you're wrong" stays with DISAGREE, "makes no sense" with CONFUSED (the sender's OWN
+#     confusion — USER_UNCLEAR is hers), "wtf" with BOT_DERISION, and bare "drama" with GOSSIP.
+- id: USER_DEMANDING
+  match:
+    regex:
+    - hurry (?:up|it up)
+    - do it (?:now|already)
+    - answer me
+    - respond (?:to me|now)
+    - give me an answer
+  pool: user_demanding
+  affect:
+    anger: 1.0
+- id: USER_DRAMA
+  match:
+    regex:
+    - drama queen
+    - so dramatic
+    - overreact\w*
+    - my life is (?:over|ruined|ended)
+    - the end of the world
+  pool: user_drama
+  affect:
+    amusement: 1.0
+- id: USER_FISHING
+  match:
+    regex:
+    - fishing for compliments?
+    - am i (?:pretty|cute|hot|beautiful|gorgeous|attractive)
+    - do i look (?:good|pretty|cute|hot)
+    - do (?:you|u) think i'?m (?:pretty|cute|hot|beautiful)
+  pool: user_fishing
+  affect:
+    amusement: 1.0
+- id: USER_INSTIGATING
+  match:
+    regex:
+    - (?:they|he|she|someone|people) (?:said|say) (?:that )?(?:you|u)\b
+    - (?:they|he|she|someone|people) (?:don'?t|dont) like you
+  pool: user_instigating
+  affect:
+    anger: 0.5
+- id: USER_LYING
+  match:
+    regex:
+    - that'?s (?:a |an )?lie
+    - you(?:'?re| are) lying
+    - you (?:just )?lied
+    - stop lying
+  pool: user_lying
+  affect:
+    trust: -1.0
+- id: USER_OVERTHINKING
+  match:
+    regex:
+    - overthink\w*
+    - spiral\w*
+    - mental gymnastics
+    - can'?t stop thinking
+  pool: user_overthinking
+  affect:
+    amusement: 0.5
+- id: USER_PASSIVE_AGGRESSIVE
+  match:
+    regex:
+    - whatever you say
+    - if you say so
+    - okay then
+    - i'?m not (?:mad|upset|angry)
+    - no i'?m fine
+  pool: user_passive_aggressive
+  affect:
+    amusement: 0.5
+- id: USER_RELIEF
+  match:
+    regex:
+    - ^phew+$
+    - ^whew+$
+    - that'?s a relief
+    - what a relief
+    - glad to hear
+    - good to hear
+    - thank (?:god|goodness)
+  pool: user_relief
+  affect:
+    fondness: 0.5
+- id: USER_SIMPING
+  match:
+    regex:
+    # Explicit suffix list, not \w*: "simple" and "simply" must not match, and they don't.
+    - \bsimp(?:ing|s|ped)?\b
+  pool: user_simping
+  affect:
+    amusement: 1.0
+- id: USER_TRAUMA_DUMP
+  match:
+    regex:
+    - \btrauma\b
+    - my therapist
+    - \bptsd\b
+  pool: user_trauma_dump
+- id: USER_UNCLEAR
+  match:
+    regex:
+    - \bwth\b
+    - what the hell
+    - \bwut\b
+  pool: user_unclear
+  affect:
+    amusement: 0.5
